@@ -187,6 +187,7 @@ select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);backg
 .rc-qty{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);flex:0 0 auto}
 .rc-qty input{width:52px!important;flex:0 0 52px!important;text-align:center}
 .st-date{flex:0 0 46px;font-size:11px;font-weight:700;color:var(--muted)}
+.st-linked{border-color:var(--emerald-border)!important;color:var(--emerald-text)!important}
 .st-note{font-size:11px;color:var(--amber-text);margin-top:4px;padding-left:24px}
 .set-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
 .set-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px}
@@ -341,7 +342,7 @@ function rolloverBills(){
   recurringItems=recurringItems.map(r=> (r.statusMonth||SEED_MONTH)===cm? r : {...r,status:'upcoming',actualAmount:null,txId:null,accountId:null,statusMonth:cm});
 }
 
-function freshLogState(){ return {type:'expense',amount:'',date:todayISO(),categoryId:'cat_food',accountId:mainAccountId()||(accounts[0]?accounts[0].id:null),pocketId:pockets[0]?pockets[0].id:null,title:'',tag:'',essentialId:null,essentialQty:1}; }
+function freshLogState(){ return {billId:null,type:'expense',amount:'',date:todayISO(),categoryId:'cat_food',accountId:mainAccountId()||(accounts[0]?accounts[0].id:null),pocketId:pockets[0]?pockets[0].id:null,title:'',tag:'',essentialId:null,essentialQty:1}; }
 let logState=freshLogState();
 
 /* ============ PERSISTENCE & UNDO ============ */
@@ -534,7 +535,8 @@ function reverseTx(tx){
 }
 
 function fmt(n,sign){ if(n===null||n===undefined) return '—'; const neg=n<0; const s='Rp '+Math.round(Math.abs(n)).toLocaleString('id-ID'); if(sign){ if(n>0) return '+'+s; if(neg) return '-'+s; } return neg?'-'+s:s; }
-function parseAmt(v){ return Math.round(parseFloat(v)||0); }
+/* Rupiah has no cents: "15.000", "15,000" and "Rp15000" all mean 15000. */
+function parseAmt(v){ return rcNum(String(v??'')); } // also drops pasted cents: "1.250.000,00" = 1250000
 function esc(s){ return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function catById(id){ return categories.find(c=>c.id===id); }
 function accById(id){ return accounts.find(a=>a.id===id); }
@@ -740,8 +742,6 @@ function setEssFilter(f){ essentialsFilter=f; render(); }
 function renderPockets(fin){
   document.getElementById('view-pockets').innerHTML=`
   ${pockets.length?'':`<div class="card" style="text-align:center;padding:28px;margin-bottom:16px"><p style="font-weight:700;margin:0">Belum ada saving pocket</p><p class="sub" style="margin:6px 0 12px">Buat pocket untuk tabungan seperti dana darurat atau liburan.</p><button class="btn btn-dark" onclick="openPocketForm()">+ Buat pocket</button></div>`}
-  <div class="sweep ${pockets.length?'':'hidden'}"><div><div style="font-size:11px;font-weight:800;color:#6ee7b7">✦ SIMULATOR AUTO-SWEEP AKHIR BULAN</div><h3 style="color:#fff;font-size:17px;margin-top:6px">Otomatis pindahkan sisa hemat tagihan ke tabungan</h3><p style="font-size:12px;color:#d1fae5;margin:6px 0 0;max-width:560px">${fin.recurringNetVariance>0?`Kamu punya +${fmt(fin.recurringNetVariance)} hemat bersih dari tagihan yang di bawah budget bulan ini.`:`Coba sweep Rp 250.000 dari buffer Safe-to-Spend langsung ke salah satu pocket.`}</p></div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap">${pockets.slice(0,2).map((p,i)=>`<button class="btn" style="${i===0?'background:#10b981;border-color:#10b981;color:#042f2e;font-weight:800':'background:#ffffff22;color:#fff;border-color:#ffffff33'}" onclick="autoSweep('${p.id}')">Sweep → ${esc(p.name)}</button>`).join('')}</div></div>
 
   <h3 style="margin:22px 0 4px">Virtual Saving Pockets</h3><p style="font-size:12px;color:var(--muted);margin:0 0 14px"> Amplop terlindungi di dalam rekening bank kamu. Belanja dari pocket tidak mengacaukan budget bulanan.</p>
   <div class="grid" style="grid-template-columns:1fr 1fr">${pockets.map(p=>{ const pct=Math.min(100,Math.round(p.currentAmount/p.targetAmount*100)); return `<div class="card"><div style="display:flex;justify-content:space-between;gap:10px"><div style="display:flex;gap:10px;align-items:center"><span class="cat-ico" style="width:42px;height:42px;border-radius:12px;background:var(--emerald-bg);color:var(--emerald-text)"><i data-lucide="${p.icon}"></i></span><div><h3>${esc(p.name)}</h3><p class="sub">${esc(p.description)}</p></div></div><span class="badge ok">${pct}%</span></div>
@@ -775,7 +775,7 @@ function renderActivity(){
     ${(searchQuery||filterType!=='all'||filterCategory!=='all')?`<button class="btn" onclick="clearFilters()">✕ Reset filter</button>`:''}
   </div><p style="font-size:11px;color:var(--muted);margin:10px 0 0">${transactions.length} transaksi total • menampilkan ${groups.reduce((s,g)=>s+g.items.length,0)} transaksi</p></div>
   <div style="margin-top:14px">${groups.length===0?`<div class="card" style="text-align:center;padding:36px"><p style="font-weight:700;margin:0">Tidak ada transaksi yang cocok</p><p style="font-size:12px;color:var(--muted)">Coba ubah kata kunci atau reset filter di atas.</p><button class="btn btn-dark" onclick="clearFilters()">Reset filter</button></div>`: groups.map(g=>`<div class="tx-group"><div class="tx-group-head"><strong>${esc(fmtDate(g.date))} • ${esc(g.date)}</strong><span>Net harian: <strong style="color:${g.net>=0?'var(--emerald)':'inherit'}">${fmt(g.net,true)}</strong></span></div>${g.items.map(tx=>{ const cat=catById(tx.categoryId), acc=accById(tx.accountId), pock=pockById(tx.pocketId); const isIn=tx.type==='income'||tx.type==='refund'; return `<div class="tx-row"><div style="display:flex;gap:12px;align-items:center;min-width:0"><span class="tx-ico ${isIn?'green':tx.type==='transfer'?'indigo':''}"><i data-lucide="${tx.type==='transfer'?'arrow-right-left':tx.type==='refund'?'rotate-ccw':(cat?cat.icon:'wallet')}"></i></span><div style="min-width:0"><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><strong style="font-size:13px">${esc(tx.title)}</strong>${tx.tag?`<span class="tag">${esc(tx.tag)}</span>`:''}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${acc?esc(acc.name):''}${cat?' • '+cat.name:''}${pock?' • Pocket: '+esc(pock.name):''}</div></div></div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0"><strong style="font-size:13px;color:${isIn?'var(--emerald)':tx.type==='transfer'?'var(--indigo)':'inherit'}">${isIn?'+'+fmt(tx.amount): tx.type==='transfer'?fmt(tx.amount):'-'+fmt(tx.amount)}</strong><button class="icon-btn" title="Hapus entri ini (saldo akan dikembalikan)" aria-label="Hapus ${esc(tx.title)}" onclick="deleteTx('${tx.id}')">🗑</button></div></div>`;}).join('')}</div>`).join('')}</div>
-  <div class="card" style="margin-top:14px;padding:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><p style="margin:0;font-size:12px;color:var(--muted)">Data tersimpan otomatis di browser ini saja. Ekspor cadangan secara berkala agar aman.</p><div style="display:flex;gap:8px"><button class="btn btn-sm" onclick="exportData()">Ekspor cadangan</button><label class="btn btn-sm" style="cursor:pointer">Impor cadangan<input type="file" accept="application/json,.json" class="hidden" onchange="importData(this.files[0]);this.value=''"></label></div></div>`;
+  <div class="card" style="margin-top:14px;padding:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><p style="margin:0;font-size:12px;color:var(--muted)">Data tersinkron otomatis ke akunmu dan tersimpan juga di perangkat ini. Ekspor cadangan sesekali untuk arsip pribadi.</p><div style="display:flex;gap:8px"><button class="btn btn-sm" onclick="exportData()">Ekspor cadangan</button><label class="btn btn-sm" style="cursor:pointer">Impor cadangan<input type="file" accept="application/json,.json" class="hidden" onchange="importData(this.files[0]);this.value=''"></label></div></div>`;
   const si=document.getElementById('searchInput'); if(si && document.activeElement!==si){ /* keep focus handling simple */ }
 }
 let searchDeb=null;
@@ -798,16 +798,33 @@ function selectEssentialInLogger(id,qty,keepInput){
   logState.essentialId=id; logState.essentialQty=q;
   if(keepInput){
     // Confirming a suggestion: keep what the user already typed or picked.
-    if(!parseAmt(logState.amount)) logState.amount=String(item.unitPrice*q);
+    if(!parseAmt(logState.amount)) logState.amount=String(Math.round(item.unitPrice*q));
     if(!logState.categoryTouched) logState.categoryId=item.categoryId;
   } else {
-    logState.categoryId=item.categoryId; logState.amount=String(item.unitPrice*q); logState.title= q>1? `${item.name} (${q}x)` : item.name;
+    logState.categoryId=item.categoryId; logState.amount=String(Math.round(item.unitPrice*q)); logState.title= q>1? `${item.name} (${q}x)` : item.name;
   }
   openLogger();
 }
 function unlinkEssential(){ logState.essentialId=null; logState.essentialQty=1; updateLoggerPreview(); }
 /* Linked-essential panel or a confirm-to-link suggestion. Rebuilt in place so typing never loses focus. */
+function linkBillInLogger(id){
+  const r=recurringItems.find(x=>x.id===id); if(!r) return;
+  logState.billId=id; logState.essentialId=null; logState.categoryId=r.categoryId;
+  if(!parseAmt(logState.amount)) logState.amount=String(Math.round(r.expectedAmount));
+  if(!logState.title.trim()) logState.title=r.name;
+  openLogger();
+}
+function unlinkBill(){ logState.billId=null; updateLoggerPreview(); }
 function loggerPreviewHTML(){
+  if(logState.type==='expense'&&logState.billId){
+    const r=recurringItems.find(x=>x.id===logState.billId);
+    if(r) return `<div class="ess-suggest" style="border-style:solid;border-color:var(--emerald-border);background:var(--emerald-bg)"><span style="color:var(--emerald-text)">✓ Dicatat sebagai pembayaran tagihan <strong>${esc(r.name)}</strong> (perkiraan ${fmt(r.expectedAmount)})</span><button class="link-btn" style="font-size:11px" onclick="unlinkBill()">Lepas tautan</button></div>`;
+  }
+  if(logState.type==='expense'&&!logState.essentialId){
+    // A name match wins; an amount-only match must not hide an Essentials suggestion.
+    const b=billByName(logState.title) || (essentialSuggestion()? null : billByAmount(parseAmt(logState.amount)));
+    if(b) return `<div class="ess-suggest"><span>Ini pembayaran tagihan <strong>${esc(b.name)}</strong> (tgl ${b.dueDay})?</span><button class="btn btn-sm" onclick="linkBillInLogger('${b.id}')">Ya, tandai lunas</button></div>`;
+  }
   const m=matchedEssential();
   if(m){
     const cur=parseAmt(logState.amount), iq=logState.essentialQty;
@@ -831,14 +848,14 @@ function openLogger(){
   const body=`
     <div class="type-grid" style="margin-bottom:12px">${[['expense','Expense'],['income','Income']].map(([id,l])=>`<button class="${logState.type===id?'active':''}" onclick="setLogType('${id}')">${l}</button>`).join('')}</div>
     ${logState.type==='expense'?`<div class="ql-imports"><button class="btn" onclick="openReceipt()"><i data-lucide="receipt"></i>Scan struk</button><button class="btn" onclick="openStatement()"><i data-lucide="file-text"></i>Impor tagihan kartu</button></div>`:''}
-    <div class="field"><label for="qlAmt">Nominal (Rp)</label><input id="qlAmt" class="big" type="number" inputmode="numeric" value="${esc(logState.amount)}" oninput="logState.amount=this.value;updateLoggerPreview()" placeholder="0"><div id="qlAmtHint" style="font-size:11px;color:var(--muted);margin-top:4px">= ${fmt(parseAmt(logState.amount))}</div></div>
+    <div class="field"><label for="qlAmt">Nominal (Rp)</label><input id="qlAmt" class="big" type="text" inputmode="numeric" autocomplete="off" value="${parseAmt(logState.amount)?parseAmt(logState.amount).toLocaleString('id-ID'):''}" oninput="fmtAmtInput(this);logState.amount=this.value;updateLoggerPreview()" onpaste="pasteAmt(event,this)" placeholder="0"><div id="qlAmtHint" style="font-size:11px;color:var(--muted);margin-top:4px">= ${fmt(parseAmt(logState.amount))}</div></div>
     <div id="qlMatch">${loggerPreviewHTML()}</div>
     <div class="field"><label for="qlTitle">Judul / Catatan</label><input id="qlTitle" type="text" value="${esc(logState.title)}" oninput="logState.title=this.value;updateLoggerPreview()" placeholder="cth. Kopi pagi, Ayam 2x, Gaji…"></div>
     <div class="field"><label for="qlDate">Tanggal</label><input id="qlDate" type="date" value="${esc(logState.date)}" max="${todayISO()}" oninput="logState.date=this.value"></div>
     <div class="field"><label>Kategori</label><select onchange="logState.categoryId=this.value;logState.categoryTouched=true">${categories.filter(c=> logState.type==='income'? c.type==='income' : c.type==='expense').map(c=>`<option value="${c.id}" ${logState.categoryId===c.id?'selected':''}>${c.name}</option>`).join('')}</select></div>
     <div class="field"><label>Rekening</label><select onchange="logState.accountId=this.value">${accounts.map(a=>`<option value="${a.id}" ${logState.accountId===a.id?'selected':''}>${esc(a.name)} — ${fmt(a.balance)}</option>`).join('')}</select></div>
     <div class="field"><label>Tag (opsional)</label><input type="text" value="${esc(logState.tag)}" oninput="logState.tag=this.value" placeholder="#weekend, #essential…"></div>
-    <p style="font-size:11px;color:var(--muted);line-height:1.5;margin:0">Perubahan saldo, pocket, dan progres Essentials langsung terhitung begitu disimpan dan tersimpan otomatis di browser ini.</p>
+    <p style="font-size:11px;color:var(--muted);line-height:1.5;margin:0">Saldo, pocket, tagihan, dan progres Essentials langsung diperbarui begitu disimpan, lalu tersinkron ke akunmu.</p>
   `;
   modalShell('Quick Log — catat dalam 10 detik', body, `<button id="qlSave" class="btn btn-emerald" style="width:100%;padding:13px;font-size:14px" onclick="saveQuickLog()">Simpan • ${fmt(parseAmt(logState.amount))}</button>`);
   const amtEl=document.getElementById('qlAmt'); if(amtEl&&!logState.amount) amtEl.focus();
@@ -852,6 +869,14 @@ function saveQuickLog(){
   const qlDate= /^\d{4}-\d{2}-\d{2}$/.test(logState.date||'')? logState.date : todayISO();
   if(qlDate>todayISO()){ toast('Tanggal tidak boleh di masa depan.'); return; }
   const snap=snapshot();
+  const bill= logState.type==='expense'&&logState.billId? recurringItems.find(r=>r.id===logState.billId) : null;
+  if(bill){
+    const title=logState.title.trim()||bill.name, accId=logState.accountId;
+    const thisMonth=recordBillPayment(bill,amt,accId,qlDate,{title,categoryId:logState.categoryId,tag:logState.tag.trim()||'#recurring'});
+    closeModal(); logState=freshLogState(); render();
+    toastUndo(thisMonth? `"${bill.name}" ditandai lunas: ${fmt(amt)}` : `Pembayaran "${bill.name}" dicatat untuk bulan lalu.`, snap);
+    return;
+  }
   const newTx={id:'tx_'+Date.now(),date:qlDate,title:logState.title.trim()||defTitle,amount:amt,type:logState.type,categoryId: logState.type==='transfer'?null:logState.categoryId,accountId:logState.accountId,tag: logState.tag.trim()||(logState.type==='refund'?'#reimbursement': m?'#essential':'#quick-log'),pocketId: logState.type==='transfer'?logState.pocketId:null,essentialId: m?m.id:null,essentialQty: m?logState.essentialQty:null};
   accounts=accounts.map(a=>{ if(a.id!==logState.accountId) return a; if(logState.type==='expense') return {...a,balance:a.balance-amt}; if(logState.type==='income'||logState.type==='refund') return {...a,balance:a.balance+amt}; return a; });
   if(logState.type==='transfer'&&logState.pocketId) pockets=pockets.map(p=> p.id===logState.pocketId? {...p,currentAmount:p.currentAmount+amt}:p);
@@ -1105,7 +1130,21 @@ function stItem(t){
   else if(ST_FEE.test(t.desc)){ note='Biaya bank'; categoryId='cat_utilities'; }
   if(include&&transactions.some(x=>x.type==='expense'&&x.date===t.date&&x.amount===t.amount)){ include=false; note='Mungkin sudah tercatat (tanggal & nominal sama)'; }
   if(fx) note=(note?note+' · ':'')+`${fx[1].toUpperCase()} ${fx[2]}`;
-  return {date:t.date,name,raw:t.desc,amount:t.amount,credit:t.credit,include,categoryId,note};
+  // Suggest a link so the charge doesn't get counted twice (once here, once as a reserved bill/Essential).
+  let link='';
+  if(!t.credit){
+    const b=billByName(name), e=b? null : rcMatchEssential(name), amt=(!b&&!e)? billByAmount(t.amount) : null;
+    if(b){ link='bill:'+b.id; categoryId=b.categoryId; }
+    else if(e){ link='ess:'+e.id; categoryId=e.categoryId; }
+    else if(amt) note=(note?note+' · ':'')+`Nominal sama dengan tagihan "${amt.name}" — tautkan jika benar`; // hint only, not preselected
+  }
+  return {date:t.date,name,raw:t.desc,amount:t.amount,credit:t.credit,include,categoryId,note,link};
+}
+function stLinkOptions(it){
+  const opt=(v,l)=>`<option value="${v}" ${it.link===v?'selected':''}>${l}</option>`;
+  return opt('','Tidak ditautkan')
+    + (recurringItems.length? `<optgroup label="Tagihan rutin">${recurringItems.map(r=>opt('bill:'+r.id,'Tagihan: '+esc(r.name))).join('')}</optgroup>` : '')
+    + (essentials.length? `<optgroup label="Essentials">${essentials.map(e=>opt('ess:'+e.id,'Essentials: '+esc(e.name))).join('')}</optgroup>` : '');
 }
 function openStatement(){
   if(!accounts.length){ toast('Tambahkan rekening dulu di Pengaturan.'); goTab('settings'); return; }
@@ -1137,7 +1176,7 @@ function stUnlock(){ const pw=document.getElementById('stPw').value; stReadFile(
 function stUpdate(i,field,value){ const it=stmt.items[i]; if(!it) return; it[field]= field==='amount'? (parseInt(String(value).replace(/\D/g,''),10)||0) : value; stUpdateSummary(); }
 function stToggle(i){ stmt.items[i].include=!stmt.items[i].include; renderStatement(); }
 function stRemove(i){ stmt.items.splice(i,1); renderStatement(); }
-function stAll(on){ stmt.items.forEach(it=>{ if(!it.credit) it.include=on; }); renderStatement(); }
+function stAll(on){ stmt.items.forEach(it=>{ if(!it.credit&&!(on&&it.note&&/dobel|sudah tercatat/i.test(it.note))) it.include=on; }); renderStatement(); } // never re-tick likely duplicates
 function stSelected(){ return stmt.items.filter(it=>it.include&&it.amount>0&&!it.credit); }
 function stUpdateSummary(){
   const sel=stSelected(), sum=sel.reduce((s,it)=>s+it.amount,0);
@@ -1166,6 +1205,7 @@ function renderStatement(){
       <div class="rc-line rc-sub">${it.credit?'<span style="flex:1"></span>':`<select aria-label="Kategori" onchange="stUpdate(${i},'categoryId',this.value)">${catOpts(it.categoryId)}</select>`}
         <input type="text" inputmode="numeric" aria-label="Nominal" class="rc-amt" value="${it.amount.toLocaleString('id-ID')}" oninput="stUpdate(${i},'amount',this.value)" ${it.credit?'disabled':''}>
         <button class="icon-btn" aria-label="Hapus baris" onclick="stRemove(${i})">✕</button></div>
+      ${it.credit||(!recurringItems.length&&!essentials.length)?'':`<div class="rc-line rc-sub"><select aria-label="Tautkan ke tagihan atau Essentials" class="${it.link?'st-linked':''}" onchange="stUpdate(${i},'link',this.value);this.classList.toggle('st-linked',!!this.value)">${stLinkOptions(it)}</select></div>`}
       ${it.note?`<div class="st-note">${esc(it.note)}</div>`:''}
     </div>`).join('')}
     <div id="stSum" class="rc-sum"></div>`;
@@ -1178,22 +1218,47 @@ function stSave(){
   const sel=stSelected();
   if(!sel.length){ toast('Tidak ada transaksi terpilih.'); return; }
   const snap=snapshot(), stamp=Date.now(), accId=stmt.accountId;
-  const newTx=sel.map((it,i)=>({id:`tx_cc_${stamp}_${i}`,date:it.date,title:it.name.trim()||'Transaksi kartu',amount:it.amount,type:'expense',categoryId:it.categoryId,accountId:accId,tag:'#kartu-kredit',pocketId:null,essentialId:null,essentialQty:null}));
-  newTx.forEach(t=>adjBalance(accId,-t.amount));
+  const newTx=[]; // plain charges; bill-linked ones are recorded through recordBillPayment
+  sel.forEach((it,i)=>{
+    const title=it.name.trim()||'Transaksi kartu', [kind,id]=(it.link||'').split(':');
+    const bill= kind==='bill'? recurringItems.find(r=>r.id===id) : null, ess= kind==='ess'? essentials.find(e=>e.id===id) : null;
+    if(bill){ recordBillPayment(bill,it.amount,accId,it.date,{title,tag:'#kartu-kredit'}); return; }
+    const t={id:`tx_cc_${stamp}_${i}`,date:it.date,title,amount:it.amount,type:'expense',categoryId:ess?ess.categoryId:it.categoryId,accountId:accId,tag:ess?'#essential':'#kartu-kredit',pocketId:null,essentialId:ess?ess.id:null,essentialQty:ess?1:null};
+    adjBalance(accId,-t.amount); newTx.push(t);
+  });
   transactions=[...newTx,...transactions].sort((a,b)=>b.date.localeCompare(a.date));
-  const sum=newTx.reduce((s,t)=>s+t.amount,0);
+  const sum=sel.reduce((s,it)=>s+it.amount,0);
   stmt=null; closeModal(); render();
-  toastUndo(`${newTx.length} transaksi kartu kredit tersimpan (${fmt(sum)}).`,snap);
+  toastUndo(`${sel.length} transaksi kartu kredit tersimpan (${fmt(sum)}).`,snap);
 }
 
 /* Recurring */
+/* An upcoming bill this payment probably belongs to: a word of the bill name (4+ letters) in the
+   text, or — if no name matches — exactly the bill's expected amount. Suggested only, never applied silently. */
+const BILL_STOP=new Set(['bayar','bayaran','tagihan','cicilan','bulanan','bulan','iuran','biaya','bank','rumah','langganan','paket','sewa','pembayaran','payment','monthly','bill','home','card','kartu','kredit']);
+const billWords=t=>String(t||'').toLowerCase().split(/[^a-z0-9]+/).filter(w=>w.length>=4&&!BILL_STOP.has(w));
+function billByName(text){ const words=billWords(text); return words.length? recurringItems.filter(r=>r.status==='upcoming').find(r=>billWords(r.name).some(w=>words.includes(w)))||null : null; }
+function billByAmount(amount){ return amount>0? recurringItems.filter(r=>r.status==='upcoming').find(r=>r.expectedAmount===amount)||null : null; }
+function billSuggestion(text,amount){ return billByName(text)||billByAmount(amount); }
+/* Records paying `item`. Only a payment dated in the current month marks this month's bill as paid;
+   a late payment for last month is saved as history and leaves this month's bill reserved. */
+function recordBillPayment(item,amt,accId,date,extra){
+  const txId='tx_rec_'+Date.now()+Math.random().toString(36).slice(2,5);
+  const thisMonth= date.slice(0,7)===currentMonth();
+  adjBalance(accId,-amt);
+  const tx={id:txId,date,title:item.name,amount:amt,type:'expense',categoryId:item.categoryId,accountId:accId,tag:'#recurring',pocketId:null,recurringId:item.id,...(extra||{})};
+  transactions=[tx,...transactions].sort((a,b)=>b.date.localeCompare(a.date));
+  if(thisMonth&&item.status!=='paid') recurringItems=recurringItems.map(r=> r.id===item.id? {...r,status:'paid',actualAmount:amt,txId,accountId:accId,statusMonth:currentMonth()}:r);
+  return thisMonth;
+}
 let payingId=null;
 function openPayModal(id){
   if(!accounts.length){ toast('Tambahkan rekening dulu di Pengaturan.'); goTab('settings'); return; }
   const item=recurringItems.find(r=>r.id===id); if(!item) return; payingId=id;
   const body=`<p style="font-size:13px;margin:0 0 12px"><strong>${esc(item.name)}</strong><br><span style="color:var(--muted);font-size:12px">Jatuh tempo tgl ${item.dueDay} • Expected ${fmt(item.expectedAmount)} • ${esc(item.note||'')}</span></p>
-  <div class="field"><label>Nominal aktual yang dibayar (Rp)</label><input class="big" id="payAmt" type="number" value="${item.actualAmount??item.expectedAmount}"></div>
-  <div class="field"><label>Bayar dari rekening</label><select id="payAcc">${accounts.map(a=>`<option value="${a.id}" ${(item.accountId||mainAccountId())===a.id?'selected':''}>${esc(a.name)} — ${fmt(a.balance)}</option>`).join('')}</select></div>
+  <div class="field"><label for="payAmt">Nominal yang dibayar (Rp)</label>${amtInput('payAmt',item.actualAmount??item.expectedAmount).replace('<input','<input class="big"')}</div>
+  <div class="field"><label for="payDate">Tanggal bayar</label><input id="payDate" type="date" value="${esc((transactions.find(t=>t.id===item.txId)||{}).date||todayISO())}" max="${todayISO()}"></div>
+  <div class="field"><label for="payAcc">Bayar dari rekening</label><select id="payAcc">${accounts.map(a=>`<option value="${a.id}" ${(item.accountId||mainAccountId())===a.id?'selected':''}>${esc(a.name)} — ${fmt(a.balance)}</option>`).join('')}</select></div>
   <p style="font-size:11px;color:var(--muted);margin:0">Selisih dari expected akan langsung terlihat sebagai “Hemat” atau “Over” di daftar tagihan.</p>`;
   modalShell('Tandai Tagihan Lunas', body, `<button class="btn btn-emerald" style="width:100%;padding:12px" onclick="confirmPay()">Konfirmasi Lunas</button>`);
 }
@@ -1202,18 +1267,22 @@ function confirmPay(){
   const item=recurringItems.find(r=>r.id===payingId); if(!item) return;
   const amt=parseAmt(document.getElementById('payAmt').value); const accId=document.getElementById('payAcc').value;
   if(amt<=0){ toast('Nominal harus lebih dari nol.'); return; }
+  const rawDate=document.getElementById('payDate').value, date=/^\d{4}-\d{2}-\d{2}$/.test(rawDate)? rawDate : todayISO();
+  if(date>todayISO()){ toast('Tanggal tidak boleh di masa depan.'); return; }
   const snap=snapshot();
   const linked= item.status==='paid'&&item.txId? transactions.find(t=>t.id===item.txId) : null;
   if(linked){
     // Edit an existing payment: move the money from the old account/amount to the new one, and keep a single transaction.
     adjBalance(linked.accountId,linked.amount); adjBalance(accId,-amt);
-    transactions=transactions.map(t=> t.id===linked.id? {...t,amount:amt,accountId:accId}:t);
+    transactions=transactions.map(t=> t.id===linked.id? {...t,amount:amt,accountId:accId,date}:t);
+    if(date.slice(0,7)!==currentMonth()){
+      // Now a payment for another month: keep it as history, this month's bill is reserved again.
+      recurringItems=recurringItems.map(r=> r.id===item.id? {...r,status:'upcoming',actualAmount:null,txId:null,accountId:null}:r);
+      closeModal(); render(); toastUndo(`Pembayaran "${item.name}" dipindah ke bulan lain — tagihan bulan ini kembali disisihkan.`,snap); return;
+    }
     recurringItems=recurringItems.map(r=> r.id===item.id? {...r,actualAmount:amt,accountId:accId}:r);
-  } else {
-    const txId='tx_rec_'+Date.now();
-    adjBalance(accId,-amt);
-    transactions=[{id:txId,date:todayISO(),title:item.name,amount:amt,type:'expense',categoryId:item.categoryId,accountId:accId,tag:'#recurring',pocketId:null,recurringId:item.id},...transactions];
-    recurringItems=recurringItems.map(r=> r.id===item.id? {...r,status:'paid',actualAmount:amt,txId,accountId:accId,statusMonth:currentMonth()}:r);
+  } else if(!recordBillPayment(item,amt,accId,date)){
+    closeModal(); render(); toastUndo(`Pembayaran "${item.name}" dicatat untuk bulan lalu — tagihan bulan ini tetap disisihkan.`,snap); return;
   }
   closeModal(); render(); toastUndo(`"${item.name}" ditandai lunas: ${fmt(amt)}`,snap);
 }
@@ -1233,9 +1302,16 @@ function openAddRecurring(){ openBillForm(); }
 const ACC_TYPES={bank:{label:'Rekening bank',icon:'landmark',color:'#1e293b'},ewallet:{label:'E-wallet',icon:'smartphone',color:'#059669'},digital:{label:'Bank digital',icon:'credit-card',color:'#4f46e5'},credit:{label:'Kartu kredit / PayLater',icon:'credit-card',color:'#d97706'}};
 const newId=prefix=>prefix+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const fv=id=>document.getElementById(id).value;
-function fmtAmtInput(el){ const d=el.value.replace(/\D/g,''); el.value=d?Number(d).toLocaleString('id-ID'):''; }
-const amtInput=(id,v,ph)=>`<input id="${id}" type="text" inputmode="numeric" value="${v?Number(v).toLocaleString('id-ID'):''}" placeholder="${ph||'0'}" oninput="fmtAmtInput(this)">`;
-const amtVal=id=>parseInt(fv(id).replace(/\D/g,''),10)||0;
+function fmtAmtInput(el){
+  const pos=el.selectionStart??el.value.length, before=el.value.slice(0,pos).replace(/\D/g,'').length;
+  const d=el.value.replace(/\D/g,'').replace(/^0+(?=\d)/,'').slice(0,15);
+  el.value=d?Number(d).toLocaleString('id-ID'):'';
+  let i=0,c=0; while(i<el.value.length&&c<before){ if(/\d/.test(el.value[i])) c++; i++; }
+  try{ el.setSelectionRange(i,i); }catch(e){}
+}
+function pasteAmt(ev,el){ ev.preventDefault(); const n=rcNum((ev.clipboardData||window.clipboardData).getData('text')); el.value=n?n.toLocaleString('id-ID'):''; el.dispatchEvent(new Event('input')); }
+const amtInput=(id,v,ph)=>`<input id="${id}" type="text" inputmode="numeric" value="${v?Number(v).toLocaleString('id-ID'):''}" placeholder="${ph||'0'}" oninput="fmtAmtInput(this)" onpaste="pasteAmt(event,this)">`;
+const amtVal=id=>parseAmt(fv(id));
 function catSelect(id,val){ return `<select id="${id}">${categories.filter(c=>c.type==='expense').map(c=>`<option value="${c.id}" ${val===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select>`; }
 function settingsSaved(msg,snap){ closeModal(); render(); toastUndo(msg,snap); }
 function balLabel(type){ return type==='credit'?'Tagihan berjalan saat ini (Rp)':'Saldo saat ini (Rp)'; }
@@ -1372,7 +1448,7 @@ function openPocketAction(pid,mode){
   if(needMainAccount()) return;
   const p=pockById(pid); if(!p) return; pocketCtx={pocket:p,mode};
   const body=`<p style="font-size:13px;margin:0 0 12px"><strong>${esc(p.name)}</strong> — terkumpul ${fmt(p.currentAmount)} dari target ${fmt(p.targetAmount)}<br><span style="color:var(--muted);font-size:12px">${mode==='topup'?`Dana disisihkan dari ${esc((accById(mainAccountId())||{name:'rekening utama'}).name)} dan langsung terlindungi di pocket ini.`:'Pengeluaran dari pocket dicatat terpisah dan tidak mengacaukan budget fleksibel bulanan.'}</span></p>
-  <div class="field"><label>Nominal (Rp)</label><input class="big" id="pockAmt" type="number" value="${mode==='topup'?p.monthlyHint:''}" placeholder="250000"></div>
+  <div class="field"><label for="pockAmt">Nominal (Rp)</label>${amtInput('pockAmt',mode==='topup'?p.monthlyHint:0,'250.000').replace('<input','<input class="big"')}</div>
   <div class="field"><label>Catatan (opsional)</label><input id="pockNote" type="text" placeholder="${mode==='topup'?'Top up '+esc(p.name):'Belanja dari '+esc(p.name)}"></div>`;
   modalShell(mode==='topup'?'Top Up Pocket':'Pakai Dana Pocket', body, `<button class="btn btn-emerald" style="width:100%;padding:12px" onclick="confirmPocketAction()">${mode==='topup'?'Pindahkan ke Pocket':'Catat Pengeluaran dari Pocket'}</button>`);
 }
@@ -1386,21 +1462,16 @@ function confirmPocketAction(){
   closeModal(); render();
   if(mode!=='topup') toastUndo(`Tercatat pengeluaran ${fmt(Math.min(pocket.currentAmount,amt))} dari ${pocket.name}.`,snap);
 }
-function autoSweep(targetId){
-  const fin=financialSummary(); const amt= fin.recurringNetVariance>0? fin.recurringNetVariance : 250000; const target=pockById(targetId)||pockets[0];
-  const snap=snapshot();
-  pockets=pockets.map(p=> p.id===target.id? {...p,currentAmount:p.currentAmount+amt}:p);
-  transactions=[{id:'tx_sweep_'+Date.now(),date:todayISO(),title:`Auto-Sweep Bill Savings → ${target.name}`,amount:amt,type:'transfer',categoryId:null,accountId:mainAccountId(),tag:'#auto-sweep',pocketId:target.id},...transactions];
-  render(); toastUndo(`Auto-sweep berhasil: ${fmt(amt)} masuk ke ${target.name}!`,snap);
-}
 function payoffCredit(){
   if(needMainAccount()) return;
   const fin=financialSummary(); const amt=fin.creditFloatHolding; if(amt<=0) return;
+  const main=accById(mainAccountId());
+  if(!confirm(`Catat pelunasan semua kartu kredit sebesar ${fmt(amt)} dari ${main.name}?\n\nLakukan ini setelah kamu benar-benar membayar tagihannya di aplikasi bank.`)) return;
   const snap=snapshot();
   const creditPayoff=accounts.filter(a=>a.type==='credit'&&a.balance<0).map(a=>({id:a.id,amount:-a.balance}));
-  accounts=accounts.map(a=>{ if(a.id===mainAccountId()) return {...a,balance:a.balance-amt}; if(a.type==='credit') return {...a,balance:0}; return a; });
-  transactions=[{id:'tx_cc_'+Date.now(),date:todayISO(),title:'Credit Card Full Statement Payoff (From Float)',amount:amt,type:'transfer',categoryId:null,accountId:mainAccountId(),tag:'#cc-payoff',pocketId:null,creditPayoff},...transactions];
-  render(); toastUndo(`Kartu kredit lunas: ${fmt(amt)} dibayar dari float.`,snap);
+  accounts=accounts.map(a=>{ if(a.id===mainAccountId()) return {...a,balance:a.balance-amt}; if(a.type==='credit'&&a.balance<0) return {...a,balance:0}; return a; }); // cards in credit (refunds) keep their balance
+  transactions=[{id:'tx_cc_'+Date.now(),date:todayISO(),title:'Pelunasan kartu kredit',amount:amt,type:'transfer',categoryId:null,accountId:mainAccountId(),tag:'#cc-payoff',pocketId:null,creditPayoff},...transactions];
+  render(); toastUndo(`Kartu kredit lunas: ${fmt(amt)} dibayar dari ${main.name}.`,snap);
 }
 function deleteTx(id){
   const tx=transactions.find(t=>t.id===id); if(!tx) return;

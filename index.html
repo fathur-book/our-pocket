@@ -166,7 +166,10 @@ select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);backg
 @media(min-width:640px){.modal-back{align-items:center;padding:16px}}
 .modal{background:var(--surface);width:100%;max-width:460px;max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;border:1px solid var(--border)}
 @media(min-width:640px){.modal{border-radius:22px}}
-.modal-head{padding:16px;border-bottom:1px solid var(--border);background:var(--surface2)}
+.modal-head{padding:10px 10px 10px 16px;border-bottom:1px solid var(--border);background:var(--surface2)}
+.modal-close{width:40px;height:40px;flex-shrink:0;border-radius:12px;border:1px solid var(--border);background:var(--surface);color:var(--text);display:flex;align-items:center;justify-content:center;padding:0}
+.modal-close:hover{border-color:var(--border2)}
+.modal-close svg{width:20px;height:20px;stroke-width:2.4}
 .modal-body{padding:18px}
 .field{margin-bottom:14px}
 .field label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px}
@@ -872,7 +875,7 @@ function clearFilters(){ searchQuery=''; filterType='all'; filterCategory='all';
 /* ===== MODALS ===== */
 function closeModal(){ document.getElementById('modalRoot').innerHTML=''; rcpt=null; stmt=null; }
 function modalShell(title, body, foot){
-  document.getElementById('modalRoot').innerHTML=`<div class="modal-back" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="modal-head"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)">${esc(title)}</span><button class="icon-btn" onclick="closeModal()" aria-label="Tutup">✕</button></div></div><div class="modal-body">${body}</div>${foot?`<div style="padding:0 18px 18px">${foot}</div>`:''}</div></div>`; refreshIcons();
+  document.getElementById('modalRoot').innerHTML=`<div class="modal-back" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="modal-head"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)">${esc(title)}</span><button class="modal-close" onclick="closeModal()" aria-label="Tutup"><i data-lucide="x"></i></button></div></div><div class="modal-body">${body}</div>${foot?`<div style="padding:0 18px 18px">${foot}</div>`:''}</div></div>`; refreshIcons();
 }
 function openLoggerWithEssential(id){
   const item=essentialsSummary().items.find(e=>e.id===id); if(!item) return;

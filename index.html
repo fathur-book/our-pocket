@@ -71,7 +71,7 @@ main{max-width:1440px;margin:0 auto;padding:20px 24px 8px}
 .pill-green{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:#05966926;color:#6ee7b7;border:1px solid #05966944;font-size:11px;font-weight:700}
 .btn-ghost-light{background:#ffffff1a;color:#e2e8f0;border:1px solid #ffffff22;padding:6px 10px;border-radius:9px;font-size:11px;font-weight:600}
 .hero{container-type:inline-size}
-.breakdown{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:16px;position:relative;z-index:1}
+.breakdown{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-top:16px;position:relative;z-index:1}
 .breakdown>*{background:#1e293bcc;border:1px solid var(--dark-border);border-radius:12px;padding:10px;min-width:0;text-align:left;width:100%;color:#fff}
 .breakdown button{cursor:pointer}
 .breakdown span{display:block;font-size:11px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -375,6 +375,33 @@ function payCycle(){
   return {next,daysUntil:Math.round((next-t0)/86400000)}; // days from today (inclusive) to payday (exclusive)
 }
 /* Bills whose due date falls before the next payday: unpaid ones this month, plus next month's occurrences. */
+/* The current pay cycle: from the last payday (inclusive) to the next payday (exclusive). */
+function cycleBounds(){ const {next}=payCycle(); const prev=paydayIn(next.getFullYear(),next.getMonth()-1); return {start:isoDate(prev),end:isoDate(next),prev,next}; }
+function inCycle(tx){ const {start,end}=cycleBounds(); return typeof tx.date==='string'&&tx.date>=start&&tx.date<end; }
+/* How a transaction changes spendable money. Savings pockets are separate money:
+   putting money into a pocket sets it aside (−), spending from a pocket or moving money between
+   your own accounts doesn't change what you can spend, and card purchases count when you buy. */
+function spendableFlow(tx){
+  if(tx.type==='income'||tx.type==='refund') return tx.amount;
+  if(tx.type==='expense') return tx.pocketId? 0 : -tx.amount;
+  if(tx.type==='transfer') return tx.pocketId? -tx.amount : 0;
+  return 0;
+}
+/* Bills due inside this pay cycle that are not paid or skipped yet (expected amount). */
+function billsDueUnpaid(){
+  const {prev,next}=cycleBounds(); let total=0; const items=[];
+  recurringItems.forEach(r=>{
+    for(let k=-1;k<=1;k++){
+      const y=prev.getFullYear(), m=prev.getMonth()+k;
+      const due=new Date(y,m,Math.min(r.dueDay,new Date(y,m+1,0).getDate()));
+      if(due<prev||due>=next) continue;
+      const mon=isoDate(due).slice(0,7);
+      const paid=transactions.some(t=>t.recurringId===r.id&&inCycle(t)) || ((r.status==='paid'||r.status==='skipped')&&(r.statusMonth||'')===mon);
+      if(!paid){ total+=r.expectedAmount; items.push(r); }
+    }
+  });
+  return {total,items};
+}
 function billsBeforePayday(){
   const {next}=payCycle(), t=today(), y=t.getFullYear(), m=t.getMonth();
   let total=0;
@@ -621,11 +648,12 @@ function essentialsSummary(){
   const items=essentials.map(item=>{
     const totalPlanned=item.unitPrice*item.targetQty;
     // Only purchases the user explicitly linked count — no guessing from titles.
-    const mtx=transactions.filter(tx=> tx.type==='expense' && tx.essentialId===item.id && inCurrentMonth(tx));
+    const mtx=transactions.filter(tx=> tx.type==='expense' && tx.essentialId===item.id && inCycle(tx));
     const spent=mtx.reduce((s,t)=>s+t.amount,0);
     const bought=mtx.reduce((s,t)=> s+(t.essentialQty? t.essentialQty : Math.max(1,Math.round(t.amount/item.unitPrice))),0);
-    const remAmt=Math.max(0,totalPlanned-spent), remQty=Math.max(0,item.targetQty-bought);
-    return {...item,totalPlanned,spentAmount:spent,boughtQty:bought,remainingAmount:remAmt,remainingQty:remQty,isComplete:remAmt===0||remQty===0};
+    const remQty=Math.max(0,item.targetQty-bought);
+    const isComplete=remQty===0;
+    return {...item,totalPlanned,spentAmount:spent,boughtQty:bought,remainingAmount:isComplete?0:item.unitPrice*remQty,remainingQty:remQty,isComplete};
   });
   return {items,totalEssentialsBudget:items.reduce((s,i)=>s+i.totalPlanned,0),totalEssentialsSpent:items.reduce((s,i)=>s+i.spentAmount,0),totalEssentialsRemaining:items.reduce((s,i)=>s+i.remainingAmount,0),completedCount:items.filter(i=>i.isComplete).length};
 }
@@ -637,12 +665,21 @@ function financialSummary(){
   const unpaidExpectedRecurring=recurringItems.filter(r=>r.status==='upcoming').reduce((s,r)=>s+r.expectedAmount,0);
   const paid=recurringItems.filter(r=>r.status==='paid');
   const recurringNetVariance=paid.reduce((s,r)=>s+r.expectedAmount,0)-paid.reduce((s,r)=>s+(r.actualAmount||0),0);
-  // Safe-to-Spend only has to last until the next salary: reserve bills due before payday
-  // and the share of the Essentials budget needed until then.
+  // Safe-to-Spend = leftover from earlier cycles + income this cycle − spending − money put into savings
+  //                 − bills still to pay this cycle − Essentials still to buy (expected price).
   const ess=essentialsSummary(), essentialsRemaining=ess.totalEssentialsRemaining;
-  const billsReserved=billsBeforePayday();
-  const essentialsReserved=essentialsBeforePayday(essentialsRemaining,ess.totalEssentialsBudget);
-  const safeToSpend=totalLiquidCash-creditFloatHolding-totalPocketsSaved-billsReserved-essentialsReserved;
+  const cyc=cycleBounds();
+  let carryOver=0, cycleIncome=0, cycleSpending=0, cycleSaved=0;
+  transactions.forEach(tx=>{
+    const f=spendableFlow(tx); if(!f) return;
+    if(tx.date<cyc.start){ carryOver+=f; return; }
+    if(tx.date>=cyc.end) return;
+    if(tx.type==='income'||tx.type==='refund') cycleIncome+=f;
+    else if(tx.type==='transfer') cycleSaved+=-f;
+    else cycleSpending+=-f;
+  });
+  const bills=billsDueUnpaid(), billsReserved=bills.total, essentialsReserved=essentialsRemaining;
+  const safeToSpend=carryOver+cycleIncome-cycleSpending-cycleSaved-billsReserved-essentialsReserved;
   const {elapsedPct:monthElapsedPercent}=monthInfo();
   const {next:nextPayday,daysUntil:daysToPayday}=payCycle();
   const perDay= safeToSpend>0? Math.floor(safeToSpend/daysToPayday) : 0;
@@ -659,7 +696,7 @@ function financialSummary(){
   monthlyNetExpense=Object.values(map).reduce((a,b)=>a+b,0); // free spending after refunds, never negative
   const budgetedSpend=categories.filter(c=>budgetOf(c.id)>0).reduce((s,c)=>s+(map[c.id]||0),0);
   const budgetSpentPercent= totalFlexibleBudget>0? Math.round(budgetedSpend/totalFlexibleBudget*100):0;
-  return {totalLiquidCash,creditFloatHolding,totalPocketsSaved,unpaidExpectedRecurring,essentialsRemaining,billsReserved,essentialsReserved,nextPayday,daysToPayday,perDay,recurringNetVariance,safeToSpend,totalFlexibleBudget,monthlyNetExpense,monthlyIncome,monthElapsedPercent,budgetSpentPercent,budgetedSpend,categorySpendMap:map,plannedSpendMap:planned};
+  return {carryOver,cycleIncome,cycleSpending,cycleSaved,cycleStart:cyc.prev,totalLiquidCash,creditFloatHolding,totalPocketsSaved,unpaidExpectedRecurring,essentialsRemaining,billsReserved,essentialsReserved,nextPayday,daysToPayday,perDay,recurringNetVariance,safeToSpend,totalFlexibleBudget,monthlyNetExpense,monthlyIncome,monthElapsedPercent,budgetSpentPercent,budgetedSpend,categorySpendMap:map,plannedSpendMap:planned};
 }
 
 /* The linked essential — set only by an explicit tap, never inferred on save. */
@@ -706,16 +743,17 @@ function renderDashboard(fin,ess){
       </div>
       <p class="label" style="margin-top:16px">Safe-to-Spend saat ini</p>
       <div class="big" style="${fin.safeToSpend<0?'color:#fcd34d':''}">${fmt(fin.safeToSpend)}</div>
-      <p style="font-size:13px;color:#e2e8f0;margin:6px 0 0;font-weight:700;position:relative;z-index:1">${fin.safeToSpend>0?`≈ ${fmt(fin.perDay)} per hari sampai gajian`:'Kebutuhan sampai gajian melebihi kas — kurangi target Essentials atau gunakan dana pocket.'}</p>
+      <p style="font-size:13px;color:#e2e8f0;margin:6px 0 0;font-weight:700;position:relative;z-index:1">${fin.safeToSpend>0?`≈ ${fmt(fin.perDay)} per hari sampai gajian`: (fin.cycleIncome+fin.carryOver<=0? 'Belum ada pemasukan di periode ini — catat gaji lewat Quick Log → Income.' : 'Rencana belanja melebihi pemasukan periode ini.')}</p>
       <p style="font-size:12px;color:#94a3b8;margin:6px 0 0;position:relative;z-index:1;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span>Gajian berikutnya: <strong style="color:#e2e8f0">${fin.nextPayday.toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short'})}</strong> · ${fin.daysToPayday} hari lagi</span><button class="btn-ghost-light" onclick="openPaydayModal()">Ubah tanggal gajian</button></p>
       <div class="breakdown">
-        <div title="Saldo semua rekening (tanpa kartu kredit)"><span>Kas likuid</span><strong>${fmt(fin.totalLiquidCash)}</strong></div>
-        <button title="Dana di Saving Pockets" onclick="goTab('pockets')"><span style="color:#6ee7b7">− Pockets</span><strong style="color:#34d399">${fmt(fin.totalPocketsSaved)}</strong></button>
-        <button title="Tagihan yang jatuh tempo sebelum gajian" onclick="goTab('essentials')"><span style="color:#fcd34d">− Tagihan</span><strong style="color:#fcd34d">${fmt(fin.billsReserved)}</strong></button>
-        <button title="Belanja Essentials sampai gajian" onclick="goTab('essentials')"><span style="color:#fcd34d">− Essentials</span><strong style="color:#fcd34d">${fmt(fin.essentialsReserved)}</strong></button>
-        <button title="Disiapkan untuk melunasi kartu kredit" onclick="goTab('pockets')"><span>− Kartu kredit</span><strong>${fmt(fin.creditFloatHolding)}</strong></button>
+        ${fin.carryOver?`<div title="Sisa dari periode gajian sebelumnya"><span>Sisa sebelumnya</span><strong>${fmt(fin.carryOver)}</strong></div>`:''}
+        <button title="Pemasukan sejak gajian terakhir" onclick="goTab('activity')"><span style="color:#6ee7b7">+ Pemasukan</span><strong style="color:#34d399">${fmt(fin.cycleIncome)}</strong></button>
+        <button title="Semua pengeluaran periode ini (termasuk kartu kredit)" onclick="goTab('activity')"><span>− Pengeluaran</span><strong>${fmt(fin.cycleSpending)}</strong></button>
+        ${fin.cycleSaved?`<button title="Dipindah ke Saving Pockets periode ini" onclick="goTab('pockets')"><span style="color:#6ee7b7">− Ditabung</span><strong style="color:#34d399">${fmt(fin.cycleSaved)}</strong></button>`:''}
+        <button title="Tagihan periode ini yang belum dibayar (perkiraan)" onclick="goTab('essentials')"><span style="color:#fcd34d">− Tagihan</span><strong style="color:#fcd34d">${fmt(fin.billsReserved)}</strong></button>
+        <button title="Essentials yang belum dibeli (harga perkiraan)" onclick="goTab('essentials')"><span style="color:#fcd34d">− Essentials</span><strong style="color:#fcd34d">${fmt(fin.essentialsReserved)}</strong></button>
       </div>
-      ${showFormula?`<div class="formula"><strong style="color:#fff">Kenapa Safe-to-Spend lebih jujur dari saldo bank:</strong><br>Saldo bank kamu ${fmt(fin.totalLiquidCash)}, tapi ${fmt(fin.totalPocketsSaved)} terkunci di Saving Pockets, ${fmt(fin.billsReserved)} dipesan untuk tagihan yang jatuh tempo sebelum gajian, ${fmt(fin.essentialsReserved)} disisihkan untuk belanja Essentials sampai gajian (dari sisa ${fmt(fin.essentialsRemaining)} bulan ini, dibagi rata per hari), dan ${fmt(fin.creditFloatHolding)} disiapkan untuk melunasi kartu kredit. Tagihan dan Essentials setelah gajian dibayar dari gaji berikutnya.</div>`:''}
+      ${showFormula?`<div class="formula"><strong style="color:#fff">Cara menghitungnya (periode ${fin.cycleStart.toLocaleDateString('id-ID',{day:'numeric',month:'short'})} – ${fin.nextPayday.toLocaleDateString('id-ID',{day:'numeric',month:'short'})}):</strong><br>${fin.carryOver?`Sisa periode sebelumnya ${fmt(fin.carryOver)} + `:''}pemasukan ${fmt(fin.cycleIncome)} − pengeluaran ${fmt(fin.cycleSpending)}${fin.cycleSaved?` − ditabung ke pocket ${fmt(fin.cycleSaved)}`:''} − tagihan yang belum dibayar ${fmt(fin.billsReserved)} − Essentials yang belum dibeli ${fmt(fin.essentialsReserved)}. Essentials dan tagihan yang sudah dibayar dihitung dengan nominal aslinya (masuk ke pengeluaran). Saving Pockets adalah tabungan terpisah (total ${fmt(fin.totalPocketsSaved)}) dan tidak mengurangi angka ini.</div>`:''}
     </div>
     <div class="card" style="grid-column:span 5;display:flex;flex-direction:column;justify-content:space-between">
       ${fin.totalFlexibleBudget>0?`<div>
@@ -759,7 +797,7 @@ function renderDashboard(fin,ess){
       <div style="margin-top:16px">${(()=>{ const rows=categories.filter(c=>c.type==='expense').filter(c=>budgetOf(c.id)||fin.categorySpendMap[c.id]||fin.plannedSpendMap[c.id]); return rows.length? rows.map(cat=>{ const spent=fin.categorySpendMap[cat.id]||0, plan=fin.plannedSpendMap[cat.id]||0, lim=budgetOf(cat.id), pct=lim?Math.round(spent/lim*100):0, over=lim&&spent>lim; return `<div class="cat-row"><div class="cat-head"><span class="cat-name"><span class="cat-ico"><i data-lucide="${cat.icon}"></i></span>${cat.name}</span><span><strong style="color:${over?'var(--amber)':'inherit'}">${fmt(spent)}</strong> <span style="color:var(--muted)">${lim?`/ ${fmt(lim)} • ${pct}%`:'· tanpa budget'}</span></span></div>${lim?`<div class="bar sm ${over?'amber':'dark'}" style="margin-top:6px"><i style="width:${Math.min(100,pct)}%"></i></div>`:''}${plan?`<div style="font-size:11px;color:var(--muted);margin-top:4px">+ ${fmt(plan)} tagihan & Essentials (sudah direncanakan)</div>`:''}</div>`; }).join('') : '<p class="sub">Belum ada pengeluaran bulan ini.</p>'; })()}</div>
     </div>
     <div class="card">
-      <div style="display:flex;justify-content:space-between"><div><h3>Saving Pockets</h3><p class="sub">Total terlindungi: <strong style="color:var(--emerald)">${fmt(fin.totalPocketsSaved)}</strong></p></div><button class="link-btn" onclick="goTab('pockets')">Kelola Pockets →</button></div>
+      <div style="display:flex;justify-content:space-between"><div><h3>Saving Pockets</h3><p class="sub">Total tabungan: <strong style="color:var(--emerald)">${fmt(fin.totalPocketsSaved)}</strong></p></div><button class="link-btn" onclick="goTab('pockets')">Kelola Pockets →</button></div>
       <div class="pocket-grid" style="margin-top:14px">${pockets.map(p=>{ const pct=Math.min(100,Math.round(p.currentAmount/p.targetAmount*100)); return `<div class="pocket-mini"><div style="display:flex;justify-content:space-between"><span class="cat-ico" style="background:var(--emerald-bg);color:var(--emerald-text)"><i data-lucide="${p.icon}"></i></span><span class="badge ok">${pct}%</span></div><h4>${esc(p.name)}</h4><p>${fmt(p.currentAmount)} dari ${fmt(p.targetAmount)}</p><div class="bar sm" style="margin-top:8px"><i style="width:${pct}%"></i></div><div style="display:flex;gap:6px;margin-top:10px"><button class="btn btn-sm" style="flex:1" onclick="openPocketAction('${p.id}','topup')">+ Top Up ${fmt(p.monthlyHint)}</button><button class="btn btn-sm" onclick="openPocketAction('${p.id}','spend')">Pakai</button></div></div>`;}).join('')}</div>
       <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px"><div style="display:flex;gap:10px;align-items:center"><span class="cat-ico" style="background:var(--amber-bg);color:var(--amber)">💳</span><div><div style="font-size:12px;font-weight:800">Credit / PayLater Float Bucket</div><div style="font-size:11px;color:var(--muted)">Otomatis dicadangkan untuk pelunasan</div></div></div><strong>${fmt(fin.creditFloatHolding)}</strong></div>
     </div>
@@ -1499,7 +1537,7 @@ function savePocket(id){
 }
 function deletePocket(id){
   const p=pockets.find(x=>x.id===id); if(!p) return;
-  if(p.currentAmount>0&&!confirm(`"${p.name}" masih berisi ${fmt(p.currentAmount)}. Hapus pocket ini? Dananya kembali dihitung sebagai Safe-to-Spend.`)) return;
+  if(p.currentAmount>0&&!confirm(`"${p.name}" masih berisi ${fmt(p.currentAmount)}. Hapus pocket ini? Saldonya tidak lagi dihitung sebagai tabungan.`)) return;
   const snap=snapshot(); pockets=pockets.filter(x=>x.id!==id); render(); toastUndo(`Pocket "${p.name}" dihapus.`,snap);
 }
 

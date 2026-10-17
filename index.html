@@ -216,12 +216,39 @@ select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);backg
 .setup-row.next strong{color:var(--emerald)}
 .setup-check{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;color:var(--muted)}
 .setup-check.ok{background:var(--emerald);border-color:var(--emerald);color:#fff}
+.ts{display:none}
 .rc-sum{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
 .ess-suggest{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;background:var(--surface2);border:1px dashed var(--border2);border-radius:14px;padding:10px 12px;margin-bottom:14px;font-size:12px}
 .toast{position:fixed;top:14px;right:14px;z-index:60;background:var(--dark);color:#fff;padding:12px 16px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.3);font-size:13px;font-weight:600;display:flex;gap:8px;align-items:center;max-width:min(92vw,460px);border:1px solid var(--dark-border)}
 .hidden{display:none!important}
 @media(max-width:900px){.ess-grid{grid-template-columns:repeat(3,1fr)}.stats4{grid-template-columns:1fr 1fr}.acc-grid{grid-template-columns:1fr 1fr}.pocket-grid{grid-template-columns:1fr}.grid{grid-template-columns:1fr !important}.grid>*{grid-column:auto !important}}
 @media(max-width:560px){.ess-grid{grid-template-columns:1fr 1fr}nav.tabs{order:3;width:100%}nav.tabs button{flex:1;justify-content:center}table thead{display:none}table,table tbody,table tr,table td{display:block;width:100%}table tr{padding:8px 0;border-bottom:1px solid var(--border)}table td{border:0;padding:5px 8px}td.num,td.center{text-align:left}}
+/* ---- Phones: nothing may be wider than the screen, and fields never trigger iOS auto-zoom ---- */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{overflow-x:clip;overflow-wrap:anywhere}
+.modal,.modal-body{max-width:100vw}
+@media(max-width:768px){input,select,textarea{font-size:16px!important}}
+@media(max-width:560px){
+  body{padding-bottom:calc(150px + env(safe-area-inset-bottom))}
+  header{backdrop-filter:none;-webkit-backdrop-filter:none;background:var(--surface)} /* a blurred header would trap the fixed tab bar inside it */
+  nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:45;order:0;width:auto;margin:0;display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-radius:0;border:0;border-top:1px solid var(--border);background:var(--surface);padding:6px 4px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -6px 20px rgba(0,0,0,.18)}
+  nav.tabs button{flex-direction:column;gap:3px;padding:6px 2px;font-size:10.5px;border-radius:10px;min-width:0}
+  nav.tabs button svg{width:19px;height:19px}
+  nav.tabs button.active{background:var(--surface2);color:var(--emerald);box-shadow:none}
+  .tl{display:none}.ts{display:inline}
+  .fab{bottom:calc(76px + env(safe-area-inset-bottom));right:14px}
+  #quickLogTop{display:none}
+  .header-in{padding:10px 16px;flex-wrap:nowrap}
+  .brand p,.safe-pill .dot{display:none}
+  .brand-icon{width:34px;height:34px;border-radius:10px}
+  .brand{min-width:0}
+  .safe-pill strong,.brand h1{white-space:nowrap}
+  main{padding:16px 16px 8px}
+  .toast{left:12px;right:12px;max-width:none}
+}
+@media(max-width:359px){
+  .brand h1{display:none} /* very small phones: logo icon only, so the header stays one row */
+}
 :focus-visible{outline:2px solid var(--emerald);outline-offset:2px}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -251,11 +278,11 @@ select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);backg
       </div>
     </div>
     <nav class="tabs" aria-label="Navigasi utama">
-      <button data-tab="dashboard" class="active"><i data-lucide="layers"></i>Dashboard</button>
-      <button data-tab="essentials"><i data-lucide="shopping-cart"></i>Essentials &amp; Bills</button>
-      <button data-tab="pockets"><i data-lucide="shield-check"></i>Pockets &amp; Float</button>
-      <button data-tab="activity"><i data-lucide="calendar"></i>Activity Log</button>
-      <button data-tab="settings"><i data-lucide="settings"></i>Pengaturan</button>
+      <button data-tab="dashboard" class="active"><i data-lucide="layers"></i><span class="tl">Dashboard</span><span class="ts">Ringkasan</span></button>
+      <button data-tab="essentials"><i data-lucide="shopping-cart"></i><span class="tl">Essentials &amp; Bills</span><span class="ts">Belanja</span></button>
+      <button data-tab="pockets"><i data-lucide="shield-check"></i><span class="tl">Pockets &amp; Float</span><span class="ts">Tabungan</span></button>
+      <button data-tab="activity"><i data-lucide="calendar"></i><span class="tl">Activity Log</span><span class="ts">Riwayat</span></button>
+      <button data-tab="settings"><i data-lucide="settings"></i><span class="tl">Pengaturan</span><span class="ts">Atur</span></button>
     </nav>
     <div class="head-right"><div class="safe-pill"><span class="dot"></span><span style="color:var(--muted);font-weight:600" class="hide-sm">Safe-to-Spend:</span><strong id="safePill">Rp 0</strong></div>
     <div class="acct" id="acctMenu">

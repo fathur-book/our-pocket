@@ -170,7 +170,7 @@ select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);backg
 .field label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px}
 .field input,.field select,.field textarea{width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:14px}
 .field input.big{font-size:20px;font-weight:800;padding:13px 14px}
-.type-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:3px;background:var(--surface2);border:1px solid var(--border);padding:3px;border-radius:11px}
+.type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;background:var(--surface2);border:1px solid var(--border);padding:3px;border-radius:11px}
 .type-grid button{border:0;background:transparent;padding:8px 4px;border-radius:8px;font-size:11px;font-weight:800;color:var(--muted)}
 .type-grid button.active{background:var(--dark);color:#fff}
 .toast-undo{margin-left:6px;background:#ffffff1f;color:#6ee7b7;border:1px solid #ffffff33;padding:4px 10px;border-radius:8px;font-size:12px;font-weight:800}
@@ -203,6 +203,11 @@ select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);backg
 .acct-box{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .sync{font-size:11px;font-weight:700}
 @media(max-width:560px){#userEmail{display:none}}
+.setup{margin-bottom:16px}
+.setup-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--border);font-size:13px}
+.setup-row.next strong{color:var(--emerald)}
+.setup-check{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;color:var(--muted)}
+.setup-check.ok{background:var(--emerald);border-color:var(--emerald);color:#fff}
 .rc-sum{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
 .ess-suggest{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;background:var(--surface2);border:1px dashed var(--border2);border-radius:14px;padding:10px 12px;margin-bottom:14px;font-size:12px}
 .toast{position:fixed;top:14px;right:14px;z-index:60;background:var(--dark);color:#fff;padding:12px 16px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.3);font-size:13px;font-weight:600;display:flex;gap:8px;align-items:center;max-width:min(92vw,460px);border:1px solid var(--dark-border)}
@@ -271,14 +276,14 @@ select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);backg
 /* Starts empty — the user adds accounts, pockets, bills and Essentials in Pengaturan. */
 let accounts=[];
 const categories=[
-{id:'cat_food',name:'Food & Dining',type:'expense',monthlyLimit:3500000,icon:'utensils'},
-{id:'cat_coffee',name:'Coffee & Snacks',type:'expense',monthlyLimit:600000,icon:'coffee'},
-{id:'cat_transport',name:'Transport & Fuel',type:'expense',monthlyLimit:1200000,icon:'car'},
-{id:'cat_utilities',name:'Home & Utilities',type:'expense',monthlyLimit:1800000,icon:'zap'},
-{id:'cat_subs',name:'Digital & AI Subs',type:'expense',monthlyLimit:1100000,icon:'repeat'},
-{id:'cat_shopping',name:'Lifestyle & Gear',type:'expense',monthlyLimit:1500000,icon:'shopping-bag'},
-{id:'cat_salary',name:'Primary Income',type:'income',monthlyLimit:0,icon:'briefcase'},
-{id:'cat_freelance',name:'Side / Dividend',type:'income',monthlyLimit:0,icon:'trending-up'}];
+{id:'cat_food',name:'Food & Dining',type:'expense',icon:'utensils'},
+{id:'cat_coffee',name:'Coffee & Snacks',type:'expense',icon:'coffee'},
+{id:'cat_transport',name:'Transport & Fuel',type:'expense',icon:'car'},
+{id:'cat_utilities',name:'Home & Utilities',type:'expense',icon:'zap'},
+{id:'cat_subs',name:'Digital & AI Subs',type:'expense',icon:'repeat'},
+{id:'cat_shopping',name:'Lifestyle & Gear',type:'expense',icon:'shopping-bag'},
+{id:'cat_salary',name:'Primary Income',type:'income',icon:'briefcase'},
+{id:'cat_freelance',name:'Side / Dividend',type:'income',icon:'trending-up'}];
 let essentials=[];
 let pockets=[];
 let recurringItems=[];
@@ -303,7 +308,8 @@ function monthInfo(){
   return {day,dim,daysLeft:dim-day+1,elapsedPct:Math.round(day/dim*100)};
 }
 /* ============ PAY CYCLE — Safe-to-Spend only has to last until the next salary ============ */
-let settings={payday:25,mainAccountId:null}; // payday: day of month the salary arrives (clamped to short months)
+const DEFAULT_SETTINGS={payday:25,mainAccountId:null,budgets:{},paydaySet:false,setupSkip:[],setupDismissed:false};
+let settings={...DEFAULT_SETTINGS}; // payday: day of month the salary arrives (clamped to short months)
 /* Account where salary lands and pocket/card payments come from. Falls back to the first bank account. */
 function mainAccountId(){ const m=accounts.find(a=>a.id===settings.mainAccountId&&a.type!=='credit'); if(m) return m.id; const b=accounts.find(a=>a.type==='bank')||accounts.find(a=>a.type!=='credit'); return b?b.id:null; }
 function needMainAccount(){ if(mainAccountId()) return false; toast('Tambahkan rekening bank / e-wallet dulu di Pengaturan.'); goTab('settings'); return true; }
@@ -342,7 +348,7 @@ function rolloverBills(){
   recurringItems=recurringItems.map(r=> (r.statusMonth||SEED_MONTH)===cm? r : {...r,status:'upcoming',actualAmount:null,txId:null,accountId:null,statusMonth:cm});
 }
 
-function freshLogState(){ return {billId:null,type:'expense',amount:'',date:todayISO(),categoryId:'cat_food',accountId:mainAccountId()||(accounts[0]?accounts[0].id:null),pocketId:pockets[0]?pockets[0].id:null,title:'',tag:'',essentialId:null,essentialQty:1}; }
+function freshLogState(){ return {transferTo:'',billId:null,type:'expense',amount:'',date:todayISO(),categoryId:'cat_food',accountId:mainAccountId()||(accounts[0]?accounts[0].id:null),pocketId:pockets[0]?pockets[0].id:null,title:'',tag:'',essentialId:null,essentialQty:1}; }
 let logState=freshLogState();
 
 /* ============ PERSISTENCE & UNDO ============ */
@@ -356,13 +362,16 @@ function isValidState(s){
   if(s.settings!=null&&!(typeof s.settings==='object'&&Number.isInteger(s.settings.payday)&&s.settings.payday>=1&&s.settings.payday<=31)) return false;
   if(s.essentials!=null&&!(Array.isArray(s.essentials)&&s.essentials.every(e=>e&&okId(e.id)&&str(e.name)&&num(e.unitPrice)&&e.unitPrice>0&&Number.isInteger(e.targetQty)&&e.targetQty>0&&optId(e.categoryId)))) return false;
   if(s.settings&&s.settings.mainAccountId!=null&&!okId(s.settings.mainAccountId)) return false;
+  if(s.settings&&s.settings.budgets!=null&&!(typeof s.settings.budgets==='object'&&!Array.isArray(s.settings.budgets)&&Object.entries(s.settings.budgets).every(([k,v])=>okId(k)&&num(v)&&v>=0))) return false;
+  if(s.settings&&s.settings.setupSkip!=null&&!(Array.isArray(s.settings.setupSkip)&&s.settings.setupSkip.every(okId))) return false;
+  const okMoves=m=>m==null||(Array.isArray(m)&&m.every(x=>x&&okId(x.id)&&num(x.amount)));
   return s.accounts.every(a=>okId(a.id)&&str(a.name)&&str(a.type)&&num(a.balance)&&okId(a.icon)&&/^#[0-9a-f]{3,8}$/i.test(a.color))
     && s.pockets.every(p=>okId(p.id)&&str(p.name)&&optStr(p.description)&&optStr(p.targetDate)&&okId(p.icon)&&num(p.currentAmount)&&p.currentAmount>=0&&num(p.targetAmount)&&p.targetAmount>0&&num(p.monthlyHint))
     && s.recurringItems.every(r=>okId(r.id)&&str(r.name)&&optStr(r.note)&&optStr(r.statusMonth)&&['paid','upcoming','skipped'].includes(r.status)&&optId(r.categoryId)&&optId(r.txId)&&optId(r.accountId)&&num(r.dueDay)&&num(r.expectedAmount)&&optNum(r.actualAmount))
-    && s.transactions.every(t=>okId(t.id)&&str(t.title)&&optStr(t.tag)&&str(t.date)&&/^\d{4}-\d{2}-\d{2}$/.test(t.date)&&['expense','income','transfer','refund'].includes(t.type)&&num(t.amount)&&optId(t.accountId)&&optId(t.categoryId)&&optId(t.pocketId)&&optId(t.essentialId)&&optId(t.recurringId)&&optQty(t.essentialQty)
+    && s.transactions.every(t=>okId(t.id)&&str(t.title)&&optStr(t.tag)&&str(t.date)&&/^\d{4}-\d{2}-\d{2}$/.test(t.date)&&['expense','income','transfer','refund'].includes(t.type)&&num(t.amount)&&optId(t.accountId)&&optId(t.categoryId)&&optId(t.pocketId)&&optId(t.essentialId)&&optId(t.recurringId)&&optId(t.toAccountId)&&okMoves(t.moves)&&optQty(t.essentialQty)
       && (t.creditPayoff==null||(Array.isArray(t.creditPayoff)&&t.creditPayoff.every(c=>c&&okId(c.id)&&num(c.amount)))));
 }
-function applyState(s){ accounts=s.accounts; pockets=s.pockets; recurringItems=s.recurringItems; transactions=s.transactions; if(Array.isArray(s.essentials)) essentials=s.essentials; if(s.settings) settings={...settings,...s.settings}; }
+function applyState(s){ accounts=s.accounts; pockets=s.pockets; recurringItems=s.recurringItems; transactions=s.transactions; if(Array.isArray(s.essentials)) essentials=s.essentials; settings={...DEFAULT_SETTINGS,...(s.settings||{})}; if(s.settings&&s.settings.paydaySet==null&&(s.settings.payday!==25||s.transactions.length)) settings.paydaySet=true; }
 function snapshot(){ return JSON.parse(JSON.stringify({accounts,pockets,recurringItems,transactions,essentials,settings})); }
 let saveWarned=false;
 function saveState(){ if(!STORE_KEY) return; scheduleCloudPush(); writeMeta(); try{ localStorage.setItem(STORE_KEY,JSON.stringify({v:1,accounts,pockets,recurringItems,transactions,essentials,settings})); }catch(e){ if(!saveWarned){ saveWarned=true; setTimeout(()=>toast('Browser ini tidak bisa menyimpan data — ekspor cadangan secara berkala.'),0); } } }
@@ -530,6 +539,7 @@ function reverseTx(tx){
   else if(tx.type==='transfer'){
     if(tx.pocketId) pockets=pockets.map(p=> p.id===tx.pocketId? {...p,currentAmount:Math.max(0,p.currentAmount-tx.amount)}:p);
     if(Array.isArray(tx.creditPayoff)){ adjBalance(tx.accountId,tx.amount); tx.creditPayoff.forEach(c=>adjBalance(c.id,-c.amount)); }
+    if(Array.isArray(tx.moves)) tx.moves.forEach(m=>adjBalance(m.id,-m.amount));
   }
   if(tx.recurringId) recurringItems=recurringItems.map(r=> r.id===tx.recurringId&&r.txId===tx.id? {...r,status:'upcoming',actualAmount:null,txId:null,accountId:null}:r);
 }
@@ -560,6 +570,7 @@ function essentialsSummary(){
   });
   return {items,totalEssentialsBudget:items.reduce((s,i)=>s+i.totalPlanned,0),totalEssentialsSpent:items.reduce((s,i)=>s+i.spentAmount,0),totalEssentialsRemaining:items.reduce((s,i)=>s+i.remainingAmount,0),completedCount:items.filter(i=>i.isComplete).length};
 }
+function budgetOf(catId){ const v=(settings.budgets||{})[catId]; return typeof v==='number'&&v>0? v : 0; }
 function financialSummary(){
   const totalLiquidCash=accounts.filter(a=>a.type!=='credit').reduce((s,a)=>s+a.balance,0);
   const creditFloatHolding=accounts.filter(a=>a.type==='credit').reduce((s,a)=>s+Math.abs(Math.min(0,a.balance)),0);
@@ -576,16 +587,20 @@ function financialSummary(){
   const {elapsedPct:monthElapsedPercent}=monthInfo();
   const {next:nextPayday,daysUntil:daysToPayday}=payCycle();
   const perDay= safeToSpend>0? Math.floor(safeToSpend/daysToPayday) : 0;
-  const totalFlexibleBudget=categories.filter(c=>c.type==='expense').reduce((s,c)=>s+c.monthlyLimit,0);
-  const map={}; categories.forEach(c=>map[c.id]=0);
+  // Budgets cover free spending only: bills and Essentials are planned (and reserved) separately.
+  const totalFlexibleBudget=categories.filter(c=>c.type==='expense').reduce((s,c)=>s+budgetOf(c.id),0);
+  const map={}, planned={}; categories.forEach(c=>{ map[c.id]=0; planned[c.id]=0; });
   let monthlyIncome=0, monthlyNetExpense=0;
   transactions.filter(inCurrentMonth).forEach(tx=>{
-    if(tx.type==='expense'&&!tx.pocketId){ monthlyNetExpense+=tx.amount; if(map[tx.categoryId]!==undefined) map[tx.categoryId]+=tx.amount; }
-    else if(tx.type==='refund'){ monthlyNetExpense-=tx.amount; if(map[tx.categoryId]!==undefined) map[tx.categoryId]=Math.max(0,map[tx.categoryId]-tx.amount); }
+    if(tx.type==='expense'&&!tx.pocketId&&(tx.recurringId||tx.essentialId)){ if(planned[tx.categoryId]!==undefined) planned[tx.categoryId]+=tx.amount; }
+    else if(tx.type==='expense'&&!tx.pocketId){ monthlyNetExpense+=tx.amount; if(map[tx.categoryId]!==undefined) map[tx.categoryId]+=tx.amount; }
+    else if(tx.type==='refund'){ if(map[tx.categoryId]!==undefined) map[tx.categoryId]=Math.max(0,map[tx.categoryId]-tx.amount); }
     else if(tx.type==='income'){ monthlyIncome+=tx.amount; }
   });
-  const budgetSpentPercent= totalFlexibleBudget>0? Math.round(monthlyNetExpense/totalFlexibleBudget*100):0;
-  return {totalLiquidCash,creditFloatHolding,totalPocketsSaved,unpaidExpectedRecurring,essentialsRemaining,billsReserved,essentialsReserved,nextPayday,daysToPayday,perDay,recurringNetVariance,safeToSpend,totalFlexibleBudget,monthlyNetExpense,monthlyIncome,monthElapsedPercent,budgetSpentPercent,categorySpendMap:map};
+  monthlyNetExpense=Object.values(map).reduce((a,b)=>a+b,0); // free spending after refunds, never negative
+  const budgetedSpend=categories.filter(c=>budgetOf(c.id)>0).reduce((s,c)=>s+(map[c.id]||0),0);
+  const budgetSpentPercent= totalFlexibleBudget>0? Math.round(budgetedSpend/totalFlexibleBudget*100):0;
+  return {totalLiquidCash,creditFloatHolding,totalPocketsSaved,unpaidExpectedRecurring,essentialsRemaining,billsReserved,essentialsReserved,nextPayday,daysToPayday,perDay,recurringNetVariance,safeToSpend,totalFlexibleBudget,monthlyNetExpense,monthlyIncome,monthElapsedPercent,budgetSpentPercent,budgetedSpend,categorySpendMap:map,plannedSpendMap:planned};
 }
 
 /* The linked essential — set only by an explicit tap, never inferred on save. */
@@ -614,7 +629,8 @@ function render(){
     document.querySelector(`[data-tab="${t}"]`).classList.toggle('active', t===activeTab);
   });
   renderDashboard(fin,ess); renderEssentials(fin,ess); renderPockets(fin); renderActivity(); renderSettings();
-  if(!accounts.length) document.getElementById('view-dashboard').innerHTML=renderWelcome();
+  if(!accounts.length) document.getElementById('view-dashboard').innerHTML=renderWelcome()+renderSetupChecklist();
+  else if(!settings.setupDismissed&&!setupComplete()) document.getElementById('view-dashboard').insertAdjacentHTML('afterbegin',renderSetupChecklist());
   refreshIcons();
   saveState();
 }
@@ -643,18 +659,23 @@ function renderDashboard(fin,ess){
       ${showFormula?`<div class="formula"><strong style="color:#fff">Kenapa Safe-to-Spend lebih jujur dari saldo bank:</strong><br>Saldo bank kamu ${fmt(fin.totalLiquidCash)}, tapi ${fmt(fin.totalPocketsSaved)} terkunci di Saving Pockets, ${fmt(fin.billsReserved)} dipesan untuk tagihan yang jatuh tempo sebelum gajian, ${fmt(fin.essentialsReserved)} disisihkan untuk belanja Essentials sampai gajian (dari sisa ${fmt(fin.essentialsRemaining)} bulan ini, dibagi rata per hari), dan ${fmt(fin.creditFloatHolding)} disiapkan untuk melunasi kartu kredit. Tagihan dan Essentials setelah gajian dibayar dari gaji berikutnya.</div>`:''}
     </div>
     <div class="card" style="grid-column:span 5;display:flex;flex-direction:column;justify-content:space-between">
-      <div>
-        <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)">Monthly Pacing Meter</span><span class="badge ${onTrack?'ok':'warn'}">${onTrack?'✓ On Track':'! Watch Pace'}</span></div>
-        <h3 style="font-size:17px;margin-top:10px">${fin.budgetSpentPercent}% budget fleksibel terpakai</h3>
-        <p class="sub">${fmt(fin.monthlyNetExpense)} bersih terpakai dari target ${fmt(fin.totalFlexibleBudget)}</p>
+      ${fin.totalFlexibleBudget>0?`<div>
+        <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)">Laju belanja bebas</span><span class="badge ${onTrack?'ok':'warn'}">${onTrack?'✓ Aman':'! Terlalu cepat'}</span></div>
+        <h3 style="font-size:17px;margin-top:10px">${fin.budgetSpentPercent}% budget bulan ini terpakai</h3>
+        <p class="sub">${fmt(fin.budgetedSpend)} dari ${fmt(fin.totalFlexibleBudget)} · kategori yang punya budget${fin.monthlyNetExpense>fin.budgetedSpend?` · +${fmt(fin.monthlyNetExpense-fin.budgetedSpend)} di kategori tanpa budget`:''}</p>
         <div style="margin-top:18px">
           <div class="progress-row"><span>Budget terpakai</span><span>${fin.budgetSpentPercent}%</span></div>
           <div class="bar ${onTrack?'':'amber'}"><i style="width:${Math.min(100,fin.budgetSpentPercent)}%"></i></div>
           <div class="progress-row" style="margin-top:14px"><span style="color:var(--muted)">Waktu berjalan (Hari ${monthInfo().day}/${monthInfo().dim})</span><span style="color:var(--muted)">${fin.monthElapsedPercent}%</span></div>
           <div class="bar sm"><i style="width:${fin.monthElapsedPercent}%;background:#94a3b8"></i></div>
         </div>
-      </div>
-      <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--muted)">Pemasukan tercatat:</span><strong style="color:var(--emerald)">+${fmt(fin.monthlyIncome)}</strong></div>
+      </div>`:`<div>
+        <span style="font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)">Laju belanja bebas</span>
+        <h3 style="font-size:16px;margin-top:10px">Belum ada budget</h3>
+        <p class="sub" style="margin-bottom:14px">Atur budget per kategori untuk belanja di luar tagihan & Essentials (makan di luar, transport, hiburan…). Bulan ini sudah terpakai ${fmt(fin.monthlyNetExpense)}.</p>
+        <button class="btn btn-dark btn-sm" onclick="openBudgetModal()">Atur budget kategori</button>
+      </div>`}
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--muted)">Pemasukan bulan ini:</span><strong style="color:var(--emerald)">+${fmt(fin.monthlyIncome)}</strong></div>
     </div>
   </div>
 
@@ -675,8 +696,8 @@ function renderDashboard(fin,ess){
 
   <div class="grid" style="grid-template-columns:1fr 1fr;margin-top:16px">
     <div class="card">
-      <div style="display:flex;justify-content:space-between"><div><h3>Pengeluaran per Kategori</h3><p class="sub">Bersih setelah refund &amp; split bill</p></div><button class="link-btn" onclick="goTab('activity')">Lihat Activity</button></div>
-      <div style="margin-top:16px">${categories.filter(c=>c.type==='expense').map(cat=>{ const spent=fin.categorySpendMap[cat.id]||0; const pct=Math.round(spent/(cat.monthlyLimit||1)*100); const over=spent>cat.monthlyLimit; return `<div class="cat-row"><div class="cat-head"><span class="cat-name"><span class="cat-ico"><i data-lucide="${cat.icon}"></i></span>${cat.name}</span><span><strong style="color:${over?'var(--amber)':'inherit'}">${fmt(spent)}</strong> <span style="color:var(--muted)">/ ${fmt(cat.monthlyLimit)} • ${pct}%</span></span></div><div class="bar sm ${over?'amber':'dark'}" style="margin-top:6px"><i style="width:${Math.min(100,pct)}%"></i></div></div>`;}).join('')}</div>
+      <div style="display:flex;justify-content:space-between;gap:8px"><div><h3>Pengeluaran per Kategori</h3><p class="sub">Belanja bebas bulan ini vs budget</p></div><button class="link-btn" onclick="openBudgetModal()">Atur budget</button></div>
+      <div style="margin-top:16px">${(()=>{ const rows=categories.filter(c=>c.type==='expense').filter(c=>budgetOf(c.id)||fin.categorySpendMap[c.id]||fin.plannedSpendMap[c.id]); return rows.length? rows.map(cat=>{ const spent=fin.categorySpendMap[cat.id]||0, plan=fin.plannedSpendMap[cat.id]||0, lim=budgetOf(cat.id), pct=lim?Math.round(spent/lim*100):0, over=lim&&spent>lim; return `<div class="cat-row"><div class="cat-head"><span class="cat-name"><span class="cat-ico"><i data-lucide="${cat.icon}"></i></span>${cat.name}</span><span><strong style="color:${over?'var(--amber)':'inherit'}">${fmt(spent)}</strong> <span style="color:var(--muted)">${lim?`/ ${fmt(lim)} • ${pct}%`:'· tanpa budget'}</span></span></div>${lim?`<div class="bar sm ${over?'amber':'dark'}" style="margin-top:6px"><i style="width:${Math.min(100,pct)}%"></i></div>`:''}${plan?`<div style="font-size:11px;color:var(--muted);margin-top:4px">+ ${fmt(plan)} tagihan & Essentials (sudah direncanakan)</div>`:''}</div>`; }).join('') : '<p class="sub">Belum ada pengeluaran bulan ini.</p>'; })()}</div>
     </div>
     <div class="card">
       <div style="display:flex;justify-content:space-between"><div><h3>Saving Pockets</h3><p class="sub">Total terlindungi: <strong style="color:var(--emerald)">${fmt(fin.totalPocketsSaved)}</strong></p></div><button class="link-btn" onclick="goTab('pockets')">Kelola Pockets →</button></div>
@@ -684,6 +705,16 @@ function renderDashboard(fin,ess){
       <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px"><div style="display:flex;gap:10px;align-items:center"><span class="cat-ico" style="background:var(--amber-bg);color:var(--amber)">💳</span><div><div style="font-size:12px;font-weight:800">Credit / PayLater Float Bucket</div><div style="font-size:11px;color:var(--muted)">Otomatis dicadangkan untuk pelunasan</div></div></div><strong>${fmt(fin.creditFloatHolding)}</strong></div>
     </div>
   </div>`;
+}
+function openBudgetModal(){
+  const rows=categories.filter(c=>c.type==='expense').map(c=>`<div class="field" style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><label for="bud_${c.id}" style="flex:1;margin:0;font-size:13px;color:var(--text)">${esc(c.name)}</label><div style="flex:0 0 150px">${amtInput('bud_'+c.id,budgetOf(c.id),'0')}</div></div>`).join('');
+  modalShell('Budget Kategori', `<p class="rc-help" style="margin:0 0 14px">Budget per bulan untuk belanja <b>bebas</b> — di luar tagihan rutin dan Essentials, yang sudah direncanakan terpisah. Isi 0 untuk kategori tanpa budget.</p>${rows}`,
+    `<button class="btn btn-emerald" style="width:100%;padding:12px" onclick="saveBudgets()">Simpan budget</button>`);
+}
+function saveBudgets(){
+  const budgets={}; categories.filter(c=>c.type==='expense').forEach(c=>{ const v=amtVal('bud_'+c.id); if(v>0) budgets[c.id]=v; });
+  const snap=snapshot(); settings={...settings,budgets};
+  closeModal(); render(); toastUndo(`Budget disimpan: ${fmt(Object.values(budgets).reduce((a,b)=>a+b,0))} per bulan.`,snap);
 }
 function openPaydayModal(){
   const body=`<div class="field"><label for="paydayInput">Gaji masuk setiap tanggal (1–31)</label><input id="paydayInput" class="big" type="number" min="1" max="31" value="${settings.payday}"></div>
@@ -694,7 +725,7 @@ function openPaydayModal(){
 function savePayday(){
   const d=Number(document.getElementById('paydayInput').value);
   if(!Number.isInteger(d)||d<1||d>31){ toast('Masukkan tanggal 1 sampai 31.'); return; }
-  const snap=snapshot(); settings={...settings,payday:d};
+  const snap=snapshot(); settings={...settings,payday:d,paydaySet:true};
   closeModal(); render(); toastUndo(`Tanggal gajian diubah ke tanggal ${d}.`,snap);
 }
 function toggleFormula(){ showFormula=!showFormula; render(); }
@@ -774,7 +805,7 @@ function renderActivity(){
     <select onchange="filterCategory=this.value;render()" aria-label="Filter kategori"><option value="all">Semua Kategori</option>${categories.map(c=>`<option value="${c.id}" ${filterCategory===c.id?'selected':''}>${c.name}</option>`).join('')}</select>
     ${(searchQuery||filterType!=='all'||filterCategory!=='all')?`<button class="btn" onclick="clearFilters()">✕ Reset filter</button>`:''}
   </div><p style="font-size:11px;color:var(--muted);margin:10px 0 0">${transactions.length} transaksi total • menampilkan ${groups.reduce((s,g)=>s+g.items.length,0)} transaksi</p></div>
-  <div style="margin-top:14px">${groups.length===0?`<div class="card" style="text-align:center;padding:36px"><p style="font-weight:700;margin:0">Tidak ada transaksi yang cocok</p><p style="font-size:12px;color:var(--muted)">Coba ubah kata kunci atau reset filter di atas.</p><button class="btn btn-dark" onclick="clearFilters()">Reset filter</button></div>`: groups.map(g=>`<div class="tx-group"><div class="tx-group-head"><strong>${esc(fmtDate(g.date))} • ${esc(g.date)}</strong><span>Net harian: <strong style="color:${g.net>=0?'var(--emerald)':'inherit'}">${fmt(g.net,true)}</strong></span></div>${g.items.map(tx=>{ const cat=catById(tx.categoryId), acc=accById(tx.accountId), pock=pockById(tx.pocketId); const isIn=tx.type==='income'||tx.type==='refund'; return `<div class="tx-row"><div style="display:flex;gap:12px;align-items:center;min-width:0"><span class="tx-ico ${isIn?'green':tx.type==='transfer'?'indigo':''}"><i data-lucide="${tx.type==='transfer'?'arrow-right-left':tx.type==='refund'?'rotate-ccw':(cat?cat.icon:'wallet')}"></i></span><div style="min-width:0"><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><strong style="font-size:13px">${esc(tx.title)}</strong>${tx.tag?`<span class="tag">${esc(tx.tag)}</span>`:''}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${acc?esc(acc.name):''}${cat?' • '+cat.name:''}${pock?' • Pocket: '+esc(pock.name):''}</div></div></div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0"><strong style="font-size:13px;color:${isIn?'var(--emerald)':tx.type==='transfer'?'var(--indigo)':'inherit'}">${isIn?'+'+fmt(tx.amount): tx.type==='transfer'?fmt(tx.amount):'-'+fmt(tx.amount)}</strong><button class="icon-btn" title="Hapus entri ini (saldo akan dikembalikan)" aria-label="Hapus ${esc(tx.title)}" onclick="deleteTx('${tx.id}')">🗑</button></div></div>`;}).join('')}</div>`).join('')}</div>
+  <div style="margin-top:14px">${groups.length===0?`<div class="card" style="text-align:center;padding:36px"><p style="font-weight:700;margin:0">Tidak ada transaksi yang cocok</p><p style="font-size:12px;color:var(--muted)">Coba ubah kata kunci atau reset filter di atas.</p><button class="btn btn-dark" onclick="clearFilters()">Reset filter</button></div>`: groups.map(g=>`<div class="tx-group"><div class="tx-group-head"><strong>${esc(fmtDate(g.date))} • ${esc(g.date)}</strong><span>Net harian: <strong style="color:${g.net>=0?'var(--emerald)':'inherit'}">${fmt(g.net,true)}</strong></span></div>${g.items.map(tx=>{ const cat=catById(tx.categoryId), acc=accById(tx.accountId), pock=pockById(tx.pocketId); const isIn=tx.type==='income'||tx.type==='refund'; return `<div class="tx-row"><div style="display:flex;gap:12px;align-items:center;min-width:0"><span class="tx-ico ${isIn?'green':tx.type==='transfer'?'indigo':''}"><i data-lucide="${tx.type==='transfer'?'arrow-right-left':tx.type==='refund'?'rotate-ccw':(cat?cat.icon:'wallet')}"></i></span><div style="min-width:0"><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><strong style="font-size:13px">${esc(tx.title)}</strong>${tx.tag?`<span class="tag">${esc(tx.tag)}</span>`:''}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${acc?esc(acc.name):''}${tx.type==='transfer'&&accById(tx.toAccountId)?' → '+esc(accById(tx.toAccountId).name):''}${cat?' • '+cat.name:''}${pock?(tx.type==='transfer'?' → Pocket ':' • Pocket: ')+esc(pock.name):''}</div></div></div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0"><strong style="font-size:13px;color:${isIn?'var(--emerald)':tx.type==='transfer'?'var(--indigo)':'inherit'}">${isIn?'+'+fmt(tx.amount): tx.type==='transfer'?fmt(tx.amount):'-'+fmt(tx.amount)}</strong><button class="icon-btn" title="Hapus entri ini (saldo akan dikembalikan)" aria-label="Hapus ${esc(tx.title)}" onclick="deleteTx('${tx.id}')">🗑</button></div></div>`;}).join('')}</div>`).join('')}</div>
   <div class="card" style="margin-top:14px;padding:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><p style="margin:0;font-size:12px;color:var(--muted)">Data tersinkron otomatis ke akunmu dan tersimpan juga di perangkat ini. Ekspor cadangan sesekali untuk arsip pribadi.</p><div style="display:flex;gap:8px"><button class="btn btn-sm" onclick="exportData()">Ekspor cadangan</button><label class="btn btn-sm" style="cursor:pointer">Impor cadangan<input type="file" accept="application/json,.json" class="hidden" onchange="importData(this.files[0]);this.value=''"></label></div></div>`;
   const si=document.getElementById('searchInput'); if(si && document.activeElement!==si){ /* keep focus handling simple */ }
 }
@@ -846,24 +877,25 @@ function updateLoggerPreview(){
 function openLogger(){
   if(!accounts.length){ toast('Tambahkan rekening dulu di Pengaturan.'); goTab('settings'); return; }
   const body=`
-    <div class="type-grid" style="margin-bottom:12px">${[['expense','Expense'],['income','Income']].map(([id,l])=>`<button class="${logState.type===id?'active':''}" onclick="setLogType('${id}')">${l}</button>`).join('')}</div>
+    <div class="type-grid" style="margin-bottom:12px">${[['expense','Expense'],['income','Income'],['transfer','Transfer']].map(([id,l])=>`<button class="${logState.type===id?'active':''}" onclick="setLogType('${id}')">${l}</button>`).join('')}</div>
     ${logState.type==='expense'?`<div class="ql-imports"><button class="btn" onclick="openReceipt()"><i data-lucide="receipt"></i>Scan struk</button><button class="btn" onclick="openStatement()"><i data-lucide="file-text"></i>Impor tagihan kartu</button></div>`:''}
     <div class="field"><label for="qlAmt">Nominal (Rp)</label><input id="qlAmt" class="big" type="text" inputmode="numeric" autocomplete="off" value="${parseAmt(logState.amount)?parseAmt(logState.amount).toLocaleString('id-ID'):''}" oninput="fmtAmtInput(this);logState.amount=this.value;updateLoggerPreview()" onpaste="pasteAmt(event,this)" placeholder="0"><div id="qlAmtHint" style="font-size:11px;color:var(--muted);margin-top:4px">= ${fmt(parseAmt(logState.amount))}</div></div>
-    <div id="qlMatch">${loggerPreviewHTML()}</div>
-    <div class="field"><label for="qlTitle">Judul / Catatan</label><input id="qlTitle" type="text" value="${esc(logState.title)}" oninput="logState.title=this.value;updateLoggerPreview()" placeholder="cth. Kopi pagi, Ayam 2x, Gaji…"></div>
+    <div id="qlMatch">${logState.type==='transfer'?'':loggerPreviewHTML()}</div>
+    <div class="field"><label for="qlTitle">Judul / Catatan</label><input id="qlTitle" type="text" value="${esc(logState.title)}" oninput="logState.title=this.value;updateLoggerPreview()" placeholder="${logState.type==='transfer'?'Opsional — cth. Top up GoPay':'cth. Kopi pagi, Ayam 2x, Gaji…'}"></div>
     <div class="field"><label for="qlDate">Tanggal</label><input id="qlDate" type="date" value="${esc(logState.date)}" max="${todayISO()}" oninput="logState.date=this.value"></div>
-    <div class="field"><label>Kategori</label><select onchange="logState.categoryId=this.value;logState.categoryTouched=true">${categories.filter(c=> logState.type==='income'? c.type==='income' : c.type==='expense').map(c=>`<option value="${c.id}" ${logState.categoryId===c.id?'selected':''}>${c.name}</option>`).join('')}</select></div>
-    <div class="field"><label>Rekening</label><select onchange="logState.accountId=this.value">${accounts.map(a=>`<option value="${a.id}" ${logState.accountId===a.id?'selected':''}>${esc(a.name)} — ${fmt(a.balance)}</option>`).join('')}</select></div>
-    <div class="field"><label>Tag (opsional)</label><input type="text" value="${esc(logState.tag)}" oninput="logState.tag=this.value" placeholder="#weekend, #essential…"></div>
+    ${logState.type==='transfer'?transferFieldsHTML():`<div class="field"><label for="qlCat">Kategori</label><select id="qlCat" onchange="logState.categoryId=this.value;logState.categoryTouched=true">${categories.filter(c=> logState.type==='income'? c.type==='income' : c.type==='expense').map(c=>`<option value="${c.id}" ${logState.categoryId===c.id?'selected':''}>${c.name}</option>`).join('')}</select></div>
+    <div class="field"><label for="qlAcc">Rekening</label><select id="qlAcc" onchange="logState.accountId=this.value">${accounts.map(a=>`<option value="${a.id}" ${logState.accountId===a.id?'selected':''}>${esc(a.name)} — ${fmt(a.balance)}</option>`).join('')}</select></div>`}
+    ${logState.type==='transfer'?'':`<div class="field"><label for="qlTag">Tag (opsional)</label><input id="qlTag" type="text" value="${esc(logState.tag)}" oninput="logState.tag=this.value" placeholder="#weekend, #essential…"></div>`}
     <p style="font-size:11px;color:var(--muted);line-height:1.5;margin:0">Saldo, pocket, tagihan, dan progres Essentials langsung diperbarui begitu disimpan, lalu tersinkron ke akunmu.</p>
   `;
   modalShell('Quick Log — catat dalam 10 detik', body, `<button id="qlSave" class="btn btn-emerald" style="width:100%;padding:13px;font-size:14px" onclick="saveQuickLog()">Simpan • ${fmt(parseAmt(logState.amount))}</button>`);
   const amtEl=document.getElementById('qlAmt'); if(amtEl&&!logState.amount) amtEl.focus();
 }
-function setLogType(t){ logState.type=t; if(t==='income') logState.categoryId='cat_salary'; if(t==='expense'||t==='refund') { if(!categories.find(c=>c.id===logState.categoryId&&c.type==='expense')) logState.categoryId='cat_coffee'; } openLogger(true); }
+function setLogType(t){ logState.type=t; if(t==='transfer'&&!logState.transferTo) logState.transferTo=defaultTransferTo(); if(t==='income') logState.categoryId='cat_salary'; if(t==='expense'||t==='refund') { if(!categories.find(c=>c.id===logState.categoryId&&c.type==='expense')) logState.categoryId='cat_coffee'; } openLogger(true); }
 function saveQuickLog(){
   const amt=parseAmt(logState.amount);
   if(amt<=0){ toast('Masukkan nominal lebih dari nol dulu ya.'); return; }
+  if(logState.type==='transfer'){ saveTransfer(amt); return; }
   const cat=catById(logState.categoryId), pock=pockById(logState.pocketId), m=matchedEssential();
   const defTitle= logState.type==='transfer'? `Transfer ke ${pock?pock.name:'Pocket'}` : logState.type==='refund'? `Reimbursement (${cat?cat.name:'General'})` : m? m.name : (cat?cat.name:'Quick Entry');
   const qlDate= /^\d{4}-\d{2}-\d{2}$/.test(logState.date||'')? logState.date : todayISO();
@@ -885,6 +917,40 @@ function saveQuickLog(){
   logState=freshLogState();
   render();
   toastUndo(m? `Tercatat: ${m.name}! Sisa item dan total Essentials sudah diperbarui.` : `Tersimpan: ${newTx.title} (${fmt(amt)})`, snap);
+}
+
+/* ===== TRANSFER: between own accounts, or into a saving pocket ===== */
+// Pockets are envelopes inside the main account: money sent to a pocket from another account
+// first lands in the main account, then the pocket's share is set aside.
+function defaultTransferTo(){ const other=accounts.find(a=>a.id!==logState.accountId); return other? 'acc:'+other.id : (pockets[0]? 'pock:'+pockets[0].id : ''); }
+function transferFieldsHTML(){
+  const from=logState.accountId, to=logState.transferTo||'';
+  const accOpts=accounts.filter(a=>a.id!==from).map(a=>`<option value="acc:${a.id}" ${to==='acc:'+a.id?'selected':''}>${esc(a.name)}${a.type==='credit'?' (bayar kartu)':''}</option>`).join('');
+  const pockOpts=pockets.map(p=>`<option value="pock:${p.id}" ${to==='pock:'+p.id?'selected':''}>${esc(p.name)} — ${fmt(p.currentAmount)}</option>`).join('');
+  const main=accById(mainAccountId());
+  const viaMain= to.startsWith('pock:')&&main&&from!==main.id;
+  return `<div class="field"><label for="qlFrom">Dari rekening</label><select id="qlFrom" onchange="logState.accountId=this.value;if(logState.transferTo==='acc:'+this.value)logState.transferTo=defaultTransferTo();openLogger()">${accounts.map(a=>`<option value="${a.id}" ${from===a.id?'selected':''}>${esc(a.name)} — ${fmt(a.balance)}</option>`).join('')}</select></div>
+  <div class="field"><label for="qlTo">Ke</label><select id="qlTo" onchange="logState.transferTo=this.value;openLogger()"><option value="" ${to?'':'selected'}>Pilih tujuan…</option>${accOpts?`<optgroup label="Rekening & kartu">${accOpts}</optgroup>`:''}${pockOpts?`<optgroup label="Saving Pockets">${pockOpts}</optgroup>`:''}</select>
+  <p class="rc-help" style="margin:6px 0 0">${to.startsWith('pock:')? (viaMain?`Dana pindah ke ${esc(main.name)} (rekening utama) dan disisihkan di pocket ini.`:'Dana disisihkan di pocket ini dan tidak dihitung sebagai uang belanja.') : to.startsWith('acc:')&&(accById(to.slice(4))||{}).type==='credit'? 'Membayar tagihan kartu kredit — hutang kartu berkurang.' : 'Uang pindah antar rekening sendiri — tidak dihitung sebagai pengeluaran.'}</p></div>`;
+}
+function saveTransfer(amt){
+  const from=accById(logState.accountId), [kind,id]=(logState.transferTo||'').split(':');
+  const toAcc= kind==='acc'? accById(id) : null, pock= kind==='pock'? pockById(id) : null;
+  if(!from||(!toAcc&&!pock)){ toast('Pilih rekening asal dan tujuan transfer.'); return; }
+  if(toAcc&&toAcc.id===from.id){ toast('Rekening asal dan tujuan tidak boleh sama.'); return; }
+  const date= /^\d{4}-\d{2}-\d{2}$/.test(logState.date||'')? logState.date : todayISO();
+  if(date>todayISO()){ toast('Tanggal tidak boleh di masa depan.'); return; }
+  const mainId=mainAccountId();
+  if(pock&&!mainId){ toast('Tambahkan rekening bank / e-wallet dulu — pocket disimpan di rekening utama.'); return; }
+  const snap=snapshot();
+  const moves= toAcc? [{id:from.id,amount:-amt},{id:toAcc.id,amount:amt}]
+             : (mainId&&from.id!==mainId? [{id:from.id,amount:-amt},{id:mainId,amount:amt}] : []);
+  moves.forEach(m=>adjBalance(m.id,m.amount));
+  if(pock) pockets=pockets.map(p=> p.id===pock.id? {...p,currentAmount:p.currentAmount+amt}:p);
+  const title=logState.title.trim()||(toAcc? (toAcc.type==='credit'?`Bayar ${toAcc.name}`:`Transfer ke ${toAcc.name}`) : `Tabung ke ${pock.name}`);
+  transactions=[{id:'tx_tf_'+Date.now(),date,title,amount:amt,type:'transfer',categoryId:null,accountId:from.id,toAccountId:toAcc?toAcc.id:null,pocketId:pock?pock.id:null,moves,tag:pock?'#pocket-save':'#transfer'},...transactions].sort((a,b)=>b.date.localeCompare(a.date));
+  closeModal(); logState=freshLogState(); render();
+  toastUndo(`${title}: ${fmt(amt)}`,snap);
 }
 
 /* ===== RECEIPTS: paste text or photo (on-device OCR) → review list → one transaction per item ===== */
@@ -1122,17 +1188,24 @@ function stItem(t){
   const fx=t.desc.match(/\((USD|SGD|EUR|JPY|MYR|AUD|GBP)\s*([\d.,]+)\)/i);
   // Drop exchange-rate notes and merchant/reference codes (tokens of 6+ chars that contain a digit).
   const name=rcTitle(t.desc.replace(/\([A-Z]{3}\s*1\s*=[^)]*\)|\([A-Z]{3}\s*[\d.,]+\)/gi,'').split(' ').filter(w=>!(w.length>=6&&/\d/.test(w))).join(' ').replace(/\s{2,}/g,' ').trim()||'Transaksi kartu');
-  let note='', include=true, categoryId='cat_shopping';
+  let note='', include=true, categoryId='cat_shopping', topupTo='';
   const rule=ST_RULES.find(([re])=>re.test(t.desc)); if(rule) categoryId=rule[1];
   if(t.credit||ST_SKIP.test(t.desc)){ include=false; note='Pembayaran / kredit — bukan pengeluaran'; }
-  else if(ST_TOPUP.test(t.desc)&&!/grab/i.test(t.desc)){ include=false; categoryId='cat_shopping'; note='Top-up e-wallet — bisa dobel jika belanja dari e-wallet sudah dicatat'; }
+  else if(ST_TOPUP.test(t.desc)&&!/grab/i.test(t.desc)){
+    // A top-up is a transfer into one of your own accounts, not spending.
+    const desc=t.desc.toLowerCase(), common=new Set(['wallet','dompet','main','utama','bank','rekening','tabungan','digital','card','kartu']);
+    const w=accounts.find(a=>a.type!=='credit'&&a.name.toLowerCase().split(/[^a-z]+/).some(x=>x.length>=4&&!common.has(x)&&desc.includes(x)));
+    if(w){ note=`Top-up ${w.name} — dicatat sebagai transfer, bukan pengeluaran`; topupTo='acc:'+w.id; }
+    else { include=false; categoryId='cat_shopping'; note='Top-up e-wallet — tautkan ke rekening e-wallet, atau biarkan tidak dicentang'; }
+  }
   else if(/installment|cicilan/i.test(t.desc)){ note='Cicilan — pastikan pembelian aslinya belum dicatat'; }
   else if(ST_FEE.test(t.desc)){ note='Biaya bank'; categoryId='cat_utilities'; }
-  if(include&&transactions.some(x=>x.type==='expense'&&x.date===t.date&&x.amount===t.amount)){ include=false; note='Mungkin sudah tercatat (tanggal & nominal sama)'; }
+  const dupTransfer= topupTo&&transactions.some(x=>x.type==='transfer'&&x.date===t.date&&x.amount===t.amount&&'acc:'+x.toAccountId===topupTo);
+  if(include&&(dupTransfer||transactions.some(x=>x.type==='expense'&&x.date===t.date&&x.amount===t.amount))){ include=false; note='Mungkin sudah tercatat (tanggal & nominal sama)'; }
   if(fx) note=(note?note+' · ':'')+`${fx[1].toUpperCase()} ${fx[2]}`;
   // Suggest a link so the charge doesn't get counted twice (once here, once as a reserved bill/Essential).
-  let link='';
-  if(!t.credit){
+  let link=topupTo;
+  if(!t.credit&&!link){
     const b=billByName(name), e=b? null : rcMatchEssential(name), amt=(!b&&!e)? billByAmount(t.amount) : null;
     if(b){ link='bill:'+b.id; categoryId=b.categoryId; }
     else if(e){ link='ess:'+e.id; categoryId=e.categoryId; }
@@ -1144,7 +1217,8 @@ function stLinkOptions(it){
   const opt=(v,l)=>`<option value="${v}" ${it.link===v?'selected':''}>${l}</option>`;
   return opt('','Tidak ditautkan')
     + (recurringItems.length? `<optgroup label="Tagihan rutin">${recurringItems.map(r=>opt('bill:'+r.id,'Tagihan: '+esc(r.name))).join('')}</optgroup>` : '')
-    + (essentials.length? `<optgroup label="Essentials">${essentials.map(e=>opt('ess:'+e.id,'Essentials: '+esc(e.name))).join('')}</optgroup>` : '');
+    + (essentials.length? `<optgroup label="Essentials">${essentials.map(e=>opt('ess:'+e.id,'Essentials: '+esc(e.name))).join('')}</optgroup>` : '')
+    + (accounts.some(a=>a.type!=='credit')? `<optgroup label="Top-up / transfer ke">${accounts.filter(a=>a.type!=='credit').map(a=>opt('acc:'+a.id,'Transfer ke '+esc(a.name))).join('')}</optgroup>` : '');
 }
 function openStatement(){
   if(!accounts.length){ toast('Tambahkan rekening dulu di Pengaturan.'); goTab('settings'); return; }
@@ -1205,7 +1279,7 @@ function renderStatement(){
       <div class="rc-line rc-sub">${it.credit?'<span style="flex:1"></span>':`<select aria-label="Kategori" onchange="stUpdate(${i},'categoryId',this.value)">${catOpts(it.categoryId)}</select>`}
         <input type="text" inputmode="numeric" aria-label="Nominal" class="rc-amt" value="${it.amount.toLocaleString('id-ID')}" oninput="stUpdate(${i},'amount',this.value)" ${it.credit?'disabled':''}>
         <button class="icon-btn" aria-label="Hapus baris" onclick="stRemove(${i})">✕</button></div>
-      ${it.credit||(!recurringItems.length&&!essentials.length)?'':`<div class="rc-line rc-sub"><select aria-label="Tautkan ke tagihan atau Essentials" class="${it.link?'st-linked':''}" onchange="stUpdate(${i},'link',this.value);this.classList.toggle('st-linked',!!this.value)">${stLinkOptions(it)}</select></div>`}
+      ${it.credit||(!recurringItems.length&&!essentials.length&&!accounts.some(a=>a.type!=='credit'))?'':`<div class="rc-line rc-sub"><select aria-label="Tautkan ke tagihan, Essentials, atau transfer" class="${it.link?'st-linked':''}" onchange="stUpdate(${i},'link',this.value);this.classList.toggle('st-linked',!!this.value)">${stLinkOptions(it)}</select></div>`}
       ${it.note?`<div class="st-note">${esc(it.note)}</div>`:''}
     </div>`).join('')}
     <div id="stSum" class="rc-sum"></div>`;
@@ -1223,6 +1297,10 @@ function stSave(){
     const title=it.name.trim()||'Transaksi kartu', [kind,id]=(it.link||'').split(':');
     const bill= kind==='bill'? recurringItems.find(r=>r.id===id) : null, ess= kind==='ess'? essentials.find(e=>e.id===id) : null;
     if(bill){ recordBillPayment(bill,it.amount,accId,it.date,{title,tag:'#kartu-kredit'}); return; }
+    if(kind==='acc'&&accById(id)&&id!==accId){
+      const moves=[{id:accId,amount:-it.amount},{id,amount:it.amount}]; moves.forEach(m=>adjBalance(m.id,m.amount));
+      newTx.push({id:`tx_cc_${stamp}_${i}`,date:it.date,title,amount:it.amount,type:'transfer',categoryId:null,accountId:accId,toAccountId:id,pocketId:null,moves,tag:'#transfer'}); return;
+    }
     const t={id:`tx_cc_${stamp}_${i}`,date:it.date,title,amount:it.amount,type:'expense',categoryId:ess?ess.categoryId:it.categoryId,accountId:accId,tag:ess?'#essential':'#kartu-kredit',pocketId:null,essentialId:ess?ess.id:null,essentialQty:ess?1:null};
     adjBalance(accId,-t.amount); newTx.push(t);
   });
@@ -1337,7 +1415,7 @@ function saveAccount(id){
 }
 function deleteAccount(id){
   const a=accounts.find(x=>x.id===id); if(!a) return;
-  const used=transactions.filter(t=>t.accountId===id).length;
+  const used=transactions.filter(t=>t.accountId===id||t.toAccountId===id||(t.moves||[]).some(m=>m.id===id)).length;
   if(used){ toast(`"${a.name}" masih dipakai ${used} transaksi — hapus transaksinya dulu, atau ubah namanya saja.`); return; }
   const snap=snapshot(); accounts=accounts.filter(x=>x.id!==id); if(settings.mainAccountId===id) settings={...settings,mainAccountId:null};
   render(); toastUndo(`Rekening "${a.name}" dihapus.`,snap);
@@ -1432,7 +1510,27 @@ function renderSettings(){
   ${settingsList('Daftar Essentials','Belanja kebutuhan rutin per bulan.','+ Item','openEssentialForm()',
     essentials.map(e=>setRow(esc(e.name),`${fmt(e.unitPrice)} × ${e.targetQty}/bulan = ${fmt(e.unitPrice*e.targetQty)}`,`openEssentialForm('${e.id}')`,`deleteEssential('${e.id}')`)),
     'Belum ada item Essentials.')}
+  <div class="card"><div class="set-head"><div><h3>Budget Kategori</h3><p class="sub">Batas belanja bebas per bulan (di luar tagihan & Essentials).</p></div><button class="btn btn-sm" onclick="openBudgetModal()">Ubah</button></div>${categories.filter(c=>c.type==='expense'&&budgetOf(c.id)).map(c=>`<div class="set-row"><span>${esc(c.name)}</span><strong>${fmt(budgetOf(c.id))}</strong></div>`).join('')||'<p class="set-empty">Belum ada budget.</p>'}</div>
   <div class="card"><div class="set-head"><div><h3>Gajian</h3><p class="sub">Safe-to-Spend menyisihkan kebutuhan sampai tanggal ini.</p></div><button class="btn btn-sm" onclick="openPaydayModal()">Ubah</button></div><p style="margin:0;font-size:13px">Setiap tanggal <strong>${settings.payday}</strong></p></div>
+  </div>`;
+}
+const SETUP_STEPS=[
+  {id:'acc',  title:'Tambah rekening', sub:'Rekening tempat gaji masuk, e-wallet, dan kartu kredit.', done:()=>accounts.length>0, act:'openAccountForm()', optional:false},
+  {id:'payday',title:'Atur tanggal gajian', sub:'Safe-to-Spend dihitung sampai tanggal ini.', done:()=>!!settings.paydaySet, act:'openPaydayModal()', optional:false},
+  {id:'bills',title:'Tambah tagihan rutin', sub:'Kos, internet, listrik, langganan…', done:()=>recurringItems.length>0, act:'openBillForm()', optional:true},
+  {id:'ess',  title:'Buat daftar Essentials', sub:'Belanja kebutuhan bulanan (beras, telur…).', done:()=>essentials.length>0, act:'openEssentialForm()', optional:true},
+  {id:'pock', title:'Buat saving pocket', sub:'Dana darurat, liburan, atau target lain.', done:()=>pockets.length>0, act:'openPocketForm()', optional:true},
+  {id:'budget',title:'Atur budget kategori', sub:'Batas belanja bebas per bulan.', done:()=>Object.keys(settings.budgets||{}).length>0, act:'openBudgetModal()', optional:true},
+];
+function setupState(){ const skip=settings.setupSkip||[]; return SETUP_STEPS.map(st=>({...st,isDone:st.done(),skipped:skip.includes(st.id)})); }
+function setupComplete(){ return setupState().every(st=>st.isDone||st.skipped); }
+function skipSetup(id){ const snap=snapshot(); settings={...settings,setupSkip:[...new Set([...(settings.setupSkip||[]),id])]}; render(); toastUndo('Langkah dilewati — bisa diatur kapan saja di Pengaturan.',snap); }
+function dismissSetup(){ const snap=snapshot(); settings={...settings,setupDismissed:true}; render(); toastUndo('Panduan disembunyikan.',snap); }
+function renderSetupChecklist(){
+  const st=setupState(), done=st.filter(x=>x.isDone||x.skipped).length, next=st.find(x=>!x.isDone&&!x.skipped);
+  return `<div class="card setup"><div class="set-head"><div><h3>Siapkan FlowPocket</h3><p class="sub">${done} dari ${st.length} langkah selesai · angka Safe-to-Spend makin akurat di setiap langkah.</p></div>${accounts.length?'<button class="link-btn" onclick="dismissSetup()">Sembunyikan</button>':''}</div>
+  <div class="bar sm" style="margin:4px 0 6px"><i style="width:${Math.round(done/st.length*100)}%"></i></div>
+  ${st.map(x=>`<div class="setup-row ${x===next?'next':''}"><span class="setup-check ${x.isDone?'ok':''}">${x.isDone?'✓':x.skipped?'–':''}</span><div style="flex:1;min-width:0"><strong>${x.title}</strong><div class="set-meta">${x.skipped?'Dilewati':x.sub}</div></div>${x.isDone?'':`<span class="set-actions">${x.optional&&!x.skipped?`<button class="link-btn" style="font-size:11px" onclick="skipSetup('${x.id}')">Lewati</button>`:''}<button class="btn btn-sm ${x===next?'btn-dark':''}" onclick="${x.act}">${x.skipped?'Atur':'Mulai'}</button></span>`}</div>`).join('')}
   </div>`;
 }
 function renderWelcome(){

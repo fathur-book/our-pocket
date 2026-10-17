@@ -193,6 +193,7 @@ select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);backg
 .st-note{font-size:11px;color:var(--amber-text);margin-top:4px;padding-left:24px}
 .set-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
 .set-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px}
+.set-head>div{min-width:0}
 .set-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--border);font-size:13px}
 .set-meta{font-size:11px;color:var(--muted);margin-top:2px}
 .set-actions{display:flex;gap:4px;align-items:center;flex-shrink:0}
@@ -250,6 +251,14 @@ body{overflow-x:clip;overflow-wrap:anywhere}
   .brand h1{display:none} /* very small phones: logo icon only, so the header stays one row */
 }
 :focus-visible{outline:2px solid var(--emerald);outline-offset:2px}
+/* ---- Sizing rules for every screen: boxes never exceed their parent, buttons never get squeezed ---- */
+input,select,textarea{max-width:100%;min-width:0;box-sizing:border-box}
+.btn,.link-btn,.badge,.tag{white-space:nowrap;flex-shrink:0}
+/* Android/iOS give date & month fields a fixed minimum width and centred text: make them behave like other fields. */
+input[type=date],input[type=month]{-webkit-appearance:none;appearance:none;display:block;width:100%;min-height:46px;text-align:left;line-height:1.2}
+input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-and-time-value{text-align:left;margin:0}
+.modal{overflow-x:hidden}
+.field{min-width:0}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -591,7 +600,7 @@ function reverseTx(tx){
   if(tx.recurringId) recurringItems=recurringItems.map(r=> r.id===tx.recurringId&&r.txId===tx.id? {...r,status:'upcoming',actualAmount:null,txId:null,accountId:null}:r);
 }
 
-function fmt(n,sign){ if(n===null||n===undefined) return '—'; const neg=n<0; const s='Rp '+Math.round(Math.abs(n)).toLocaleString('id-ID'); if(sign){ if(n>0) return '+'+s; if(neg) return '-'+s; } return neg?'-'+s:s; }
+function fmt(n,sign){ if(n===null||n===undefined) return '—'; const neg=n<0; const s='Rp '+Math.round(Math.abs(n)).toLocaleString('id-ID'); if(sign){ if(n>0) return '+'+s; if(neg) return '-'+s; } return neg?'-'+s:s; }
 /* Rupiah has no cents: "15.000", "15,000" and "Rp15000" all mean 15000. */
 function parseAmt(v){ return rcNum(String(v??'')); } // also drops pasted cents: "1.250.000,00" = 1250000
 function esc(s){ return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -805,7 +814,7 @@ function renderEssentials(fin,ess){
   <div class="card" style="margin-top:16px">
     <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-bottom:14px;border-bottom:1px solid var(--border)"><div><h3>Tagihan &amp; Langganan Rutin</h3><p class="sub">Perbandingan Expected vs Actual — selisihnya terlihat jelas, tidak tersembunyi</p></div><button class="btn btn-dark" onclick="openAddRecurring()">+ Tambah Tagihan Rutin</button></div>
     <div>${recurringItems.map(item=>{ const cat=catById(item.categoryId); const isPaid=item.status==='paid', isSkip=item.status==='skipped'; const variance=isPaid? item.expectedAmount-(item.actualAmount??item.expectedAmount):0; return `<div class="rec-row" style="${isSkip?'opacity:.55':''}">
-      <div style="display:flex;gap:12px;align-items:flex-start;min-width:260px;flex:1"><div class="date-box ${isPaid?'paid':isSkip?'skipped':''}"><small>${monthShort()}</small><span>${Math.min(item.dueDay,monthInfo().dim)}</span></div>
+      <div style="display:flex;gap:12px;align-items:flex-start;min-width:min(260px,100%);flex:1"><div class="date-box ${isPaid?'paid':isSkip?'skipped':''}"><small>${monthShort()}</small><span>${Math.min(item.dueDay,monthInfo().dim)}</span></div>
       <div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><strong style="font-size:14px">${esc(item.name)}</strong><span class="tag">${cat?cat.name:'Recurring'}</span>${isPaid?'<span class="badge ok">✓ Paid</span>':''}${isSkip?'<span class="badge" style="background:var(--surface2);color:var(--muted);border-color:var(--border)">Skipped</span>':''}</div><p style="font-size:12px;color:var(--muted);margin:3px 0 0">${esc(item.note||'')}</p></div></div>
       <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center">
         <div><div style="font-size:10px;color:var(--muted)">Expected</div><strong style="font-size:13px">${fmt(item.expectedAmount)}</strong></div>
@@ -825,7 +834,7 @@ function renderPockets(fin){
   <div class="grid" style="grid-template-columns:1fr 1fr">${pockets.map(p=>{ const pct=Math.min(100,Math.round(p.currentAmount/p.targetAmount*100)); return `<div class="card"><div style="display:flex;justify-content:space-between;gap:10px"><div style="display:flex;gap:10px;align-items:center"><span class="cat-ico" style="width:42px;height:42px;border-radius:12px;background:var(--emerald-bg);color:var(--emerald-text)"><i data-lucide="${p.icon}"></i></span><div><h3>${esc(p.name)}</h3><p class="sub">${esc(p.description)}</p></div></div><span class="badge ok">${pct}%</span></div>
   <div style="display:flex;justify-content:space-between;margin-top:16px;align-items:flex-end"><div><div style="font-size:11px;color:var(--muted)">Terkumpul</div><div style="font-size:22px;font-weight:800">${fmt(p.currentAmount)}</div></div><div style="text-align:right"><div style="font-size:11px;color:var(--muted)">Target (${esc(p.targetDate)})</div><strong style="font-size:13px">${fmt(p.targetAmount)}</strong><div style="font-size:11px;color:var(--muted)">kurang ${fmt(Math.max(0,p.targetAmount-p.currentAmount))}</div></div></div>
   <div class="bar" style="margin-top:10px"><i style="width:${pct}%"></i></div>
-  <div style="display:flex;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)"><button class="btn btn-dark" style="flex:1" onclick="openPocketAction('${p.id}','topup')">+ Top Up (saran ${fmt(p.monthlyHint)}/bln)</button><button class="btn" onclick="openPocketAction('${p.id}','spend')">Pakai dari Pocket</button></div></div>`;}).join('')}</div>
+  ${p.monthlyHint?`<p class="sub" style="margin:10px 0 0">Saran top up ${fmt(p.monthlyHint)} / bulan</p>`:''}<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)"><button class="btn btn-dark" style="flex:1 1 120px" onclick="openPocketAction('${p.id}','topup')">+ Top Up</button><button class="btn" style="flex:1 1 120px" onclick="openPocketAction('${p.id}','spend')">Pakai dari Pocket</button></div></div>`;}).join('')}</div>
 
   <div class="card" style="margin-top:16px"><h3>Rekening &amp; Credit Float</h3><p class="sub">Saldo fisik dan cadangan otomatis untuk kartu kredit.</p>
   <div class="acc-grid" style="margin-top:14px">${accounts.map(a=>{ const isC=a.type==='credit'; return `<div class="acc ${isC?'credit':''}"><div style="display:flex;justify-content:space-between"><span class="acc-ico" style="background:${a.color}"><i data-lucide="${a.icon}"></i></span><span style="font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">${esc(a.type)}</span></div><h4 style="margin:10px 0 0;font-size:13px">${esc(a.name)}</h4><div style="font-size:17px;font-weight:800;margin-top:3px;color:${isC?'var(--amber-text)':'inherit'}">${fmt(a.balance)}</div>${isC?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--amber-border);display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--amber-text);font-weight:600">100% kas dicadangkan</span>${fin.creditFloatHolding>0?`<button class="link-btn" style="color:var(--amber-text);text-decoration:underline" onclick="payoffCredit()">Lunasi Sekarang</button>`:''}</div>`:''}</div>`;}).join('')}</div></div>`;

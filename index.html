@@ -1,0 +1,1422 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>FlowPocket — Clarity-First Finance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+:root{
+  --bg:#f6f7f9; --surface:#ffffff; --surface2:#f8fafc; --border:#e2e8f0; --border2:#cbd5e1;
+  --text:#0f172a; --muted:#64748b; --muted2:#94a3b8;
+  --dark:#0f172a; --dark2:#1e293b; --dark-border:#334155;
+  --emerald:#059669; --emerald-bg:#ecfdf5; --emerald-border:#a7f3d0; --emerald-text:#065f46;
+  --amber:#d97706; --amber-bg:#fffbeb; --amber-border:#fde68a; --amber-text:#92400e;
+  --indigo:#4f46e5; --indigo-bg:#eef2ff;
+  --rose:#e11d48;
+  --radius:20px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0b1220; --surface:#111827; --surface2:#0f172a; --border:#1f2937; --border2:#374151;
+    --text:#f1f5f9; --muted:#94a3b8; --muted2:#64748b;
+    --emerald-bg:#064e3b33; --emerald-border:#065f46; --emerald-text:#6ee7b7;
+    --amber-bg:#78350f33; --amber-border:#92400e; --amber-text:#fcd34d;
+    --indigo-bg:#312e8133;
+    color-scheme: dark;
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);padding-bottom:96px;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit}
+.mono{font-family:'JetBrains Mono',monospace}
+a{color:inherit}
+header{position:sticky;top:0;z-index:30;background:color-mix(in srgb, var(--surface) 92%, transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.header-in{max-width:1180px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-icon{width:40px;height:40px;border-radius:12px;background:var(--dark);color:#fff;display:flex;align-items:center;justify-content:center}
+.brand-icon svg{width:20px;height:20px;color:#34d399}
+.brand h1{font-size:17px;margin:0;letter-spacing:-.02em;line-height:1}
+.brand p{margin:2px 0 0;font-size:11px;color:var(--muted);font-weight:600}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;background:var(--surface2);border:1px solid var(--border);color:var(--muted)}
+nav.tabs{display:flex;gap:4px;background:var(--surface2);border:1px solid var(--border);padding:4px;border-radius:14px;flex-wrap:wrap}
+nav.tabs button{border:0;background:transparent;padding:8px 12px;border-radius:10px;font-size:12px;font-weight:700;color:var(--muted);display:flex;align-items:center;gap:6px}
+nav.tabs button.active{background:var(--dark);color:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+nav.tabs button svg{width:15px;height:15px}
+.safe-pill{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:14px;background:var(--surface2);border:1px solid var(--border);font-size:12px}
+.dot{width:8px;height:8px;border-radius:50%;background:#10b981;animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+main{max-width:1180px;margin:0 auto;padding:20px 16px 8px}
+.page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.page-head h2{margin:0;font-size:20px;letter-spacing:-.02em}
+.page-head p{margin:4px 0 0;font-size:12px;color:var(--muted)}
+.grid{display:grid;gap:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.card h3{margin:0;font-size:15px}
+.card .sub{font-size:12px;color:var(--muted);margin-top:2px}
+.hero{background:var(--dark);color:#fff;border-radius:24px;padding:22px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,#05966955,transparent 70%)}
+.hero .label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8;font-weight:700}
+.hero .big{font-size:clamp(28px,4vw,40px);font-weight:800;letter-spacing:-.03em;margin:4px 0 0;line-height:1.05}
+.pill-green{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:#05966926;color:#6ee7b7;border:1px solid #05966944;font-size:11px;font-weight:700}
+.btn-ghost-light{background:#ffffff1a;color:#e2e8f0;border:1px solid #ffffff22;padding:6px 10px;border-radius:9px;font-size:11px;font-weight:600}
+.hero{container-type:inline-size}
+.breakdown{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:16px;position:relative;z-index:1}
+.breakdown>*{background:#1e293bcc;border:1px solid var(--dark-border);border-radius:12px;padding:10px;min-width:0;text-align:left;width:100%;color:#fff}
+.breakdown button{cursor:pointer}
+.breakdown span{display:block;font-size:11px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.breakdown strong{display:block;margin-top:3px;font-size:clamp(11px,2.1cqi,13px);white-space:nowrap}
+@container (max-width:560px){.breakdown{grid-template-columns:repeat(2,minmax(0,1fr))}.breakdown>:first-child{grid-column:1/-1}}
+.formula{margin-top:12px;background:#1e293b;border:1px solid var(--dark-border);border-radius:14px;padding:12px;font-size:12px;line-height:1.6;color:#cbd5e1;position:relative;z-index:1}
+.bar{height:10px;background:var(--surface2);border:1px solid var(--border);border-radius:999px;overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:999px;background:var(--emerald);transition:width .4s}
+.bar.amber>i{background:#f59e0b}.bar.dark>i{background:var(--dark)}
+@media(prefers-color-scheme:dark){.bar.dark>i{background:#e2e8f0}}
+.bar.sm{height:7px}
+.progress-row{display:flex;justify-content:space-between;font-size:12px;font-weight:600;margin-bottom:6px}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid}
+.badge.ok{background:var(--emerald-bg);color:var(--emerald-text);border-color:var(--emerald-border)}
+.badge.warn{background:var(--amber-bg);color:var(--amber-text);border-color:var(--amber-border)}
+.ess-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.ess-tile{border:1px solid var(--border);background:var(--surface2);border-radius:14px;padding:12px;text-align:left;width:100%;transition:.15s}
+.ess-tile:hover{background:var(--dark);color:#fff;border-color:var(--dark)}
+.ess-tile:hover .t1{color:#6ee7b7}.ess-tile:hover .t3{color:#94a3b8;border-color:#334155}
+.ess-tile .t1{font-size:10px;font-weight:800;color:var(--emerald);display:flex;justify-content:space-between}
+.ess-tile h4{margin:5px 0 0;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ess-tile .t3{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:10px;color:var(--muted)}
+.ess-tile .t3 strong{display:block;font-size:12px;color:inherit}
+.cat-row{margin-bottom:16px}.cat-row:last-child{margin-bottom:0}
+.cat-head{display:flex;justify-content:space-between;align-items:center;font-size:12px;gap:8px}
+.cat-name{display:flex;align-items:center;gap:8px;font-weight:700}
+.cat-ico{width:28px;height:28px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center}
+.cat-ico svg{width:14px;height:14px}
+.pocket-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pocket-mini{border:1px solid var(--border);background:var(--surface2);border-radius:16px;padding:14px}
+.pocket-mini h4{margin:8px 0 2px;font-size:13px}
+.pocket-mini p{margin:0;font-size:11px;color:var(--muted)}
+.btn{border:1px solid var(--border);background:var(--surface);padding:8px 12px;border-radius:10px;font-size:12px;font-weight:700;color:var(--text)}
+.btn:hover{border-color:var(--border2)}
+.btn-dark{background:var(--dark);color:#fff;border-color:var(--dark)}
+.btn-dark:hover{background:var(--emerald);border-color:var(--emerald)}
+.btn-emerald{background:#059669;color:#fff;border-color:#059669}
+.btn-sm{padding:6px 10px;font-size:11px;border-radius:9px}
+.link-btn{background:none;border:0;font-size:12px;font-weight:700;color:var(--muted);display:inline-flex;align-items:center;gap:4px;padding:0}
+.link-btn:hover{color:var(--text)}
+.stats4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:16px}
+.stat span{font-size:11px;color:var(--muted);font-weight:600}
+.stat p{margin:5px 0 0;font-size:20px;font-weight:800;letter-spacing:-.02em}
+.stat small{display:block;margin-top:4px;font-size:11px;color:var(--muted)}
+.stat.dark{background:var(--dark);color:#fff;border-color:var(--dark)}
+.stat.dark span,.stat.dark small{color:#94a3b8}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted2);text-align:left;padding:10px 8px;border-bottom:1px solid var(--border)}
+td{padding:12px 8px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr.done{background:color-mix(in srgb, var(--emerald-bg) 45%, transparent)}
+.num{text-align:right}.center{text-align:center}
+.seg{display:inline-flex;gap:3px;background:var(--surface2);border:1px solid var(--border);padding:3px;border-radius:11px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;padding:6px 11px;border-radius:8px;font-size:11px;font-weight:700;color:var(--muted)}
+.seg button.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.rec-row{display:flex;justify-content:space-between;gap:14px;padding:16px 0;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.rec-row:last-child{border-bottom:0}
+.date-box{width:42px;height:46px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;border:1px solid var(--border);background:var(--dark);color:#fff;flex-shrink:0}
+.date-box small{font-size:8px;letter-spacing:.08em;opacity:.7}
+.date-box.paid{background:var(--emerald-bg);color:var(--emerald-text);border-color:var(--emerald-border)}
+.date-box.skipped{background:var(--surface2);color:var(--muted)}
+.sweep{background:#064e3b;color:#fff;border-radius:22px;padding:20px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center}
+@media(prefers-color-scheme:dark){.sweep{background:#065f46}}
+.acc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.acc{border:1px solid var(--border);background:var(--surface2);border-radius:16px;padding:14px}
+.acc.credit{background:var(--amber-bg);border-color:var(--amber-border)}
+.acc-ico{width:36px;height:36px;border-radius:10px;color:#fff;display:flex;align-items:center;justify-content:center}
+.acc-ico svg{width:16px;height:16px}
+.searchbar{display:flex;gap:10px;flex-wrap:wrap}
+.search-wrap{flex:1;min-width:200px;position:relative}
+.search-wrap svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--muted2)}
+.search-wrap input{width:100%;padding:11px 12px 11px 36px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);font-size:13px;color:var(--text)}
+select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);font-size:12px;font-weight:600;color:var(--text)}
+.tx-group{border:1px solid var(--border);border-radius:18px;overflow:hidden;background:var(--surface);margin-bottom:14px}
+.tx-group-head{background:var(--surface2);padding:10px 16px;display:flex;justify-content:space-between;font-size:12px;border-bottom:1px solid var(--border)}
+.tx-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border)}
+.tx-row:last-child{border-bottom:0}
+.tx-ico{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--surface2);border:1px solid var(--border)}
+.tx-ico svg{width:16px;height:16px}
+.tx-ico.green{background:var(--emerald-bg);color:var(--emerald-text);border-color:var(--emerald-border)}
+.tx-ico.indigo{background:var(--indigo-bg);color:var(--indigo)}
+.tag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--muted)}
+.icon-btn{border:0;background:transparent;color:var(--muted2);padding:6px;border-radius:8px}
+.icon-btn:hover{color:var(--rose);background:#fff1f2}
+.fab{position:fixed;right:18px;bottom:20px;z-index:40;display:flex;align-items:center;gap:6px;background:#059669;color:#fff;border:0;padding:12px 20px 12px 16px;border-radius:999px;font-weight:700;font-size:14px;line-height:1;box-shadow:0 8px 20px rgba(5,150,105,.3)}
+.fab:hover{background:#047857}
+.fab svg{width:18px;height:18px;stroke-width:2.5}
+.ql-imports{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.ql-imports .btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 8px;text-align:center}
+.ql-imports svg{width:16px;height:16px;flex-shrink:0}
+.modal-back{position:fixed;inset:0;z-index:50;background:rgba(2,6,23,.6);backdrop-filter:blur(3px);display:flex;align-items:flex-end;justify-content:center}
+@media(min-width:640px){.modal-back{align-items:center;padding:16px}}
+.modal{background:var(--surface);width:100%;max-width:460px;max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;border:1px solid var(--border)}
+@media(min-width:640px){.modal{border-radius:22px}}
+.modal-head{padding:16px;border-bottom:1px solid var(--border);background:var(--surface2)}
+.modal-body{padding:18px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px}
+.field input,.field select,.field textarea{width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:14px}
+.field input.big{font-size:20px;font-weight:800;padding:13px 14px}
+.type-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:3px;background:var(--surface2);border:1px solid var(--border);padding:3px;border-radius:11px}
+.type-grid button{border:0;background:transparent;padding:8px 4px;border-radius:8px;font-size:11px;font-weight:800;color:var(--muted)}
+.type-grid button.active{background:var(--dark);color:#fff}
+.toast-undo{margin-left:6px;background:#ffffff1f;color:#6ee7b7;border:1px solid #ffffff33;padding:4px 10px;border-radius:8px;font-size:12px;font-weight:800}
+.rc-opt{border:1px solid var(--border);background:var(--surface2);border-radius:14px;padding:14px;margin-bottom:12px}
+.rc-opt textarea{width:100%;margin-top:6px;padding:10px 12px;border-radius:12px;border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:13px;font-family:inherit;resize:vertical}
+.rc-help{font-size:12px;color:var(--muted);margin:4px 0 0;line-height:1.5}
+.rc-row{border:1px solid var(--border);border-radius:12px;padding:8px 10px;margin-bottom:8px;background:var(--surface)}
+.rc-row.off{opacity:.5}
+.rc-line{display:flex;gap:8px;align-items:center}
+.rc-line input[type=text],.rc-line select{flex:1;min-width:0;padding:7px 9px;border-radius:9px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px}
+.rc-line .rc-amt{flex:0 0 96px;text-align:right;font-weight:700}
+.rc-sub{margin-top:6px;padding-left:24px}
+.rc-sub select{font-size:12px}
+.rc-qty{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);flex:0 0 auto}
+.rc-qty input{width:52px!important;flex:0 0 52px!important;text-align:center}
+.st-date{flex:0 0 46px;font-size:11px;font-weight:700;color:var(--muted)}
+.st-note{font-size:11px;color:var(--amber-text);margin-top:4px;padding-left:24px}
+.set-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.set-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px}
+.set-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--border);font-size:13px}
+.set-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.set-actions{display:flex;gap:4px;align-items:center;flex-shrink:0}
+.set-empty{font-size:12px;color:var(--muted);margin:0;padding:10px 0;border-top:1px solid var(--border)}
+.welcome{text-align:center;padding:40px 20px}
+.form2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:760px){.set-grid{grid-template-columns:1fr}}
+.auth-gate{position:fixed;inset:0;z-index:70;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px}
+.auth-card{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:26px 22px}
+.acct-box{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sync{font-size:11px;font-weight:700}
+@media(max-width:560px){#userEmail{display:none}}
+.rc-sum{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.ess-suggest{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;background:var(--surface2);border:1px dashed var(--border2);border-radius:14px;padding:10px 12px;margin-bottom:14px;font-size:12px}
+.toast{position:fixed;top:14px;right:14px;z-index:60;background:var(--dark);color:#fff;padding:12px 16px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.3);font-size:13px;font-weight:600;display:flex;gap:8px;align-items:center;max-width:min(92vw,460px);border:1px solid var(--dark-border)}
+.hidden{display:none!important}
+@media(max-width:900px){.ess-grid{grid-template-columns:repeat(3,1fr)}.stats4{grid-template-columns:1fr 1fr}.acc-grid{grid-template-columns:1fr 1fr}.pocket-grid{grid-template-columns:1fr}.grid{grid-template-columns:1fr !important}.grid>*{grid-column:auto !important}}
+@media(max-width:560px){.ess-grid{grid-template-columns:1fr 1fr}nav.tabs{order:3;width:100%}nav.tabs button{flex:1;justify-content:center}table thead{display:none}table,table tbody,table tr,table td{display:block;width:100%}table tr{padding:8px 0;border-bottom:1px solid var(--border)}table td{border:0;padding:5px 8px}td.num,td.center{text-align:left}}
+:focus-visible{outline:2px solid var(--emerald);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="toast" class="toast hidden" role="status"></div>
+<div id="authGate" class="auth-gate" data-mode="signin">
+  <form class="auth-card" onsubmit="authSubmit(event)">
+    <div class="brand-icon" style="margin:0 auto 14px"><i data-lucide="wallet"></i></div>
+    <h2 id="authTitle" style="margin:0 0 4px;font-size:19px;text-align:center">Masuk ke FlowPocket</h2>
+    <p style="margin:0 0 18px;font-size:12px;color:var(--muted);text-align:center">Data keuanganmu tersimpan aman dan bisa dibuka dari perangkat mana pun.</p>
+    <div class="field"><label for="authEmail">Email</label><input id="authEmail" type="email" autocomplete="email" required></div>
+    <div class="field" id="authPwWrap"><label for="authPw">Password</label><input id="authPw" type="password" autocomplete="current-password" minlength="8"></div>
+    <button id="authSubmit" class="btn btn-emerald" style="width:100%;padding:12px;font-size:14px" type="submit">Masuk</button>
+    <p id="authMsg" role="status" style="font-size:12px;color:var(--amber-text);min-height:16px;margin:10px 0 0;text-align:center"></p>
+    <p id="authAlt" style="font-size:12px;color:var(--muted);text-align:center;margin:6px 0 0"></p>
+  </form>
+</div>
+
+<header>
+  <div class="header-in">
+    <div class="brand">
+      <div class="brand-icon"><i data-lucide="wallet"></i></div>
+      <div>
+        <div style="display:flex;gap:8px;align-items:center"><h1>FlowPocket</h1><span class="chip" id="monthChip"></span></div>
+        <p>Clarity-First Finance</p>
+      </div>
+    </div>
+    <nav class="tabs" aria-label="Navigasi utama">
+      <button data-tab="dashboard" class="active"><i data-lucide="layers"></i>Dashboard</button>
+      <button data-tab="essentials"><i data-lucide="shopping-cart"></i>Essentials &amp; Bills</button>
+      <button data-tab="pockets"><i data-lucide="shield-check"></i>Pockets &amp; Float</button>
+      <button data-tab="activity"><i data-lucide="calendar"></i>Activity Log</button>
+      <button data-tab="settings"><i data-lucide="settings"></i>Pengaturan</button>
+    </nav>
+    <div class="safe-pill"><span class="dot"></span><span style="color:var(--muted);font-weight:600" class="hide-sm">Safe-to-Spend:</span><strong id="safePill">Rp 0</strong></div>
+    <div class="acct-box"><span id="syncStatus" class="sync"></span><span id="userEmail" class="sync" style="color:var(--muted)"></span><button class="btn btn-sm" onclick="signOut()">Keluar</button></div>
+  </div>
+</header>
+
+<main>
+  <div class="page-head">
+    <div><h2 id="pageTitle">Dashboard Overview</h2><p id="pageSub"></p></div>
+    <button class="btn btn-dark" id="quickLogTop">+ Quick Log</button>
+  </div>
+
+  <section id="view-dashboard"></section>
+  <section id="view-essentials" class="hidden"></section>
+  <section id="view-pockets" class="hidden"></section>
+  <section id="view-activity" class="hidden"></section>
+  <section id="view-settings" class="hidden"></section>
+</main>
+
+<button class="fab" id="fabBtn"><i data-lucide="plus"></i>Quick Log</button>
+
+<div id="modalRoot"></div>
+
+<script>
+/* ============ DATA (dari file TSX asli) ============ */
+/* Starts empty — the user adds accounts, pockets, bills and Essentials in Pengaturan. */
+let accounts=[];
+const categories=[
+{id:'cat_food',name:'Food & Dining',type:'expense',monthlyLimit:3500000,icon:'utensils'},
+{id:'cat_coffee',name:'Coffee & Snacks',type:'expense',monthlyLimit:600000,icon:'coffee'},
+{id:'cat_transport',name:'Transport & Fuel',type:'expense',monthlyLimit:1200000,icon:'car'},
+{id:'cat_utilities',name:'Home & Utilities',type:'expense',monthlyLimit:1800000,icon:'zap'},
+{id:'cat_subs',name:'Digital & AI Subs',type:'expense',monthlyLimit:1100000,icon:'repeat'},
+{id:'cat_shopping',name:'Lifestyle & Gear',type:'expense',monthlyLimit:1500000,icon:'shopping-bag'},
+{id:'cat_salary',name:'Primary Income',type:'income',monthlyLimit:0,icon:'briefcase'},
+{id:'cat_freelance',name:'Side / Dividend',type:'income',monthlyLimit:0,icon:'trending-up'}];
+let essentials=[];
+let pockets=[];
+let recurringItems=[];
+let transactions=[];
+
+let activeTab='dashboard', showFormula=false, essentialsFilter='all';
+let searchQuery='', filterType='all', filterCategory='all';
+/* ============ DATES — everything derives from today() ============ */
+// `?today=YYYY-MM-DD` in the URL pretends it is another day (handy for checking month rollover).
+function today(){
+  const q=new URLSearchParams(location.search).get('today');
+  if(q&&/^\d{4}-\d{2}-\d{2}$/.test(q)){ const [y,m,d]=q.split('-').map(Number); return new Date(y,m-1,d); }
+  return new Date();
+}
+const pad2=n=>String(n).padStart(2,'0');
+function isoDate(d){ return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; } // local time, not UTC
+function todayISO(){ return isoDate(today()); }
+function currentMonth(){ return todayISO().slice(0,7); }
+function inCurrentMonth(tx){ return typeof tx.date==='string' && tx.date.slice(0,7)===currentMonth(); }
+function monthInfo(){
+  const t=today(), day=t.getDate(), dim=new Date(t.getFullYear(),t.getMonth()+1,0).getDate();
+  return {day,dim,daysLeft:dim-day+1,elapsedPct:Math.round(day/dim*100)};
+}
+/* ============ PAY CYCLE — Safe-to-Spend only has to last until the next salary ============ */
+let settings={payday:25,mainAccountId:null}; // payday: day of month the salary arrives (clamped to short months)
+/* Account where salary lands and pocket/card payments come from. Falls back to the first bank account. */
+function mainAccountId(){ const m=accounts.find(a=>a.id===settings.mainAccountId&&a.type!=='credit'); if(m) return m.id; const b=accounts.find(a=>a.type==='bank')||accounts.find(a=>a.type!=='credit'); return b?b.id:null; }
+function needMainAccount(){ if(mainAccountId()) return false; toast('Tambahkan rekening bank / e-wallet dulu di Pengaturan.'); goTab('settings'); return true; }
+function paydayIn(y,m){ return new Date(y,m,Math.min(settings.payday,new Date(y,m+1,0).getDate())); }
+function payCycle(){
+  const t=today(), y=t.getFullYear(), m=t.getMonth(), t0=new Date(y,m,t.getDate());
+  const thisMonth=paydayIn(y,m);
+  const next= t0<thisMonth? thisMonth : paydayIn(y,m+1); // on payday itself the salary is in, so look to next month
+  return {next,daysUntil:Math.round((next-t0)/86400000)}; // days from today (inclusive) to payday (exclusive)
+}
+/* Bills whose due date falls before the next payday: unpaid ones this month, plus next month's occurrences. */
+function billsBeforePayday(){
+  const {next}=payCycle(), t=today(), y=t.getFullYear(), m=t.getMonth();
+  let total=0;
+  recurringItems.forEach(r=>{
+    for(let k=0;k<3;k++){
+      const due=new Date(y,m+k,Math.min(r.dueDay,new Date(y,m+k+1,0).getDate()));
+      if(due>=next) break;
+      if(k>0||r.status==='upcoming') total+=r.expectedAmount; // overdue upcoming bills count too
+    }
+  });
+  return total;
+}
+/* Essentials budget is per calendar month, so the remainder is spread over the days left in this month. */
+function essentialsBeforePayday(remaining,monthlyBudget){
+  const {next,daysUntil}=payCycle(), t=today();
+  if(next.getFullYear()===t.getFullYear()&&next.getMonth()===t.getMonth()) return Math.round(remaining*daysUntil/monthInfo().daysLeft);
+  const dimNext=new Date(next.getFullYear(),next.getMonth()+1,0).getDate();
+  return Math.round(remaining + monthlyBudget*(next.getDate()-1)/dimNext);
+}
+function monthShort(){ return today().toLocaleDateString('id-ID',{month:'short'}).replace('.','').toUpperCase(); }
+const SEED_MONTH='2026-10'; // month the sample bills' paid/upcoming statuses belong to
+/* Bill statuses are per month: on a new month every bill becomes upcoming again. */
+function rolloverBills(){
+  const cm=currentMonth();
+  recurringItems=recurringItems.map(r=> (r.statusMonth||SEED_MONTH)===cm? r : {...r,status:'upcoming',actualAmount:null,txId:null,accountId:null,statusMonth:cm});
+}
+
+function freshLogState(){ return {type:'expense',amount:'',date:todayISO(),categoryId:'cat_food',accountId:mainAccountId()||(accounts[0]?accounts[0].id:null),pocketId:pockets[0]?pockets[0].id:null,title:'',tag:'',essentialId:null,essentialQty:1}; }
+let logState=freshLogState();
+
+/* ============ PERSISTENCE & UNDO ============ */
+let STORE_KEY=null; // 'flowpocket.v1.<userId>' once signed in
+const SAFE_ID=/^[\w-]{1,64}$/;
+function isValidState(s){
+  if(!s||![s.accounts,s.pockets,s.recurringItems,s.transactions].every(Array.isArray)) return false;
+  const num=v=>typeof v==='number'&&isFinite(v), str=v=>typeof v==='string', optStr=v=>v==null||str(v);
+  const okId=v=>str(v)&&SAFE_ID.test(v), optId=v=>v==null||okId(v), optNum=v=>v==null||num(v);
+  const optQty=v=>v==null||(Number.isInteger(v)&&v>0);
+  if(s.settings!=null&&!(typeof s.settings==='object'&&Number.isInteger(s.settings.payday)&&s.settings.payday>=1&&s.settings.payday<=31)) return false;
+  if(s.essentials!=null&&!(Array.isArray(s.essentials)&&s.essentials.every(e=>e&&okId(e.id)&&str(e.name)&&num(e.unitPrice)&&e.unitPrice>0&&Number.isInteger(e.targetQty)&&e.targetQty>0&&optId(e.categoryId)))) return false;
+  if(s.settings&&s.settings.mainAccountId!=null&&!okId(s.settings.mainAccountId)) return false;
+  return s.accounts.every(a=>okId(a.id)&&str(a.name)&&str(a.type)&&num(a.balance)&&okId(a.icon)&&/^#[0-9a-f]{3,8}$/i.test(a.color))
+    && s.pockets.every(p=>okId(p.id)&&str(p.name)&&optStr(p.description)&&optStr(p.targetDate)&&okId(p.icon)&&num(p.currentAmount)&&p.currentAmount>=0&&num(p.targetAmount)&&p.targetAmount>0&&num(p.monthlyHint))
+    && s.recurringItems.every(r=>okId(r.id)&&str(r.name)&&optStr(r.note)&&optStr(r.statusMonth)&&['paid','upcoming','skipped'].includes(r.status)&&optId(r.categoryId)&&optId(r.txId)&&optId(r.accountId)&&num(r.dueDay)&&num(r.expectedAmount)&&optNum(r.actualAmount))
+    && s.transactions.every(t=>okId(t.id)&&str(t.title)&&optStr(t.tag)&&str(t.date)&&/^\d{4}-\d{2}-\d{2}$/.test(t.date)&&['expense','income','transfer','refund'].includes(t.type)&&num(t.amount)&&optId(t.accountId)&&optId(t.categoryId)&&optId(t.pocketId)&&optId(t.essentialId)&&optId(t.recurringId)&&optQty(t.essentialQty)
+      && (t.creditPayoff==null||(Array.isArray(t.creditPayoff)&&t.creditPayoff.every(c=>c&&okId(c.id)&&num(c.amount)))));
+}
+function applyState(s){ accounts=s.accounts; pockets=s.pockets; recurringItems=s.recurringItems; transactions=s.transactions; if(Array.isArray(s.essentials)) essentials=s.essentials; if(s.settings) settings={...settings,...s.settings}; }
+function snapshot(){ return JSON.parse(JSON.stringify({accounts,pockets,recurringItems,transactions,essentials,settings})); }
+let saveWarned=false;
+function saveState(){ if(!STORE_KEY) return; scheduleCloudPush(); writeMeta(); try{ localStorage.setItem(STORE_KEY,JSON.stringify({v:1,accounts,pockets,recurringItems,transactions,essentials,settings})); }catch(e){ if(!saveWarned){ saveWarned=true; setTimeout(()=>toast('Browser ini tidak bisa menyimpan data — ekspor cadangan secara berkala.'),0); } } }
+function loadState(){ if(!STORE_KEY) return; try{ const raw=localStorage.getItem(STORE_KEY); if(!raw) return; const s=JSON.parse(raw); if(isValidState(s)) applyState(s); }catch(e){} }
+/* ============ CLOUD: Supabase login + sync (one row of JSON per owner) ============ */
+// Meta = which cloud version the cache is based on, and whether it has unsynced edits (survives reloads/offline).
+function writeMeta(){ if(!STORE_KEY) return; try{ localStorage.setItem(STORE_KEY+'.meta',JSON.stringify({base:cloudUpdatedAt,dirty:stateJSON()!==lastPushed})); }catch(e){} }
+function readMeta(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY+'.meta'))||{}; }catch(e){ return {}; } }
+// The publishable key is meant to be public; row-level security keeps the data private to its owner.
+const SB_URL='https://jmzirikqbslkamferwfd.supabase.co';
+const SB_KEY='sb_publishable_hX9TfthdPvqglk27txy4Sw_v0krEGSW';
+let sb=null, cloudUser=null, cloudRowExists=false, cloudUpdatedAt=null, lastPushed=null, pushTimer=null, pushing=false, syncStatus='', initialPullDone=false;
+function stateJSON(){ return JSON.stringify({v:1,accounts,pockets,recurringItems,transactions,essentials,settings}); }
+function setSync(status){
+  syncStatus=status; const el=document.getElementById('syncStatus'); if(!el) return;
+  const map={saving:['Menyimpan…','var(--muted)'],saved:['Tersimpan ✓','var(--emerald)'],offline:['Offline — disimpan di perangkat','var(--amber-text)'],error:['Gagal sinkron','var(--rose)']};
+  const [t,c]=map[status]||['',''];
+  el.textContent=t; el.style.color=c;
+}
+/* Called from saveState(): push the change to the cloud shortly after the last edit. */
+function scheduleCloudPush(){
+  if(!cloudUser||!initialPullDone) return;
+  if(stateJSON()===lastPushed) return;
+  setSync('saving'); clearTimeout(pushTimer); pushTimer=setTimeout(cloudPush,1200);
+}
+async function cloudPush(){
+  if(!cloudUser||pushing) return;
+  const json=stateJSON(); if(json===lastPushed){ setSync('saved'); return; }
+  if(!navigator.onLine){ setSync('offline'); return; }
+  pushing=true;
+  try{
+    const data=JSON.parse(json);
+    if(!cloudRowExists){
+      const {data:row,error}=await sb.from('app_state').insert({user_id:cloudUser.id,data}).select('updated_at').single();
+      if(error) throw error;
+      cloudRowExists=true; cloudUpdatedAt=row.updated_at;
+    } else {
+      // Only overwrite the version we last saw, so a newer save from another device is never lost.
+      const {data:rows,error}=await sb.from('app_state').update({data}).eq('user_id',cloudUser.id).eq('updated_at',cloudUpdatedAt).select('updated_at');
+      if(error) throw error;
+      if(!rows.length){ pushing=false; await cloudPull(true); return; }
+      cloudUpdatedAt=rows[0].updated_at;
+    }
+    lastPushed=json; setSync('saved'); writeMeta();
+  }catch(e){
+    if(e&&/row-level security/i.test(e.message||'')){ setSync('error'); toast('Akun ini bukan pemilik data FlowPocket — data tidak disimpan ke cloud.'); }
+    else setSync(navigator.onLine?'error':'offline');
+  }finally{ pushing=false; }
+  if(stateJSON()!==lastPushed&&syncStatus==='saved') scheduleCloudPush();
+}
+/* Fetch the cloud copy. `conflict` = our save was rejected because another device saved first. */
+async function cloudPull(conflict){
+  const {data:row,error}=await sb.from('app_state').select('data,updated_at').eq('user_id',cloudUser.id).maybeSingle();
+  if(error){ setSync(navigator.onLine?'error':'offline'); return false; }
+  if(!row){ cloudRowExists=false; return false; }
+  cloudRowExists=true;
+  if(row.updated_at===cloudUpdatedAt&&!conflict) return true;
+  if(!isValidState(row.data)){ setSync('error'); toast('Data di cloud tidak valid — tidak dimuat.'); return false; }
+  const hadUnsynced= lastPushed!==stateJSON();
+  toastUndoFn=null; // an undo snapshot from before this pull would overwrite newer data
+  cloudUpdatedAt=row.updated_at; applyState(row.data); lastPushed=stateJSON();
+  render(); setSync('saved'); writeMeta();
+  if(!conflict&&hadUnsynced) toast('Data di cloud lebih baru dari perangkat ini — perubahan offline di sini tidak disimpan.');
+  if(conflict) toast('Data diperbarui dari perangkat lain. Perubahan terakhir di sini mungkin perlu diulang.');
+  return true;
+}
+async function onSignedIn(user){
+  cloudUser=user; STORE_KEY='flowpocket.v1.'+user.id;
+  document.getElementById('authGate').classList.add('hidden');
+  document.getElementById('userEmail').textContent=user.email||'';
+  loadState(); // cached copy first, so the app opens instantly / offline
+  const meta=readMeta();
+  cloudUpdatedAt=meta.base||null; cloudRowExists=!!meta.base; lastPushed= meta.dirty? null : stateJSON();
+  render();
+  setSync('saving');
+  const found=await cloudPull(false);
+  initialPullDone=true;
+  if(found){ if(stateJSON()!==lastPushed) scheduleCloudPush(); else setSync('saved'); } // unsynced offline edits on top of the latest cloud copy
+  if(!found){
+    // First sign-in: offer data saved in this browser before login (if any), else start empty.
+    const legacy=localStorage.getItem('flowpocket.v1');
+    if(legacy&&!accounts.length){ try{ const s=JSON.parse(legacy); if(isValidState(s)&&confirm('Ada data FlowPocket tersimpan di browser ini. Pakai data ini untuk akunmu?')){ applyState(s); render(); } }catch(e){} }
+    lastPushed=null; scheduleCloudPush();
+  }
+}
+function showAuth(mode,msg){
+  const gate=document.getElementById('authGate'); gate.classList.remove('hidden');
+  gate.dataset.mode=mode||'signin';
+  const signup=gate.dataset.mode==='signup', reset=gate.dataset.mode==='reset';
+  document.getElementById('authTitle').textContent= signup?'Buat akun':reset?'Atur ulang password':'Masuk ke FlowPocket';
+  document.getElementById('authPwWrap').classList.toggle('hidden',reset);
+  document.getElementById('authSubmit').textContent= signup?'Daftar':reset?'Kirim link reset':'Masuk';
+  document.getElementById('authAlt').innerHTML= signup? 'Sudah punya akun? <button class="link-btn" onclick="showAuth(\'signin\')">Masuk</button>'
+    : reset? '<button class="link-btn" onclick="showAuth(\'signin\')">← Kembali</button>'
+    : 'Belum punya akun? <button class="link-btn" onclick="showAuth(\'signup\')">Daftar</button> · <button class="link-btn" onclick="showAuth(\'reset\')">Lupa password?</button>';
+  document.getElementById('authMsg').textContent=msg||'';
+}
+async function authSubmit(ev){
+  ev.preventDefault();
+  if(!sb){ document.getElementById('authMsg').textContent='Tidak bisa terhubung. Periksa koneksi internet lalu muat ulang halaman.'; return; }
+  const mode=document.getElementById('authGate').dataset.mode, email=document.getElementById('authEmail').value.trim(), password=document.getElementById('authPw').value;
+  const msg=document.getElementById('authMsg'), btn=document.getElementById('authSubmit'); btn.disabled=true; msg.textContent='Memproses…';
+  try{
+    if(mode==='reset'){ const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname}); if(error) throw error; msg.textContent='Link reset password sudah dikirim ke email kamu.'; return; }
+    if(password.length<8){ msg.textContent='Password minimal 8 karakter.'; return; }
+    if(mode==='signup'){
+      const {data,error}=await sb.auth.signUp({email,password,options:{emailRedirectTo:location.origin+location.pathname}}); if(error) throw error;
+      if(!data.session){ showAuth('signin','Cek email untuk konfirmasi akun, lalu masuk di sini.'); return; }
+    } else {
+      const {error}=await sb.auth.signInWithPassword({email,password}); if(error) throw error;
+    }
+    msg.textContent='';
+  }catch(e){
+    msg.textContent= /invalid login/i.test(e.message||'')? 'Email atau password salah.' : /not confirmed/i.test(e.message||'')? 'Email belum dikonfirmasi — cek inbox kamu.' : (e.message||'Gagal. Coba lagi.');
+  }finally{ btn.disabled=false; }
+}
+async function signOut(){
+  if(stateJSON()!==lastPushed&&!confirm('Ada perubahan yang belum tersinkron. Tetap keluar? Perubahan itu akan hilang.')) return;
+  try{ localStorage.removeItem(STORE_KEY); localStorage.removeItem(STORE_KEY+'.meta'); }catch(e){}
+  await sb.auth.signOut(); location.reload();
+}
+function openNewPasswordModal(){
+  modalShell('Password Baru', `<div class="field"><label for="npw">Password baru (min. 8 karakter)</label><input id="npw" type="password" autocomplete="new-password"></div>`,
+    `<button class="btn btn-emerald" style="width:100%;padding:12px" onclick="saveNewPassword()">Simpan password</button>`);
+}
+async function saveNewPassword(){
+  const pw=document.getElementById('npw').value; if(pw.length<8){ toast('Password minimal 8 karakter.'); return; }
+  const {error}=await sb.auth.updateUser({password:pw}); if(error){ toast(error.message); return; }
+  closeModal(); toast('Password berhasil diganti.');
+}
+function initCloud(){
+  if(!window.supabase){ showAuth('signin','Tidak bisa memuat layanan login. Periksa koneksi internet lalu muat ulang.'); return; }
+  sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  sb.auth.onAuthStateChange((event,session)=>{
+    if(event==='PASSWORD_RECOVERY') setTimeout(openNewPasswordModal,0);
+    if(session&&session.user&&cloudUser&&cloudUser.id!==session.user.id){ location.reload(); return; }
+    if(session&&session.user&&!cloudUser) setTimeout(()=>onSignedIn(session.user),0);
+    if(event==='SIGNED_OUT'&&cloudUser){ location.reload(); return; }
+  });
+  sb.auth.getSession().then(({data})=>{ if(!data.session) showAuth('signin'); });
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&cloudUser&&!pushing&&stateJSON()===lastPushed) cloudPull(false); });
+  window.addEventListener('online',()=>{ if(cloudUser) scheduleCloudPush(); });
+  window.addEventListener('beforeunload',e=>{ if(cloudUser&&stateJSON()!==lastPushed){ e.preventDefault(); e.returnValue=''; } });
+}
+
+function exportData(){
+  const blob=new Blob([JSON.stringify({v:1,exportedAt:new Date().toISOString(),accounts,pockets,recurringItems,transactions,essentials,settings},null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='flowpocket-backup.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function importData(file){
+  if(!file) return;
+  file.text().then(txt=>{ const s=JSON.parse(txt); if(!isValidState(s)) throw new Error('invalid');
+    if(!confirm('Ganti semua data saat ini dengan isi file cadangan ini?')) return;
+    const snap=snapshot();
+    try{ applyState(s); render(); }
+    catch(e){ applyState(snap); render(); throw e; } // never leave half-imported data behind
+    toastUndo('Data cadangan berhasil diimpor.',snap);
+  }).catch(()=>toast('File tidak valid — data tidak diubah.'));
+}
+function adjBalance(accId,delta){ accounts=accounts.map(a=> a.id===accId? {...a,balance:a.balance+delta}:a); }
+/* Exact inverse of every way a transaction is created. Also frees a bill it paid. */
+function reverseTx(tx){
+  if(tx.type==='expense'){ adjBalance(tx.accountId,tx.amount); if(tx.pocketId) pockets=pockets.map(p=> p.id===tx.pocketId? {...p,currentAmount:p.currentAmount+tx.amount}:p); }
+  else if(tx.type==='income'||tx.type==='refund'){ adjBalance(tx.accountId,-tx.amount); }
+  else if(tx.type==='transfer'){
+    if(tx.pocketId) pockets=pockets.map(p=> p.id===tx.pocketId? {...p,currentAmount:Math.max(0,p.currentAmount-tx.amount)}:p);
+    if(Array.isArray(tx.creditPayoff)){ adjBalance(tx.accountId,tx.amount); tx.creditPayoff.forEach(c=>adjBalance(c.id,-c.amount)); }
+  }
+  if(tx.recurringId) recurringItems=recurringItems.map(r=> r.id===tx.recurringId&&r.txId===tx.id? {...r,status:'upcoming',actualAmount:null,txId:null,accountId:null}:r);
+}
+
+function fmt(n,sign){ if(n===null||n===undefined) return '—'; const neg=n<0; const s='Rp '+Math.round(Math.abs(n)).toLocaleString('id-ID'); if(sign){ if(n>0) return '+'+s; if(neg) return '-'+s; } return neg?'-'+s:s; }
+function parseAmt(v){ return Math.round(parseFloat(v)||0); }
+function esc(s){ return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function catById(id){ return categories.find(c=>c.id===id); }
+function accById(id){ return accounts.find(a=>a.id===id); }
+function pockById(id){ return pockets.find(p=>p.id===id); }
+function refreshIcons(){ if(window.lucide) lucide.createIcons(); }
+
+let toastTimer=null, toastUndoFn=null;
+function toast(msg,onUndo){ const t=document.getElementById('toast'); toastUndoFn=onUndo||null; t.innerHTML='✦ '+esc(msg)+(onUndo?' <button class="toast-undo" onclick="runToastUndo()">Urungkan</button>':''); t.classList.remove('hidden'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>{ t.classList.add('hidden'); toastUndoFn=null; }, onUndo?6000:3400); }
+function runToastUndo(){ const fn=toastUndoFn; toastUndoFn=null; document.getElementById('toast').classList.add('hidden'); if(fn) fn(); }
+function toastUndo(msg,snap){ toast(msg,()=>{ applyState(snap); render(); toast('Dibatalkan — data dikembalikan seperti semula.'); }); }
+
+function essentialsSummary(){
+  const items=essentials.map(item=>{
+    const totalPlanned=item.unitPrice*item.targetQty;
+    // Only purchases the user explicitly linked count — no guessing from titles.
+    const mtx=transactions.filter(tx=> tx.type==='expense' && tx.essentialId===item.id && inCurrentMonth(tx));
+    const spent=mtx.reduce((s,t)=>s+t.amount,0);
+    const bought=mtx.reduce((s,t)=> s+(t.essentialQty? t.essentialQty : Math.max(1,Math.round(t.amount/item.unitPrice))),0);
+    const remAmt=Math.max(0,totalPlanned-spent), remQty=Math.max(0,item.targetQty-bought);
+    return {...item,totalPlanned,spentAmount:spent,boughtQty:bought,remainingAmount:remAmt,remainingQty:remQty,isComplete:remAmt===0||remQty===0};
+  });
+  return {items,totalEssentialsBudget:items.reduce((s,i)=>s+i.totalPlanned,0),totalEssentialsSpent:items.reduce((s,i)=>s+i.spentAmount,0),totalEssentialsRemaining:items.reduce((s,i)=>s+i.remainingAmount,0),completedCount:items.filter(i=>i.isComplete).length};
+}
+function financialSummary(){
+  const totalLiquidCash=accounts.filter(a=>a.type!=='credit').reduce((s,a)=>s+a.balance,0);
+  const creditFloatHolding=accounts.filter(a=>a.type==='credit').reduce((s,a)=>s+Math.abs(Math.min(0,a.balance)),0);
+  const totalPocketsSaved=pockets.reduce((s,p)=>s+p.currentAmount,0);
+  const unpaidExpectedRecurring=recurringItems.filter(r=>r.status==='upcoming').reduce((s,r)=>s+r.expectedAmount,0);
+  const paid=recurringItems.filter(r=>r.status==='paid');
+  const recurringNetVariance=paid.reduce((s,r)=>s+r.expectedAmount,0)-paid.reduce((s,r)=>s+(r.actualAmount||0),0);
+  // Safe-to-Spend only has to last until the next salary: reserve bills due before payday
+  // and the share of the Essentials budget needed until then.
+  const ess=essentialsSummary(), essentialsRemaining=ess.totalEssentialsRemaining;
+  const billsReserved=billsBeforePayday();
+  const essentialsReserved=essentialsBeforePayday(essentialsRemaining,ess.totalEssentialsBudget);
+  const safeToSpend=totalLiquidCash-creditFloatHolding-totalPocketsSaved-billsReserved-essentialsReserved;
+  const {elapsedPct:monthElapsedPercent}=monthInfo();
+  const {next:nextPayday,daysUntil:daysToPayday}=payCycle();
+  const perDay= safeToSpend>0? Math.floor(safeToSpend/daysToPayday) : 0;
+  const totalFlexibleBudget=categories.filter(c=>c.type==='expense').reduce((s,c)=>s+c.monthlyLimit,0);
+  const map={}; categories.forEach(c=>map[c.id]=0);
+  let monthlyIncome=0, monthlyNetExpense=0;
+  transactions.filter(inCurrentMonth).forEach(tx=>{
+    if(tx.type==='expense'&&!tx.pocketId){ monthlyNetExpense+=tx.amount; if(map[tx.categoryId]!==undefined) map[tx.categoryId]+=tx.amount; }
+    else if(tx.type==='refund'){ monthlyNetExpense-=tx.amount; if(map[tx.categoryId]!==undefined) map[tx.categoryId]=Math.max(0,map[tx.categoryId]-tx.amount); }
+    else if(tx.type==='income'){ monthlyIncome+=tx.amount; }
+  });
+  const budgetSpentPercent= totalFlexibleBudget>0? Math.round(monthlyNetExpense/totalFlexibleBudget*100):0;
+  return {totalLiquidCash,creditFloatHolding,totalPocketsSaved,unpaidExpectedRecurring,essentialsRemaining,billsReserved,essentialsReserved,nextPayday,daysToPayday,perDay,recurringNetVariance,safeToSpend,totalFlexibleBudget,monthlyNetExpense,monthlyIncome,monthElapsedPercent,budgetSpentPercent,categorySpendMap:map};
+}
+
+/* The linked essential — set only by an explicit tap, never inferred on save. */
+function matchedEssential(){
+  if(logState.type!=='expense'||!logState.essentialId) return null;
+  return essentialsSummary().items.find(e=>e.id===logState.essentialId)||null;
+}
+/* A suggestion the user must confirm: whole-word match of an essential's name in the title. */
+function essentialSuggestion(){
+  if(logState.type!=='expense'||logState.essentialId) return null;
+  const q=logState.title.trim().toLowerCase(); if(q.length<3) return null;
+  return essentials.find(e=>{ const n=e.name.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); return new RegExp('(^|[^a-z])'+n+'([^a-z]|$)').test(q); })||null;
+}
+
+function render(){
+  rolloverBills();
+  const fin=financialSummary(), ess=essentialsSummary();
+  document.getElementById('safePill').textContent=fmt(fin.safeToSpend);
+  const titles={dashboard:'Dashboard Overview',essentials:'Essentials & Recurring Bills',pockets:'Saving Pockets & Accounts',activity:'Activity Log & Reimbursements',settings:'Pengaturan'};
+  document.getElementById('pageTitle').textContent=titles[activeTab];
+  const mi=monthInfo(), now=today();
+  document.getElementById('monthChip').textContent=now.toLocaleDateString('id-ID',{month:'short',year:'numeric'}).replace('.','');
+  document.getElementById('pageSub').textContent=`${now.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'short',year:'numeric'})} • Hari ke-${mi.day} dari ${mi.dim} (${fin.monthElapsedPercent}% berjalan)`;
+  ['dashboard','essentials','pockets','activity','settings'].forEach(t=>{
+    document.getElementById('view-'+t).classList.toggle('hidden', t!==activeTab);
+    document.querySelector(`[data-tab="${t}"]`).classList.toggle('active', t===activeTab);
+  });
+  renderDashboard(fin,ess); renderEssentials(fin,ess); renderPockets(fin); renderActivity(); renderSettings();
+  if(!accounts.length) document.getElementById('view-dashboard').innerHTML=renderWelcome();
+  refreshIcons();
+  saveState();
+}
+
+function renderDashboard(fin,ess){
+  const onTrack=fin.budgetSpentPercent<=fin.monthElapsedPercent;
+  const pctEss= ess.totalEssentialsBudget? Math.round(ess.totalEssentialsSpent/ess.totalEssentialsBudget*100):0;
+  document.getElementById('view-dashboard').innerHTML=`
+  <div class="grid" style="grid-template-columns:repeat(12,1fr)">
+    <div class="hero" style="grid-column:span 7">
+      <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;position:relative;z-index:1">
+        <span class="pill-green">✓ True Discretionary Balance</span>
+        <button class="btn-ghost-light" onclick="toggleFormula()">${showFormula?'Sembunyikan rumus':'Cara menghitungnya?'}</button>
+      </div>
+      <p class="label" style="margin-top:16px">Safe-to-Spend saat ini</p>
+      <div class="big" style="${fin.safeToSpend<0?'color:#fcd34d':''}">${fmt(fin.safeToSpend)}</div>
+      <p style="font-size:13px;color:#e2e8f0;margin:6px 0 0;font-weight:700;position:relative;z-index:1">${fin.safeToSpend>0?`≈ ${fmt(fin.perDay)} per hari sampai gajian`:'Kebutuhan sampai gajian melebihi kas — kurangi target Essentials atau gunakan dana pocket.'}</p>
+      <p style="font-size:12px;color:#94a3b8;margin:6px 0 0;position:relative;z-index:1;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span>Gajian berikutnya: <strong style="color:#e2e8f0">${fin.nextPayday.toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short'})}</strong> · ${fin.daysToPayday} hari lagi</span><button class="btn-ghost-light" onclick="openPaydayModal()">Ubah tanggal gajian</button></p>
+      <div class="breakdown">
+        <div title="Saldo semua rekening (tanpa kartu kredit)"><span>Kas likuid</span><strong>${fmt(fin.totalLiquidCash)}</strong></div>
+        <button title="Dana di Saving Pockets" onclick="goTab('pockets')"><span style="color:#6ee7b7">− Pockets</span><strong style="color:#34d399">${fmt(fin.totalPocketsSaved)}</strong></button>
+        <button title="Tagihan yang jatuh tempo sebelum gajian" onclick="goTab('essentials')"><span style="color:#fcd34d">− Tagihan</span><strong style="color:#fcd34d">${fmt(fin.billsReserved)}</strong></button>
+        <button title="Belanja Essentials sampai gajian" onclick="goTab('essentials')"><span style="color:#fcd34d">− Essentials</span><strong style="color:#fcd34d">${fmt(fin.essentialsReserved)}</strong></button>
+        <button title="Disiapkan untuk melunasi kartu kredit" onclick="goTab('pockets')"><span>− Kartu kredit</span><strong>${fmt(fin.creditFloatHolding)}</strong></button>
+      </div>
+      ${showFormula?`<div class="formula"><strong style="color:#fff">Kenapa Safe-to-Spend lebih jujur dari saldo bank:</strong><br>Saldo bank kamu ${fmt(fin.totalLiquidCash)}, tapi ${fmt(fin.totalPocketsSaved)} terkunci di Saving Pockets, ${fmt(fin.billsReserved)} dipesan untuk tagihan yang jatuh tempo sebelum gajian, ${fmt(fin.essentialsReserved)} disisihkan untuk belanja Essentials sampai gajian (dari sisa ${fmt(fin.essentialsRemaining)} bulan ini, dibagi rata per hari), dan ${fmt(fin.creditFloatHolding)} disiapkan untuk melunasi kartu kredit. Tagihan dan Essentials setelah gajian dibayar dari gaji berikutnya.</div>`:''}
+    </div>
+    <div class="card" style="grid-column:span 5;display:flex;flex-direction:column;justify-content:space-between">
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)">Monthly Pacing Meter</span><span class="badge ${onTrack?'ok':'warn'}">${onTrack?'✓ On Track':'! Watch Pace'}</span></div>
+        <h3 style="font-size:17px;margin-top:10px">${fin.budgetSpentPercent}% budget fleksibel terpakai</h3>
+        <p class="sub">${fmt(fin.monthlyNetExpense)} bersih terpakai dari target ${fmt(fin.totalFlexibleBudget)}</p>
+        <div style="margin-top:18px">
+          <div class="progress-row"><span>Budget terpakai</span><span>${fin.budgetSpentPercent}%</span></div>
+          <div class="bar ${onTrack?'':'amber'}"><i style="width:${Math.min(100,fin.budgetSpentPercent)}%"></i></div>
+          <div class="progress-row" style="margin-top:14px"><span style="color:var(--muted)">Waktu berjalan (Hari ${monthInfo().day}/${monthInfo().dim})</span><span style="color:var(--muted)">${fin.monthElapsedPercent}%</span></div>
+          <div class="bar sm"><i style="width:${fin.monthElapsedPercent}%;background:#94a3b8"></i></div>
+        </div>
+      </div>
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--muted)">Pemasukan tercatat:</span><strong style="color:var(--emerald)">+${fmt(fin.monthlyIncome)}</strong></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start">
+      <div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><h3>🛒 Essentials Tracker</h3><span class="badge ok">Sisa: ${fmt(ess.totalEssentialsRemaining)}</span></div>
+      <p class="sub">Terpakai ${fmt(ess.totalEssentialsSpent)} dari ${fmt(ess.totalEssentialsBudget)} • ${ess.completedCount} dari ${ess.items.length} item terpenuhi. Ketuk item untuk langsung mencatat pembelian.</p></div>
+      <button class="link-btn" onclick="goTab('essentials')">Buka tabel lengkap →</button>
+    </div>
+    <div class="bar" style="margin:14px 0"><i style="width:${pctEss}%"></i></div>
+    <div class="ess-grid">${ess.items.filter(i=>!i.isComplete).slice(0,6).map(item=>`
+      <button class="ess-tile" onclick="openLoggerWithEssential('${item.id}')">
+        <div class="t1"><span>Butuh ${item.remainingQty}x lagi</span><span>/ ${item.targetQty}</span></div>
+        <h4>${esc(item.name)}</h4>
+        <div class="t3">Sisa budget<strong>${fmt(item.remainingAmount)}</strong></div>
+      </button>`).join('') || (essentials.length? '<p style="font-size:13px;color:var(--muted)">Semua essentials bulan ini sudah terpenuhi 🎉</p>' : '<p style="font-size:13px;color:var(--muted)">Belum ada daftar Essentials. <button class="link-btn" onclick="goTab(&quot;settings&quot;)">Tambahkan di Pengaturan →</button></p>')}</div>
+  </div>
+
+  <div class="grid" style="grid-template-columns:1fr 1fr;margin-top:16px">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between"><div><h3>Pengeluaran per Kategori</h3><p class="sub">Bersih setelah refund &amp; split bill</p></div><button class="link-btn" onclick="goTab('activity')">Lihat Activity</button></div>
+      <div style="margin-top:16px">${categories.filter(c=>c.type==='expense').map(cat=>{ const spent=fin.categorySpendMap[cat.id]||0; const pct=Math.round(spent/(cat.monthlyLimit||1)*100); const over=spent>cat.monthlyLimit; return `<div class="cat-row"><div class="cat-head"><span class="cat-name"><span class="cat-ico"><i data-lucide="${cat.icon}"></i></span>${cat.name}</span><span><strong style="color:${over?'var(--amber)':'inherit'}">${fmt(spent)}</strong> <span style="color:var(--muted)">/ ${fmt(cat.monthlyLimit)} • ${pct}%</span></span></div><div class="bar sm ${over?'amber':'dark'}" style="margin-top:6px"><i style="width:${Math.min(100,pct)}%"></i></div></div>`;}).join('')}</div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between"><div><h3>Saving Pockets</h3><p class="sub">Total terlindungi: <strong style="color:var(--emerald)">${fmt(fin.totalPocketsSaved)}</strong></p></div><button class="link-btn" onclick="goTab('pockets')">Kelola Pockets →</button></div>
+      <div class="pocket-grid" style="margin-top:14px">${pockets.map(p=>{ const pct=Math.min(100,Math.round(p.currentAmount/p.targetAmount*100)); return `<div class="pocket-mini"><div style="display:flex;justify-content:space-between"><span class="cat-ico" style="background:var(--emerald-bg);color:var(--emerald-text)"><i data-lucide="${p.icon}"></i></span><span class="badge ok">${pct}%</span></div><h4>${esc(p.name)}</h4><p>${fmt(p.currentAmount)} dari ${fmt(p.targetAmount)}</p><div class="bar sm" style="margin-top:8px"><i style="width:${pct}%"></i></div><div style="display:flex;gap:6px;margin-top:10px"><button class="btn btn-sm" style="flex:1" onclick="openPocketAction('${p.id}','topup')">+ Top Up ${fmt(p.monthlyHint)}</button><button class="btn btn-sm" onclick="openPocketAction('${p.id}','spend')">Pakai</button></div></div>`;}).join('')}</div>
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px"><div style="display:flex;gap:10px;align-items:center"><span class="cat-ico" style="background:var(--amber-bg);color:var(--amber)">💳</span><div><div style="font-size:12px;font-weight:800">Credit / PayLater Float Bucket</div><div style="font-size:11px;color:var(--muted)">Otomatis dicadangkan untuk pelunasan</div></div></div><strong>${fmt(fin.creditFloatHolding)}</strong></div>
+    </div>
+  </div>`;
+}
+function openPaydayModal(){
+  const body=`<div class="field"><label for="paydayInput">Gaji masuk setiap tanggal (1–31)</label><input id="paydayInput" class="big" type="number" min="1" max="31" value="${settings.payday}"></div>
+  <p style="font-size:11px;color:var(--muted);margin:0">Untuk bulan yang lebih pendek, tanggal 29–31 otomatis menjadi hari terakhir bulan itu. Safe-to-Spend hanya menyisihkan kebutuhan sampai tanggal ini.</p>`;
+  modalShell('Tanggal Gajian', body, `<button class="btn btn-emerald" style="width:100%;padding:12px" onclick="savePayday()">Simpan</button>`);
+  document.getElementById('paydayInput').focus();
+}
+function savePayday(){
+  const d=Number(document.getElementById('paydayInput').value);
+  if(!Number.isInteger(d)||d<1||d>31){ toast('Masukkan tanggal 1 sampai 31.'); return; }
+  const snap=snapshot(); settings={...settings,payday:d};
+  closeModal(); render(); toastUndo(`Tanggal gajian diubah ke tanggal ${d}.`,snap);
+}
+function toggleFormula(){ showFormula=!showFormula; render(); }
+function goTab(t){ activeTab=t; render(); window.scrollTo({top:0,behavior:'smooth'}); }
+
+function renderEssentials(fin,ess){
+  const pct= ess.totalEssentialsBudget? Math.round(ess.totalEssentialsSpent/ess.totalEssentialsBudget*100):0;
+  const filtered=ess.items.filter(i=> essentialsFilter==='remaining'? !i.isComplete : essentialsFilter==='completed'? i.isComplete : true);
+  document.getElementById('view-essentials').innerHTML=`
+  <div class="stats4">
+    <div class="stat"><span>Total Budget Essentials</span><p>${fmt(ess.totalEssentialsBudget)}</p><small>${ess.items.length} item</small></div>
+    <div class="stat"><span>Sudah Terpakai</span><p>${fmt(ess.totalEssentialsSpent)}</p><small style="color:var(--emerald);font-weight:700">${pct}% terpenuhi</small></div>
+    <div class="stat dark"><span style="color:#6ee7b7">Sisa Essentials</span><p>${fmt(ess.totalEssentialsRemaining)}</p><small>Budget yang masih dibutuhkan</small></div>
+    <div class="stat"><span>Item Selesai</span><p style="color:var(--emerald)">${ess.completedCount} / ${ess.items.length}</p><small>${ess.items.length-ess.completedCount} item masih dibutuhkan</small></div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-bottom:14px;border-bottom:1px solid var(--border)">
+      <div class="seg">
+        <button class="${essentialsFilter==='all'?'active':''}" onclick="setEssFilter('all')">Semua Item</button>
+        <button class="${essentialsFilter==='remaining'?'active':''}" onclick="setEssFilter('remaining')">Masih Dibutuhkan (${ess.items.length-ess.completedCount})</button>
+        <button class="${essentialsFilter==='completed'?'active':''}" onclick="setEssFilter('completed')">Selesai (${ess.completedCount})</button>
+      </div>
+      <p style="font-size:12px;color:var(--muted);margin:0;align-self:center">Klik <strong>+ Log Buy</strong> di baris mana pun, atau tombol <strong>Quick Log</strong>.</p>
+    </div>
+    <div style="overflow-x:auto"><table><thead><tr><th>Item</th><th class="num">Harga / Unit</th><th class="center">Target</th><th class="num">Total Rencana</th><th class="center">Sudah Dibeli</th><th class="num">Sisa</th><th class="num">Aksi</th></tr></thead>
+    <tbody>${filtered.map(item=>{ const cat=catById(item.categoryId); return `<tr class="${item.isComplete?'done':''}"><td><div style="display:flex;gap:10px;align-items:center"><span class="cat-ico">${item.isComplete?'✓':''}<i data-lucide="${cat?cat.icon:'shopping-bag'}"></i></span><div><strong style="${item.isComplete?'text-decoration:line-through;color:var(--muted)':''}">${esc(item.name)}</strong><div style="font-size:10px;color:var(--muted)">${cat?cat.name:''}</div></div></div></td><td class="num">${fmt(item.unitPrice)}</td><td class="center"><strong>${item.targetQty}x</strong></td><td class="num"><strong>${fmt(item.totalPlanned)}</strong></td><td class="center"><span class="badge ${item.boughtQty>0?'ok':''}" style="${item.boughtQty===0?'background:var(--surface2);color:var(--muted);border-color:var(--border)':''}">${item.boughtQty} / ${item.targetQty}</span></td><td class="num">${item.isComplete?'<span style="color:var(--emerald);font-weight:800">✓ Terpenuhi</span>':`<strong style="color:var(--amber-text)">${fmt(item.remainingAmount)}</strong><div style="font-size:11px;color:var(--muted)">kurang ${item.remainingQty}x lagi</div>`}</td><td class="num"><button class="btn ${item.isComplete?'':'btn-dark'} btn-sm" onclick="openLoggerWithEssential('${item.id}')">${item.isComplete?'+ Beli Extra':'+ Log Buy'}</button></td></tr>`;}).join('')}</tbody></table></div>
+    ${filtered.length===0?'<p style="text-align:center;color:var(--muted);font-size:13px;padding:20px">Tidak ada item di filter ini.</p>':''}
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-bottom:14px;border-bottom:1px solid var(--border)"><div><h3>Tagihan &amp; Langganan Rutin</h3><p class="sub">Perbandingan Expected vs Actual — selisihnya terlihat jelas, tidak tersembunyi</p></div><button class="btn btn-dark" onclick="openAddRecurring()">+ Tambah Tagihan Rutin</button></div>
+    <div>${recurringItems.map(item=>{ const cat=catById(item.categoryId); const isPaid=item.status==='paid', isSkip=item.status==='skipped'; const variance=isPaid? item.expectedAmount-(item.actualAmount??item.expectedAmount):0; return `<div class="rec-row" style="${isSkip?'opacity:.55':''}">
+      <div style="display:flex;gap:12px;align-items:flex-start;min-width:260px;flex:1"><div class="date-box ${isPaid?'paid':isSkip?'skipped':''}"><small>${monthShort()}</small><span>${Math.min(item.dueDay,monthInfo().dim)}</span></div>
+      <div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><strong style="font-size:14px">${esc(item.name)}</strong><span class="tag">${cat?cat.name:'Recurring'}</span>${isPaid?'<span class="badge ok">✓ Paid</span>':''}${isSkip?'<span class="badge" style="background:var(--surface2);color:var(--muted);border-color:var(--border)">Skipped</span>':''}</div><p style="font-size:12px;color:var(--muted);margin:3px 0 0">${esc(item.note||'')}</p></div></div>
+      <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center">
+        <div><div style="font-size:10px;color:var(--muted)">Expected</div><strong style="font-size:13px">${fmt(item.expectedAmount)}</strong></div>
+        <div><div style="font-size:10px;color:var(--muted)">Actual Paid</div><strong style="font-size:13px">${isPaid?fmt(item.actualAmount):'—'}</strong></div>
+        <div style="min-width:120px">${isPaid? (variance>0?`<span class="badge ok">+${fmt(variance)} Hemat</span>`: variance<0?`<span class="badge warn">${fmt(variance)} Over</span>`:'<span class="badge" style="background:var(--surface2);border-color:var(--border);color:var(--muted)">Pas</span>') : isSkip? `<span style="font-size:12px;color:var(--muted)">+${fmt(item.expectedAmount)} bebas</span>` : '<span class="badge warn">◷ Dicadangkan</span>'}</div>
+        <div style="display:flex;gap:6px">${item.status==='upcoming'?`<button class="btn btn-dark btn-sm" onclick="openPayModal('${item.id}')">Tandai Lunas</button><button class="btn btn-sm" onclick="toggleRecurring('${item.id}','skipped')">Lewati bulan ini</button>`:''}${item.status==='paid'?`<button class="btn btn-sm" onclick="openPayModal('${item.id}')">Ubah nominal</button><button class="btn btn-sm" onclick="toggleRecurring('${item.id}','upcoming')">Urungkan</button>`:''}${item.status==='skipped'?`<button class="btn btn-sm" onclick="toggleRecurring('${item.id}','upcoming')">Pulihkan</button>`:''}</div>
+      </div></div>`;}).join('')}</div>
+  </div>`;
+}
+function setEssFilter(f){ essentialsFilter=f; render(); }
+
+function renderPockets(fin){
+  document.getElementById('view-pockets').innerHTML=`
+  ${pockets.length?'':`<div class="card" style="text-align:center;padding:28px;margin-bottom:16px"><p style="font-weight:700;margin:0">Belum ada saving pocket</p><p class="sub" style="margin:6px 0 12px">Buat pocket untuk tabungan seperti dana darurat atau liburan.</p><button class="btn btn-dark" onclick="openPocketForm()">+ Buat pocket</button></div>`}
+  <div class="sweep ${pockets.length?'':'hidden'}"><div><div style="font-size:11px;font-weight:800;color:#6ee7b7">✦ SIMULATOR AUTO-SWEEP AKHIR BULAN</div><h3 style="color:#fff;font-size:17px;margin-top:6px">Otomatis pindahkan sisa hemat tagihan ke tabungan</h3><p style="font-size:12px;color:#d1fae5;margin:6px 0 0;max-width:560px">${fin.recurringNetVariance>0?`Kamu punya +${fmt(fin.recurringNetVariance)} hemat bersih dari tagihan yang di bawah budget bulan ini.`:`Coba sweep Rp 250.000 dari buffer Safe-to-Spend langsung ke salah satu pocket.`}</p></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">${pockets.slice(0,2).map((p,i)=>`<button class="btn" style="${i===0?'background:#10b981;border-color:#10b981;color:#042f2e;font-weight:800':'background:#ffffff22;color:#fff;border-color:#ffffff33'}" onclick="autoSweep('${p.id}')">Sweep → ${esc(p.name)}</button>`).join('')}</div></div>
+
+  <h3 style="margin:22px 0 4px">Virtual Saving Pockets</h3><p style="font-size:12px;color:var(--muted);margin:0 0 14px"> Amplop terlindungi di dalam rekening bank kamu. Belanja dari pocket tidak mengacaukan budget bulanan.</p>
+  <div class="grid" style="grid-template-columns:1fr 1fr">${pockets.map(p=>{ const pct=Math.min(100,Math.round(p.currentAmount/p.targetAmount*100)); return `<div class="card"><div style="display:flex;justify-content:space-between;gap:10px"><div style="display:flex;gap:10px;align-items:center"><span class="cat-ico" style="width:42px;height:42px;border-radius:12px;background:var(--emerald-bg);color:var(--emerald-text)"><i data-lucide="${p.icon}"></i></span><div><h3>${esc(p.name)}</h3><p class="sub">${esc(p.description)}</p></div></div><span class="badge ok">${pct}%</span></div>
+  <div style="display:flex;justify-content:space-between;margin-top:16px;align-items:flex-end"><div><div style="font-size:11px;color:var(--muted)">Terkumpul</div><div style="font-size:22px;font-weight:800">${fmt(p.currentAmount)}</div></div><div style="text-align:right"><div style="font-size:11px;color:var(--muted)">Target (${esc(p.targetDate)})</div><strong style="font-size:13px">${fmt(p.targetAmount)}</strong><div style="font-size:11px;color:var(--muted)">kurang ${fmt(Math.max(0,p.targetAmount-p.currentAmount))}</div></div></div>
+  <div class="bar" style="margin-top:10px"><i style="width:${pct}%"></i></div>
+  <div style="display:flex;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)"><button class="btn btn-dark" style="flex:1" onclick="openPocketAction('${p.id}','topup')">+ Top Up (saran ${fmt(p.monthlyHint)}/bln)</button><button class="btn" onclick="openPocketAction('${p.id}','spend')">Pakai dari Pocket</button></div></div>`;}).join('')}</div>
+
+  <div class="card" style="margin-top:16px"><h3>Rekening &amp; Credit Float</h3><p class="sub">Saldo fisik dan cadangan otomatis untuk kartu kredit.</p>
+  <div class="acc-grid" style="margin-top:14px">${accounts.map(a=>{ const isC=a.type==='credit'; return `<div class="acc ${isC?'credit':''}"><div style="display:flex;justify-content:space-between"><span class="acc-ico" style="background:${a.color}"><i data-lucide="${a.icon}"></i></span><span style="font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">${esc(a.type)}</span></div><h4 style="margin:10px 0 0;font-size:13px">${esc(a.name)}</h4><div style="font-size:17px;font-weight:800;margin-top:3px;color:${isC?'var(--amber-text)':'inherit'}">${fmt(a.balance)}</div>${isC?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--amber-border);display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--amber-text);font-weight:600">100% kas dicadangkan</span>${fin.creditFloatHolding>0?`<button class="link-btn" style="color:var(--amber-text);text-decoration:underline" onclick="payoffCredit()">Lunasi Sekarang</button>`:''}</div>`:''}</div>`;}).join('')}</div></div>`;
+}
+
+function groupedTx(){
+  const filtered=transactions.filter(tx=>{
+    const q=tx.title.toLowerCase().includes(searchQuery.toLowerCase())||(tx.tag&&tx.tag.toLowerCase().includes(searchQuery.toLowerCase()));
+    const t=filterType==='all'||tx.type===filterType;
+    const c=filterCategory==='all'||tx.categoryId===filterCategory;
+    return q&&t&&c;
+  });
+  const groups={};
+  filtered.forEach(tx=>{ if(!groups[tx.date]) groups[tx.date]={date:tx.date,items:[],net:0}; groups[tx.date].items.push(tx); if(tx.type==='expense'&&!tx.pocketId) groups[tx.date].net-=tx.amount; if(tx.type==='refund'||tx.type==='income') groups[tx.date].net+=tx.amount; });
+  return Object.values(groups).sort((a,b)=>b.date.localeCompare(a.date));
+}
+function renderActivity(){
+  const groups=groupedTx();
+  const fmtDate=d=>{ try{ return new Date(d+'T00:00:00').toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short',year:'numeric'}); }catch(e){ return d; } };
+  document.getElementById('view-activity').innerHTML=`
+  <div class="card" style="padding:14px"><div class="searchbar">
+    <div class="search-wrap"><i data-lucide="search"></i><input id="searchInput" type="text" placeholder="Cari transaksi atau tag (#essential, #recurring)…" value="${esc(searchQuery)}" oninput="onSearch(this.value)"></div>
+    <select onchange="filterType=this.value;render()" aria-label="Filter tipe"><option value="all" ${filterType==='all'?'selected':''}>Semua Tipe</option><option value="expense" ${filterType==='expense'?'selected':''}>Expenses</option><option value="income" ${filterType==='income'?'selected':''}>Income</option><option value="transfer" ${filterType==='transfer'?'selected':''}>Transfers</option><option value="refund" ${filterType==='refund'?'selected':''}>Refunds</option></select>
+    <select onchange="filterCategory=this.value;render()" aria-label="Filter kategori"><option value="all">Semua Kategori</option>${categories.map(c=>`<option value="${c.id}" ${filterCategory===c.id?'selected':''}>${c.name}</option>`).join('')}</select>
+    ${(searchQuery||filterType!=='all'||filterCategory!=='all')?`<button class="btn" onclick="clearFilters()">✕ Reset filter</button>`:''}
+  </div><p style="font-size:11px;color:var(--muted);margin:10px 0 0">${transactions.length} transaksi total • menampilkan ${groups.reduce((s,g)=>s+g.items.length,0)} transaksi</p></div>
+  <div style="margin-top:14px">${groups.length===0?`<div class="card" style="text-align:center;padding:36px"><p style="font-weight:700;margin:0">Tidak ada transaksi yang cocok</p><p style="font-size:12px;color:var(--muted)">Coba ubah kata kunci atau reset filter di atas.</p><button class="btn btn-dark" onclick="clearFilters()">Reset filter</button></div>`: groups.map(g=>`<div class="tx-group"><div class="tx-group-head"><strong>${esc(fmtDate(g.date))} • ${esc(g.date)}</strong><span>Net harian: <strong style="color:${g.net>=0?'var(--emerald)':'inherit'}">${fmt(g.net,true)}</strong></span></div>${g.items.map(tx=>{ const cat=catById(tx.categoryId), acc=accById(tx.accountId), pock=pockById(tx.pocketId); const isIn=tx.type==='income'||tx.type==='refund'; return `<div class="tx-row"><div style="display:flex;gap:12px;align-items:center;min-width:0"><span class="tx-ico ${isIn?'green':tx.type==='transfer'?'indigo':''}"><i data-lucide="${tx.type==='transfer'?'arrow-right-left':tx.type==='refund'?'rotate-ccw':(cat?cat.icon:'wallet')}"></i></span><div style="min-width:0"><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><strong style="font-size:13px">${esc(tx.title)}</strong>${tx.tag?`<span class="tag">${esc(tx.tag)}</span>`:''}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${acc?esc(acc.name):''}${cat?' • '+cat.name:''}${pock?' • Pocket: '+esc(pock.name):''}</div></div></div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0"><strong style="font-size:13px;color:${isIn?'var(--emerald)':tx.type==='transfer'?'var(--indigo)':'inherit'}">${isIn?'+'+fmt(tx.amount): tx.type==='transfer'?fmt(tx.amount):'-'+fmt(tx.amount)}</strong><button class="icon-btn" title="Hapus entri ini (saldo akan dikembalikan)" aria-label="Hapus ${esc(tx.title)}" onclick="deleteTx('${tx.id}')">🗑</button></div></div>`;}).join('')}</div>`).join('')}</div>
+  <div class="card" style="margin-top:14px;padding:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><p style="margin:0;font-size:12px;color:var(--muted)">Data tersimpan otomatis di browser ini saja. Ekspor cadangan secara berkala agar aman.</p><div style="display:flex;gap:8px"><button class="btn btn-sm" onclick="exportData()">Ekspor cadangan</button><label class="btn btn-sm" style="cursor:pointer">Impor cadangan<input type="file" accept="application/json,.json" class="hidden" onchange="importData(this.files[0]);this.value=''"></label></div></div>`;
+  const si=document.getElementById('searchInput'); if(si && document.activeElement!==si){ /* keep focus handling simple */ }
+}
+let searchDeb=null;
+function onSearch(v){ searchQuery=v; clearTimeout(searchDeb); searchDeb=setTimeout(()=>{ const pos=document.getElementById('searchInput')?.selectionStart; render(); const el=document.getElementById('searchInput'); if(el){ el.focus(); el.setSelectionRange(pos,pos);} },220); }
+function clearFilters(){ searchQuery=''; filterType='all'; filterCategory='all'; render(); }
+
+/* ===== MODALS ===== */
+function closeModal(){ document.getElementById('modalRoot').innerHTML=''; rcpt=null; stmt=null; }
+function modalShell(title, body, foot){
+  document.getElementById('modalRoot').innerHTML=`<div class="modal-back" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="modal-head"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)">${esc(title)}</span><button class="icon-btn" onclick="closeModal()" aria-label="Tutup">✕</button></div></div><div class="modal-body">${body}</div>${foot?`<div style="padding:0 18px 18px">${foot}</div>`:''}</div></div>`; refreshIcons();
+}
+function openLoggerWithEssential(id){
+  const item=essentialsSummary().items.find(e=>e.id===id); if(!item) return;
+  logState={...freshLogState(),amount:String(item.unitPrice),categoryId:item.categoryId,title:item.name,essentialId:item.id};
+  openLogger();
+}
+function selectEssentialInLogger(id,qty,keepInput){
+  const item=essentials.find(e=>e.id===id); if(!item) return;
+  const q=Math.max(1,qty);
+  logState.essentialId=id; logState.essentialQty=q;
+  if(keepInput){
+    // Confirming a suggestion: keep what the user already typed or picked.
+    if(!parseAmt(logState.amount)) logState.amount=String(item.unitPrice*q);
+    if(!logState.categoryTouched) logState.categoryId=item.categoryId;
+  } else {
+    logState.categoryId=item.categoryId; logState.amount=String(item.unitPrice*q); logState.title= q>1? `${item.name} (${q}x)` : item.name;
+  }
+  openLogger();
+}
+function unlinkEssential(){ logState.essentialId=null; logState.essentialQty=1; updateLoggerPreview(); }
+/* Linked-essential panel or a confirm-to-link suggestion. Rebuilt in place so typing never loses focus. */
+function loggerPreviewHTML(){
+  const m=matchedEssential();
+  if(m){
+    const cur=parseAmt(logState.amount), iq=logState.essentialQty;
+    const afterAmt=Math.max(0,m.remainingAmount-cur), afterQty=Math.max(0,m.remainingQty-iq);
+    const afterTotal=Math.max(0,essentialsSummary().totalEssentialsRemaining-Math.min(m.remainingAmount,cur));
+    return `<div style="background:var(--emerald-bg);border:1px solid var(--emerald-border);border-radius:14px;padding:12px;margin-bottom:14px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap"><strong style="font-size:12px;color:var(--emerald-text)">✓ Ditautkan ke Essentials: ${esc(m.name)} (${fmt(m.unitPrice)} × ${m.targetQty})</strong><span style="display:flex;gap:6px;align-items:center">${m.targetQty>1?`<span style="display:flex;gap:4px;align-items:center;background:var(--surface);border:1px solid var(--emerald-border);border-radius:8px;padding:2px 6px"><button class="icon-btn" aria-label="Kurangi jumlah" onclick="selectEssentialInLogger('${m.id}',${Math.max(1,iq-1)})">−</button><strong style="font-size:11px">${iq}x</strong><button class="icon-btn" aria-label="Tambah jumlah" onclick="selectEssentialInLogger('${m.id}',${iq+1})">+</button></span>`:''}<button class="link-btn" style="font-size:11px" onclick="unlinkEssential()">Lepas tautan</button></span></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;margin-top:8px;padding-top:8px;border-top:1px solid var(--emerald-border)"><div><span style="color:var(--emerald)">Sisa item setelah ini:</span><br><strong>${afterQty} qty (${fmt(afterAmt)})</strong></div><div style="text-align:right"><span style="color:var(--emerald)">Total sisa Essentials:</span><br><strong>${fmt(afterTotal)}</strong></div></div></div>`;
+  }
+  const s=essentialSuggestion();
+  if(s) return `<div class="ess-suggest"><span>Ini pembelian Essentials <strong>${esc(s.name)}</strong>?</span><button class="btn btn-sm" onclick="selectEssentialInLogger('${s.id}',1,true)">Ya, tautkan</button></div>`;
+  return '';
+}
+function updateLoggerPreview(){
+  const amt=parseAmt(logState.amount);
+  const hint=document.getElementById('qlAmtHint'), box=document.getElementById('qlMatch'), save=document.getElementById('qlSave');
+  if(hint) hint.textContent='= '+fmt(amt);
+  if(box) box.innerHTML=loggerPreviewHTML();
+  if(save) save.textContent='Simpan • '+fmt(amt);
+}
+function openLogger(){
+  if(!accounts.length){ toast('Tambahkan rekening dulu di Pengaturan.'); goTab('settings'); return; }
+  const body=`
+    <div class="type-grid" style="margin-bottom:12px">${[['expense','Expense'],['income','Income']].map(([id,l])=>`<button class="${logState.type===id?'active':''}" onclick="setLogType('${id}')">${l}</button>`).join('')}</div>
+    ${logState.type==='expense'?`<div class="ql-imports"><button class="btn" onclick="openReceipt()"><i data-lucide="receipt"></i>Scan struk</button><button class="btn" onclick="openStatement()"><i data-lucide="file-text"></i>Impor tagihan kartu</button></div>`:''}
+    <div class="field"><label for="qlAmt">Nominal (Rp)</label><input id="qlAmt" class="big" type="number" inputmode="numeric" value="${esc(logState.amount)}" oninput="logState.amount=this.value;updateLoggerPreview()" placeholder="0"><div id="qlAmtHint" style="font-size:11px;color:var(--muted);margin-top:4px">= ${fmt(parseAmt(logState.amount))}</div></div>
+    <div id="qlMatch">${loggerPreviewHTML()}</div>
+    <div class="field"><label for="qlTitle">Judul / Catatan</label><input id="qlTitle" type="text" value="${esc(logState.title)}" oninput="logState.title=this.value;updateLoggerPreview()" placeholder="cth. Kopi pagi, Ayam 2x, Gaji…"></div>
+    <div class="field"><label for="qlDate">Tanggal</label><input id="qlDate" type="date" value="${esc(logState.date)}" max="${todayISO()}" oninput="logState.date=this.value"></div>
+    <div class="field"><label>Kategori</label><select onchange="logState.categoryId=this.value;logState.categoryTouched=true">${categories.filter(c=> logState.type==='income'? c.type==='income' : c.type==='expense').map(c=>`<option value="${c.id}" ${logState.categoryId===c.id?'selected':''}>${c.name}</option>`).join('')}</select></div>
+    <div class="field"><label>Rekening</label><select onchange="logState.accountId=this.value">${accounts.map(a=>`<option value="${a.id}" ${logState.accountId===a.id?'selected':''}>${esc(a.name)} — ${fmt(a.balance)}</option>`).join('')}</select></div>
+    <div class="field"><label>Tag (opsional)</label><input type="text" value="${esc(logState.tag)}" oninput="logState.tag=this.value" placeholder="#weekend, #essential…"></div>
+    <p style="font-size:11px;color:var(--muted);line-height:1.5;margin:0">Perubahan saldo, pocket, dan progres Essentials langsung terhitung begitu disimpan dan tersimpan otomatis di browser ini.</p>
+  `;
+  modalShell('Quick Log — catat dalam 10 detik', body, `<button id="qlSave" class="btn btn-emerald" style="width:100%;padding:13px;font-size:14px" onclick="saveQuickLog()">Simpan • ${fmt(parseAmt(logState.amount))}</button>`);
+  const amtEl=document.getElementById('qlAmt'); if(amtEl&&!logState.amount) amtEl.focus();
+}
+function setLogType(t){ logState.type=t; if(t==='income') logState.categoryId='cat_salary'; if(t==='expense'||t==='refund') { if(!categories.find(c=>c.id===logState.categoryId&&c.type==='expense')) logState.categoryId='cat_coffee'; } openLogger(true); }
+function saveQuickLog(){
+  const amt=parseAmt(logState.amount);
+  if(amt<=0){ toast('Masukkan nominal lebih dari nol dulu ya.'); return; }
+  const cat=catById(logState.categoryId), pock=pockById(logState.pocketId), m=matchedEssential();
+  const defTitle= logState.type==='transfer'? `Transfer ke ${pock?pock.name:'Pocket'}` : logState.type==='refund'? `Reimbursement (${cat?cat.name:'General'})` : m? m.name : (cat?cat.name:'Quick Entry');
+  const qlDate= /^\d{4}-\d{2}-\d{2}$/.test(logState.date||'')? logState.date : todayISO();
+  if(qlDate>todayISO()){ toast('Tanggal tidak boleh di masa depan.'); return; }
+  const snap=snapshot();
+  const newTx={id:'tx_'+Date.now(),date:qlDate,title:logState.title.trim()||defTitle,amount:amt,type:logState.type,categoryId: logState.type==='transfer'?null:logState.categoryId,accountId:logState.accountId,tag: logState.tag.trim()||(logState.type==='refund'?'#reimbursement': m?'#essential':'#quick-log'),pocketId: logState.type==='transfer'?logState.pocketId:null,essentialId: m?m.id:null,essentialQty: m?logState.essentialQty:null};
+  accounts=accounts.map(a=>{ if(a.id!==logState.accountId) return a; if(logState.type==='expense') return {...a,balance:a.balance-amt}; if(logState.type==='income'||logState.type==='refund') return {...a,balance:a.balance+amt}; return a; });
+  if(logState.type==='transfer'&&logState.pocketId) pockets=pockets.map(p=> p.id===logState.pocketId? {...p,currentAmount:p.currentAmount+amt}:p);
+  transactions=[newTx,...transactions];
+  closeModal();
+  logState=freshLogState();
+  render();
+  toastUndo(m? `Tercatat: ${m.name}! Sisa item dan total Essentials sudah diperbarui.` : `Tersimpan: ${newTx.title} (${fmt(amt)})`, snap);
+}
+
+/* ===== RECEIPTS: paste text or photo (on-device OCR) → review list → one transaction per item ===== */
+const RC_DATE=/\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}|\b\d{1,2}:\d{2}\b/;
+const RC_SKIP=/(sub\s*total|harga\s*jual|grand|netto|tunai|cash|kembali|change|ppn|pajak|tax|dpp|bayar|debit|kredit|credit|kartu|card|qris|ovo|gopay|shopeepay|npwp|telp|kasir|struk|terima\s*kasih|member|poin|point|saldo|voucher|jml|jumlah|item|no\.?\s*trans|www\.|\.com)/i;
+const RC_DISC=/\b(diskon|disc|potongan|hemat|promo)\b/i;
+let rcpt=null;
+/* "12.500", "12,500", "12.500,00", "Rp12500" → 12500. Two-decimal cents are dropped (rupiah has none). */
+function rcNum(raw){ let t=raw; if(/[.,]\d{2}$/.test(t)&&(/[.,]\d{3}[.,]\d{2}$/.test(t)||!/[.,]\d{3}/.test(t))) t=t.slice(0,-3); return parseInt(t.replace(/\D/g,''),10)||0; }
+function rcTitle(s){ return s.toLowerCase().replace(/\b[a-z]/g,c=>c.toUpperCase()).trim(); }
+function rcLev(a,b){ const d=Array.from({length:a.length+1},(_,i)=>[i]); for(let j=1;j<=b.length;j++) d[0][j]=j; for(let i=1;i<=a.length;i++) for(let j=1;j<=b.length;j++) d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1)); return d[a.length][b.length]; }
+/* Everyday Indonesian words that receipts use for each Essential. */
+const RC_ALIASES={tea:['teh'],telur:['telor'],aqua:['air mineral'],creamer:['krimer'],vitamin:['vit'],
+  sayur:['bayam','kangkung','sawi','wortel','tomat','brokoli','kentang','pisang','apel','jeruk'],bumbu:['saus','kecap','sambal','bumbu','garam','gula'],
+  hairbodycare:['shampo','sampo','sabun','conditioner','lotion'],skincare:['serum','toner','moisturizer','sunscreen','facial'],bensin:['pertalite','pertamax']};
+/* Suggest an Essential for a receipt line: whole word, word prefix, or one OCR typo away.
+   Earlier words win ties ("Telur Ayam" is eggs, not chicken). Shown for review, never saved silently. */
+function rcMatchEssential(name){
+  const words=name.toLowerCase().split(/[^a-z]+/).filter(w=>w.length>=3);
+  let best=null, bestScore=0;
+  essentials.forEach(e=>{
+    const keys=[e.name,...e.name.toLowerCase().split(/[^a-z]+/).flatMap(w=>RC_ALIASES[w]||[])].join(' ').toLowerCase().split(/[^a-z]+/).filter(w=>w.length>=3);
+    let score=0;
+    keys.forEach(x=>words.forEach((w,pos)=>{
+      let s=0;
+      if(w===x) s=3; else if(x.length>=4&&w.length>=4&&(w.startsWith(x)||x.startsWith(w))) s=2; else if(x.length>=5&&rcLev(w,x)<=1) s=2;
+      if(s) score=Math.max(score,s*10-pos);
+    }));
+    if(score>bestScore){ best=e; bestScore=score; }
+  });
+  return bestScore>=15? best : null;
+}
+/* Turn receipt text into item lines. Handles "NAME 2 x 6.250 12.500", "NAME 12.500",
+   and two-line items (name on one line, "2 x 6.250 12.500" on the next). */
+function parseReceipt(text){
+  const lines=String(text||'').split(/\r?\n/).map(l=>l.replace(/[|_]+/g,' ').replace(/\s+/g,' ').trim()).filter(Boolean);
+  const items=[]; let pending=null, total=null;
+  for(const line of lines){
+    const nums=[...line.matchAll(/\d[\d.,]*\d|\d/g)];
+    const last=nums[nums.length-1];
+    const lastVal= last? rcNum(last[0]) : 0;
+    if(/\btotal\b/i.test(line)&&!/sub\s*total|total\s*(item|qty|disc|hemat)/i.test(line)){ if(total==null&&lastVal>=100) total=lastVal; pending=null; continue; }
+    if(RC_DATE.test(line)||RC_SKIP.test(line)){ pending=null; continue; }
+    if(RC_DISC.test(line)){ if(lastVal>0&&items.length) items[items.length-1].amount=Math.max(0,items[items.length-1].amount-lastVal); continue; }
+    const endsWithPrice= last && lastVal>=100 && !/[a-z]/i.test(line.slice(last.index+last[0].length));
+    if(!endsWithPrice){ if((line.match(/[a-z]/gi)||[]).length>=3) pending=line; continue; }
+    // Split "name" from the trailing block of quantities and prices.
+    const tail=line.match(/(?:\s+(?:\d[\d.,]*|x|@|pcs?|bh|buah|rp\.?))+\s*$/i) || line.match(/^(?:(?:\d[\d.,]*|x|@|pcs?|bh|buah|rp\.?)\s*)+$/i);
+    const namePart= tail? line.slice(0,tail.index).trim() : '';
+    const vals=(tail?tail[0]:line).match(/\d[\d.,]*\d|\d/g).map(rcNum);
+    const amount=vals[vals.length-1];
+    let qty=1;
+    if(vals.length>=3&&vals[0]>0&&vals[0]<100&&Math.abs(vals[0]*vals[vals.length-2]-amount)<=amount*0.02) qty=vals[0];
+    else if(vals.length===2&&vals[0]>=100&&amount%vals[0]===0&&amount/vals[0]<100) qty=amount/vals[0];
+    else if(vals.length===2&&vals[0]>0&&vals[0]<100) qty=vals[0];
+    const name= (namePart.match(/[a-z]/gi)||[]).length>=2? namePart : pending;
+    pending=null;
+    if(!name) continue;
+    items.push({name:rcTitle(name.replace(/^\d+\s+/,'')),qty,amount});
+  }
+  return {items,total};
+}
+function openReceipt(){
+  rcpt={items:[],total:null,date:logState.date||todayISO(),accountId:logState.accountId,status:''};
+  renderReceipt();
+}
+function rcSetStatus(msg){ rcpt.status=msg; const el=document.getElementById('rcStatus'); if(el) el.textContent=msg; }
+function rcApplyText(text){
+  const {items,total}=parseReceipt(text);
+  if(!items.length){ rcSetStatus('Tidak ada item yang terbaca. Coba foto lebih terang/lurus, atau tempel teks dari Google Lens.'); return; }
+  rcpt.items=items.map(it=>{ const e=rcMatchEssential(it.name); return {...it,include:true,essentialId:e?e.id:null,categoryId:e?e.categoryId:'cat_food'}; });
+  rcpt.total=total; rcpt.status='';
+  renderReceipt();
+}
+function rcReadPasted(){ const t=document.getElementById('rcText').value; if(!t.trim()){ rcSetStatus('Tempel teks struk dulu ya.'); return; } rcApplyText(t); }
+let tessLoading=null;
+function loadTesseract(){
+  if(window.Tesseract) return Promise.resolve();
+  if(!tessLoading) tessLoading=new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js'; s.onload=res; s.onerror=()=>{ tessLoading=null; rej(new Error('load')); }; document.head.appendChild(s); });
+  return tessLoading;
+}
+/* Scale to OCR-friendly width, grayscale and stretch contrast — helps faded thermal paper. */
+async function rcPreprocess(file){
+  const img=await createImageBitmap(file);
+  const scale=Math.min(2.5,Math.max(1,1400/img.width)), w=Math.round(img.width*scale), h=Math.round(img.height*scale);
+  const c=document.createElement('canvas'); c.width=w; c.height=h; const ctx=c.getContext('2d'); ctx.drawImage(img,0,0,w,h);
+  const d=ctx.getImageData(0,0,w,h), px=d.data, hist=new Array(256).fill(0);
+  for(let i=0;i<px.length;i+=4){ const g=Math.round(px[i]*.299+px[i+1]*.587+px[i+2]*.114); px[i]=g; hist[g]++; }
+  const n=w*h; let lo=0,hi=255,acc=0; for(;lo<255&&(acc+=hist[lo])<n*0.02;lo++); acc=0; for(;hi>0&&(acc+=hist[hi])<n*0.02;hi--);
+  const span=Math.max(1,hi-lo);
+  for(let i=0;i<px.length;i+=4){ const v=Math.max(0,Math.min(255,(px[i]-lo)*255/span)); px[i]=px[i+1]=px[i+2]=v; }
+  ctx.putImageData(d,0,0); return c;
+}
+async function rcScanPhoto(file){
+  if(!file) return;
+  try{
+    rcSetStatus('Menyiapkan pembaca struk… (pertama kali perlu mengunduh ±10 MB)');
+    await loadTesseract();
+    const canvas=await rcPreprocess(file);
+    const {data}=await Tesseract.recognize(canvas,'ind+eng',{logger:m=>{ if(m.status==='recognizing text') rcSetStatus(`Membaca struk… ${Math.round(m.progress*100)}%`); }});
+    if(!rcpt||!document.getElementById('rcStatus')) return; // receipt screen was closed meanwhile
+    rcApplyText(data.text);
+  }catch(e){ rcSetStatus('Gagal membaca foto. Periksa koneksi internet (untuk unduhan pertama) atau tempel teks dari Google Lens.'); }
+}
+function rcUpdate(i,field,value){
+  const it=rcpt.items[i]; if(!it) return;
+  if(field==='amount'||field==='qty'){ const v=parseInt(String(value).replace(/\D/g,''),10)||0; it[field]= field==='qty'? Math.max(1,v) : v; }
+  else it[field]=value;
+  rcUpdateSummary();
+}
+function rcSetEssential(i,id){ const it=rcpt.items[i]; const e=essentials.find(x=>x.id===id); it.essentialId=e?e.id:null; if(e) it.categoryId=e.categoryId; renderReceipt(); }
+function rcToggle(i){ rcpt.items[i].include=!rcpt.items[i].include; renderReceipt(); }
+function rcRemove(i){ rcpt.items.splice(i,1); renderReceipt(); }
+function rcAddLine(){ rcpt.items.push({name:'',qty:1,amount:0,include:true,essentialId:null,categoryId:'cat_food'}); renderReceipt(); }
+function rcSelected(){ return rcpt.items.filter(it=>it.include&&it.amount>0); }
+function rcUpdateSummary(){
+  const sel=rcSelected(), sum=sel.reduce((s,it)=>s+it.amount,0);
+  const el=document.getElementById('rcSum'); if(el) el.innerHTML=rcSummaryHTML(sel.length,sum);
+  const btn=document.getElementById('rcSave'); if(btn) btn.textContent=`Simpan ${sel.length} item • ${fmt(sum)}`;
+}
+function rcSummaryHTML(count,sum){
+  const t=rcpt.total, diff= t? t-sum : 0;
+  return `<span>Terpilih: <strong>${count} item · ${fmt(sum)}</strong></span>${t?`<span style="color:${Math.abs(diff)<1?'var(--emerald)':'var(--amber-text)'}">Total di struk: ${fmt(t)}${Math.abs(diff)<1?' ✓ cocok':` (selisih ${fmt(diff)})`}</span>`:''}`;
+}
+function renderReceipt(){
+  const r=rcpt; let body, foot='';
+  if(!r.items.length){
+    body=`
+    <div class="rc-opt"><strong style="font-size:13px">1. Tempel teks struk <span class="badge ok" style="margin-left:4px">paling akurat</span></strong>
+      <p class="rc-help">Foto struk dengan <b>Google Lens</b> (Android) atau <b>Live Text</b> (iPhone), pilih “Salin semua teks”, lalu tempel di sini.</p>
+      <textarea id="rcText" rows="6" placeholder="Tempel teks struk di sini…"></textarea>
+      <button class="btn btn-dark" style="margin-top:8px" onclick="rcReadPasted()">Baca teks</button></div>
+    <div class="rc-opt"><strong style="font-size:13px">2. Foto struk</strong>
+      <p class="rc-help">Dibaca langsung di perangkat ini — foto tidak dikirim ke mana pun. Kurang akurat untuk struk pudar atau miring.</p>
+      <label class="btn" style="display:inline-block;cursor:pointer">Pilih / ambil foto<input type="file" accept="image/*" class="hidden" onchange="rcScanPhoto(this.files[0]);this.value=''"></label></div>
+    <p id="rcStatus" role="status" style="font-size:12px;color:var(--muted);margin:4px 0 0">${esc(r.status)}</p>`;
+  } else {
+    const essOpts=id=>`<option value="">Bukan Essentials</option>${essentials.map(e=>`<option value="${e.id}" ${id===e.id?'selected':''}>${esc(e.name)}</option>`).join('')}`;
+    const catOpts=id=>categories.filter(c=>c.type==='expense').map(c=>`<option value="${c.id}" ${id===c.id?'selected':''}>${esc(c.name)}</option>`).join('');
+    body=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field" style="margin:0"><label for="rcDate">Tanggal</label><input id="rcDate" type="date" value="${esc(r.date)}" max="${todayISO()}" oninput="rcpt.date=this.value"></div>
+      <div class="field" style="margin:0"><label for="rcAcc">Rekening</label><select id="rcAcc" onchange="rcpt.accountId=this.value">${accounts.map(a=>`<option value="${a.id}" ${r.accountId===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}</select></div>
+    </div>
+    <p class="rc-help" style="margin:12px 0 8px">Periksa setiap baris — hapus centang untuk item yang tidak ingin dicatat.</p>
+    ${r.items.map((it,i)=>`<div class="rc-row ${it.include?'':'off'}">
+      <div class="rc-line"><input type="checkbox" aria-label="Catat item ini" ${it.include?'checked':''} onchange="rcToggle(${i})">
+        <input type="text" aria-label="Nama item" value="${esc(it.name)}" oninput="rcUpdate(${i},'name',this.value)" placeholder="Nama item">
+        <input type="text" inputmode="numeric" aria-label="Harga" class="rc-amt" value="${it.amount?it.amount.toLocaleString('id-ID'):''}" oninput="rcUpdate(${i},'amount',this.value)" placeholder="0">
+        <button class="icon-btn" aria-label="Hapus baris" onclick="rcRemove(${i})">✕</button></div>
+      <div class="rc-line rc-sub"><select aria-label="Essentials" onchange="rcSetEssential(${i},this.value)">${essOpts(it.essentialId)}</select>
+        ${it.essentialId?`<label class="rc-qty">Jumlah <input type="text" inputmode="numeric" value="${it.qty}" oninput="rcUpdate(${i},'qty',this.value)"></label>`:`<select aria-label="Kategori" onchange="rcUpdate(${i},'categoryId',this.value)">${catOpts(it.categoryId)}</select>`}</div>
+    </div>`).join('')}
+    <button class="link-btn" style="margin-top:10px" onclick="rcAddLine()">+ Tambah baris</button>
+    <div id="rcSum" class="rc-sum"></div>`;
+    foot=`<div style="display:flex;gap:8px"><button class="btn" onclick="openReceipt()">Ulangi</button><button id="rcSave" class="btn btn-emerald" style="flex:1;padding:12px" onclick="rcSave()"></button></div>`;
+  }
+  modalShell('Scan Struk', body, foot);
+  if(r.items.length) rcUpdateSummary();
+}
+function rcSave(){
+  const sel=rcSelected();
+  if(!sel.length){ toast('Tidak ada item terpilih dengan harga lebih dari nol.'); return; }
+  const date= /^\d{4}-\d{2}-\d{2}$/.test(rcpt.date||'')? rcpt.date : todayISO();
+  if(date>todayISO()){ toast('Tanggal tidak boleh di masa depan.'); return; }
+  const snap=snapshot(), stamp=Date.now(), accId=rcpt.accountId;
+  const newTx=sel.map((it,i)=>{ const e=essentials.find(x=>x.id===it.essentialId);
+    return {id:`tx_rc_${stamp}_${i}`,date,title:it.name.trim()||(e?e.name:'Item struk'),amount:it.amount,type:'expense',categoryId:e?e.categoryId:it.categoryId,accountId:accId,tag:e?'#essential':'#struk',pocketId:null,essentialId:e?e.id:null,essentialQty:e?it.qty:null}; });
+  newTx.forEach(t=>adjBalance(accId,-t.amount));
+  transactions=[...newTx,...transactions];
+  const sum=newTx.reduce((s,t)=>s+t.amount,0);
+  rcpt=null; closeModal(); render();
+  toastUndo(`${newTx.length} item dari struk tersimpan (${fmt(sum)}).`,snap);
+}
+
+/* ===== CREDIT CARD STATEMENT (PDF) → review list → one expense per charge ===== */
+const ST_MONTHS={jan:1,feb:2,mar:3,apr:4,mei:5,may:5,jun:6,jul:7,agt:8,agu:8,aug:8,sep:9,okt:10,oct:10,nov:11,des:12,dec:12};
+const ST_DATE=/^(\d{1,2})[\s\/-]([A-Za-z]{3})[a-z]*[\s\/-](\d{2,4})$/;
+const ST_AMT=/^-?(?:rp\.?\s*)?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?(?:\s*cr)?$/i;
+/* Guess a category from the merchant text; always shown for review. */
+const ST_RULES=[
+  [/grab|gojek|gocar|blue\s*bird|taxi|kereta|kai\b|trip\.com|traveloka|tiket|agoda|airasia|garuda|citilink|lion|pertamina|shell|toll|parkir/i,'cat_transport'],
+  [/anthropic|openai|netflix|spotify|apple\.com|google|youtube|icloud|microsoft|adobe|cursor|github|notion|canva/i,'cat_subs'],
+  [/resto|cafe|coffee|kopi|starbucks|mcd|kfc|sosis|bakso|warung|food|makan|sushi|pizza|bakery|dining/i,'cat_food'],
+  [/indomaret|alfamart|superindo|ranch|hypermart|lotte|transmart|carrefour|grocer/i,'cat_food'],
+  [/pln|listrik|telkomsel|indihome|biznet|xl\b|pdam|ipl/i,'cat_utilities'],
+];
+const ST_FEE=/biaya|stamp\s*duty|meterai|annual\s*fee|iuran|bunga|interest|late\s*fee|denda/i;
+const ST_SKIP=/pembayaran\s+kartu|payment\s+(thank|received)|tagihan\s+sebelumnya|previous\s+balance/i;
+const ST_TOPUP=/gopay|ovo|dana\b|shopeepay|linkaja|top\s*up|topup/i;
+let stmt=null, pdfjsLib=null;
+async function loadPdfjs(){
+  if(pdfjsLib) return pdfjsLib;
+  const m=await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs');
+  m.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs';
+  return pdfjsLib=m;
+}
+function stDate(s){ const m=s.trim().match(ST_DATE); if(!m) return null; const mo=ST_MONTHS[m[2].toLowerCase()]; if(!mo) return null; const y=m[3].length===2?2000+Number(m[3]):Number(m[3]); return `${y}-${pad2(mo)}-${pad2(Number(m[1]))}`; }
+/* "360,365.48" / "360.365,48" → 360365 (cents rounded, so totals match the bank's). */
+function stAmount(s){ const t=s.trim(), credit=/cr\s*$/i.test(t)||/^-/.test(t); const core=t.replace(/cr\s*$/i,'').replace(/^-|rp\.?/gi,'').trim();
+  const m=core.match(/^(.*?)[.,](\d{2})$/); const whole=rcNum(m?m[1]:core), cents=m?Number(m[2]):0;
+  return {amount:whole+(cents>=50?1:0),credit}; }
+/* Rebuild statement rows from positioned text. Each charge is anchored by a date at the left;
+   description and amount pieces within half a row-height belong to the nearest anchor. */
+function parseStatementPages(pages){
+  const txs=[]; let total=null;
+  pages.forEach(items=>{
+    const words=items.filter(i=>i.str.trim()).map(i=>({s:i.str.trim(),x:i.x,y:i.y}));
+    const anchors=[];
+    words.filter(w=>stDate(w.s)).forEach(w=>{ // the first date on a row is the transaction date
+      if(anchors.some(a=>Math.abs(a.y-w.y)<3)) return;
+      const rowDates=words.filter(v=>Math.abs(v.y-w.y)<3&&stDate(v.s)).sort((a,b)=>a.x-b.x);
+      anchors.push({y:w.y,date:stDate(rowDates[0].s),dateRight:rowDates[rowDates.length-1].x,desc:[],amt:null});
+    });
+    const totalWord=words.find(w=>/^total$/i.test(w.s));
+    if(totalWord){ const t=words.filter(w=>Math.abs(w.y-totalWord.y)<3&&ST_AMT.test(w.s)).pop(); if(t) total=stAmount(t.s).amount; }
+    if(!anchors.length) return;
+    const rowH=anchors.length>1? Math.min(...anchors.slice(1).map((a,i)=>Math.abs(anchors[i].y-a.y)).filter(d=>d>3)) : 30;
+    words.forEach(w=>{
+      if(stDate(w.s)) return;
+      let best=null,bd=Infinity; anchors.forEach(a=>{ const d=Math.abs(a.y-w.y); if(d<bd){bd=d;best=a;} });
+      if(!best||bd>rowH*0.45||w.x<=best.dateRight) return;
+      if(ST_AMT.test(w.s)&&/\d/.test(w.s)){ if(!best.amt||w.x>best.amt.x) best.amt={x:w.x,...stAmount(w.s)}; }
+      else best.desc.push(w);
+    });
+    anchors.forEach(a=>{
+      if(!a.amt) return;
+      const desc=a.desc.sort((p,q)=>q.y-p.y||p.x-q.x).map(w=>w.s).join(' ').replace(/\s+/g,' ').trim();
+      txs.push({date:a.date,desc,amount:a.amt.amount,credit:a.amt.credit});
+    });
+  });
+  return {txs,total};
+}
+function stItem(t){
+  const fx=t.desc.match(/\((USD|SGD|EUR|JPY|MYR|AUD|GBP)\s*([\d.,]+)\)/i);
+  // Drop exchange-rate notes and merchant/reference codes (tokens of 6+ chars that contain a digit).
+  const name=rcTitle(t.desc.replace(/\([A-Z]{3}\s*1\s*=[^)]*\)|\([A-Z]{3}\s*[\d.,]+\)/gi,'').split(' ').filter(w=>!(w.length>=6&&/\d/.test(w))).join(' ').replace(/\s{2,}/g,' ').trim()||'Transaksi kartu');
+  let note='', include=true, categoryId='cat_shopping';
+  const rule=ST_RULES.find(([re])=>re.test(t.desc)); if(rule) categoryId=rule[1];
+  if(t.credit||ST_SKIP.test(t.desc)){ include=false; note='Pembayaran / kredit — bukan pengeluaran'; }
+  else if(ST_TOPUP.test(t.desc)&&!/grab/i.test(t.desc)){ include=false; categoryId='cat_shopping'; note='Top-up e-wallet — bisa dobel jika belanja dari e-wallet sudah dicatat'; }
+  else if(/installment|cicilan/i.test(t.desc)){ note='Cicilan — pastikan pembelian aslinya belum dicatat'; }
+  else if(ST_FEE.test(t.desc)){ note='Biaya bank'; categoryId='cat_utilities'; }
+  if(include&&transactions.some(x=>x.type==='expense'&&x.date===t.date&&x.amount===t.amount)){ include=false; note='Mungkin sudah tercatat (tanggal & nominal sama)'; }
+  if(fx) note=(note?note+' · ':'')+`${fx[1].toUpperCase()} ${fx[2]}`;
+  return {date:t.date,name,raw:t.desc,amount:t.amount,credit:t.credit,include,categoryId,note};
+}
+function openStatement(){
+  if(!accounts.length){ toast('Tambahkan rekening dulu di Pengaturan.'); goTab('settings'); return; }
+  const credit=accounts.find(a=>a.type==='credit')||accounts[0];
+  stmt={items:[],total:null,accountId:credit.id,status:'',file:null,needPassword:false};
+  renderStatement();
+}
+function stSetStatus(msg){ stmt.status=msg; const el=document.getElementById('stStatus'); if(el) el.textContent=msg; }
+async function stReadFile(file,password){
+  if(!file) return;
+  stmt.file=file;
+  try{
+    stSetStatus('Membaca PDF…');
+    const lib=await loadPdfjs();
+    const doc=await lib.getDocument({data:new Uint8Array(await file.arrayBuffer()),password:password||undefined}).promise;
+    const pages=[];
+    for(let i=1;i<=doc.numPages;i++){ const tc=await (await doc.getPage(i)).getTextContent(); pages.push(tc.items.map(it=>({str:it.str,x:it.transform[4],y:it.transform[5]}))); }
+    if(!stmt||!document.getElementById('stStatus')) return; // screen was closed meanwhile
+    const {txs,total}=parseStatementPages(pages);
+    if(!txs.length){ stSetStatus('Tidak menemukan transaksi di PDF ini. Pastikan ini PDF tagihan asli dari bank (bukan hasil scan/foto).'); return; }
+    stmt.items=txs.map(stItem); stmt.total=total; stmt.needPassword=false; stmt.status='';
+    renderStatement();
+  }catch(e){
+    if(e&&e.name==='PasswordException'){ stmt.needPassword=true; renderStatement(); stSetStatus(password?'Password salah, coba lagi.':'PDF ini dikunci password — biasanya tanggal lahir (DDMMYYYY).'); return; }
+    stSetStatus('Gagal membaca PDF. Periksa koneksi internet (untuk unduhan pertama) atau coba file lain.');
+  }
+}
+function stUnlock(){ const pw=document.getElementById('stPw').value; stReadFile(stmt.file,pw); }
+function stUpdate(i,field,value){ const it=stmt.items[i]; if(!it) return; it[field]= field==='amount'? (parseInt(String(value).replace(/\D/g,''),10)||0) : value; stUpdateSummary(); }
+function stToggle(i){ stmt.items[i].include=!stmt.items[i].include; renderStatement(); }
+function stRemove(i){ stmt.items.splice(i,1); renderStatement(); }
+function stAll(on){ stmt.items.forEach(it=>{ if(!it.credit) it.include=on; }); renderStatement(); }
+function stSelected(){ return stmt.items.filter(it=>it.include&&it.amount>0&&!it.credit); }
+function stUpdateSummary(){
+  const sel=stSelected(), sum=sel.reduce((s,it)=>s+it.amount,0);
+  const charges=stmt.items.filter(it=>!it.credit).reduce((s,it)=>s+it.amount,0);
+  const el=document.getElementById('stSum'); if(el) el.innerHTML=`<span>Dipilih: <strong>${sel.length} transaksi · ${fmt(sum)}</strong></span><span style="color:var(--muted)">Semua tagihan baru di PDF: ${fmt(charges)}${stmt.total?` · Total tagihan: ${fmt(stmt.total)}`:''}</span>`;
+  const btn=document.getElementById('stSave'); if(btn) btn.textContent=`Simpan ${sel.length} transaksi • ${fmt(sum)}`;
+}
+function renderStatement(){
+  const s=stmt; let body, foot='';
+  const fmtD=d=>new Date(d+'T00:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'short'});
+  if(!s.items.length){
+    body=`<div class="rc-opt"><strong style="font-size:13px">Pilih PDF tagihan kartu kredit</strong>
+      <p class="rc-help">Dibaca langsung di perangkat ini — file tidak dikirim ke mana pun. Gunakan PDF asli dari bank/email (bukan foto).</p>
+      <label class="btn btn-dark" style="display:inline-block;cursor:pointer;margin-top:8px">Pilih PDF<input type="file" accept="application/pdf,.pdf" class="hidden" onchange="stReadFile(this.files[0]);this.value=''"></label>
+      ${s.needPassword?`<div class="field" style="margin:12px 0 0"><label for="stPw">Password PDF</label><div style="display:flex;gap:8px"><input id="stPw" type="password" autocomplete="off" onkeydown="if(event.key==='Enter')stUnlock()"><button class="btn" onclick="stUnlock()">Buka</button></div></div>`:''}</div>
+      <p id="stStatus" role="status" style="font-size:12px;color:var(--muted);margin:4px 0 0">${esc(s.status)}</p>`;
+  } else {
+    const catOpts=id=>categories.filter(c=>c.type==='expense').map(c=>`<option value="${c.id}" ${id===c.id?'selected':''}>${esc(c.name)}</option>`).join('');
+    body=`
+    <div class="field" style="margin:0"><label for="stAcc">Dicatat ke rekening</label><select id="stAcc" onchange="stmt.accountId=this.value">${accounts.map(a=>`<option value="${a.id}" ${s.accountId===a.id?'selected':''}>${esc(a.name)}${a.type==='credit'?' (kartu kredit)':''}</option>`).join('')}</select></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:12px 0 8px"><p class="rc-help" style="margin:0">Hapus centang untuk transaksi yang tidak perlu dicatat.</p><span style="display:flex;gap:10px;flex-shrink:0"><button class="link-btn" onclick="stAll(true)">Pilih semua</button><button class="link-btn" onclick="stAll(false)">Kosongkan</button></span></div>
+    ${s.items.map((it,i)=>`<div class="rc-row ${it.include&&!it.credit?'':'off'}">
+      <div class="rc-line">${it.credit?'<span style="width:13px"></span>':`<input type="checkbox" aria-label="Catat transaksi ini" ${it.include?'checked':''} onchange="stToggle(${i})">`}
+        <span class="st-date">${esc(fmtD(it.date))}</span>
+        <input type="text" aria-label="Nama transaksi" value="${esc(it.name)}" title="${esc(it.raw)}" oninput="stUpdate(${i},'name',this.value)" ${it.credit?'disabled':''}></div>
+      <div class="rc-line rc-sub">${it.credit?'<span style="flex:1"></span>':`<select aria-label="Kategori" onchange="stUpdate(${i},'categoryId',this.value)">${catOpts(it.categoryId)}</select>`}
+        <input type="text" inputmode="numeric" aria-label="Nominal" class="rc-amt" value="${it.amount.toLocaleString('id-ID')}" oninput="stUpdate(${i},'amount',this.value)" ${it.credit?'disabled':''}>
+        <button class="icon-btn" aria-label="Hapus baris" onclick="stRemove(${i})">✕</button></div>
+      ${it.note?`<div class="st-note">${esc(it.note)}</div>`:''}
+    </div>`).join('')}
+    <div id="stSum" class="rc-sum"></div>`;
+    foot=`<div style="display:flex;gap:8px"><button class="btn" onclick="openStatement()">Ganti file</button><button id="stSave" class="btn btn-emerald" style="flex:1;padding:12px" onclick="stSave()"></button></div>`;
+  }
+  modalShell('Impor Tagihan Kartu Kredit', body, foot);
+  if(s.items.length) stUpdateSummary();
+}
+function stSave(){
+  const sel=stSelected();
+  if(!sel.length){ toast('Tidak ada transaksi terpilih.'); return; }
+  const snap=snapshot(), stamp=Date.now(), accId=stmt.accountId;
+  const newTx=sel.map((it,i)=>({id:`tx_cc_${stamp}_${i}`,date:it.date,title:it.name.trim()||'Transaksi kartu',amount:it.amount,type:'expense',categoryId:it.categoryId,accountId:accId,tag:'#kartu-kredit',pocketId:null,essentialId:null,essentialQty:null}));
+  newTx.forEach(t=>adjBalance(accId,-t.amount));
+  transactions=[...newTx,...transactions].sort((a,b)=>b.date.localeCompare(a.date));
+  const sum=newTx.reduce((s,t)=>s+t.amount,0);
+  stmt=null; closeModal(); render();
+  toastUndo(`${newTx.length} transaksi kartu kredit tersimpan (${fmt(sum)}).`,snap);
+}
+
+/* Recurring */
+let payingId=null;
+function openPayModal(id){
+  if(!accounts.length){ toast('Tambahkan rekening dulu di Pengaturan.'); goTab('settings'); return; }
+  const item=recurringItems.find(r=>r.id===id); if(!item) return; payingId=id;
+  const body=`<p style="font-size:13px;margin:0 0 12px"><strong>${esc(item.name)}</strong><br><span style="color:var(--muted);font-size:12px">Jatuh tempo tgl ${item.dueDay} • Expected ${fmt(item.expectedAmount)} • ${esc(item.note||'')}</span></p>
+  <div class="field"><label>Nominal aktual yang dibayar (Rp)</label><input class="big" id="payAmt" type="number" value="${item.actualAmount??item.expectedAmount}"></div>
+  <div class="field"><label>Bayar dari rekening</label><select id="payAcc">${accounts.map(a=>`<option value="${a.id}" ${(item.accountId||mainAccountId())===a.id?'selected':''}>${esc(a.name)} — ${fmt(a.balance)}</option>`).join('')}</select></div>
+  <p style="font-size:11px;color:var(--muted);margin:0">Selisih dari expected akan langsung terlihat sebagai “Hemat” atau “Over” di daftar tagihan.</p>`;
+  modalShell('Tandai Tagihan Lunas', body, `<button class="btn btn-emerald" style="width:100%;padding:12px" onclick="confirmPay()">Konfirmasi Lunas</button>`);
+}
+function confirmPay(){
+  if(!accById(document.getElementById('payAcc').value)){ toast('Pilih rekening pembayaran.'); return; }
+  const item=recurringItems.find(r=>r.id===payingId); if(!item) return;
+  const amt=parseAmt(document.getElementById('payAmt').value); const accId=document.getElementById('payAcc').value;
+  if(amt<=0){ toast('Nominal harus lebih dari nol.'); return; }
+  const snap=snapshot();
+  const linked= item.status==='paid'&&item.txId? transactions.find(t=>t.id===item.txId) : null;
+  if(linked){
+    // Edit an existing payment: move the money from the old account/amount to the new one, and keep a single transaction.
+    adjBalance(linked.accountId,linked.amount); adjBalance(accId,-amt);
+    transactions=transactions.map(t=> t.id===linked.id? {...t,amount:amt,accountId:accId}:t);
+    recurringItems=recurringItems.map(r=> r.id===item.id? {...r,actualAmount:amt,accountId:accId}:r);
+  } else {
+    const txId='tx_rec_'+Date.now();
+    adjBalance(accId,-amt);
+    transactions=[{id:txId,date:todayISO(),title:item.name,amount:amt,type:'expense',categoryId:item.categoryId,accountId:accId,tag:'#recurring',pocketId:null,recurringId:item.id},...transactions];
+    recurringItems=recurringItems.map(r=> r.id===item.id? {...r,status:'paid',actualAmount:amt,txId,accountId:accId,statusMonth:currentMonth()}:r);
+  }
+  closeModal(); render(); toastUndo(`"${item.name}" ditandai lunas: ${fmt(amt)}`,snap);
+}
+function toggleRecurring(id,next){
+  const item=recurringItems.find(r=>r.id===id); if(!item) return;
+  const snap=snapshot();
+  if(item.status==='paid'){
+    // Undo the payment exactly: refund the account that paid and remove its transaction.
+    const tx=transactions.find(t=>t.id===item.txId);
+    if(tx){ reverseTx(tx); transactions=transactions.filter(t=>t.id!==tx.id); }
+  }
+  recurringItems=recurringItems.map(r=> r.id===id? {...r,status:next,actualAmount:null,txId:null,accountId:null,statusMonth:currentMonth()}:r);
+  render(); toastUndo(next==='skipped'?`"${item.name}" dilewati bulan ini — ${fmt(item.expectedAmount)} bebas.`:`"${item.name}" dikembalikan ke Upcoming.`,snap);
+}
+function openAddRecurring(){ openBillForm(); }
+/* ===== SETTINGS: accounts, pockets, bills, Essentials, payday ===== */
+const ACC_TYPES={bank:{label:'Rekening bank',icon:'landmark',color:'#1e293b'},ewallet:{label:'E-wallet',icon:'smartphone',color:'#059669'},digital:{label:'Bank digital',icon:'credit-card',color:'#4f46e5'},credit:{label:'Kartu kredit / PayLater',icon:'credit-card',color:'#d97706'}};
+const newId=prefix=>prefix+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const fv=id=>document.getElementById(id).value;
+function fmtAmtInput(el){ const d=el.value.replace(/\D/g,''); el.value=d?Number(d).toLocaleString('id-ID'):''; }
+const amtInput=(id,v,ph)=>`<input id="${id}" type="text" inputmode="numeric" value="${v?Number(v).toLocaleString('id-ID'):''}" placeholder="${ph||'0'}" oninput="fmtAmtInput(this)">`;
+const amtVal=id=>parseInt(fv(id).replace(/\D/g,''),10)||0;
+function catSelect(id,val){ return `<select id="${id}">${categories.filter(c=>c.type==='expense').map(c=>`<option value="${c.id}" ${val===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select>`; }
+function settingsSaved(msg,snap){ closeModal(); render(); toastUndo(msg,snap); }
+function balLabel(type){ return type==='credit'?'Tagihan berjalan saat ini (Rp)':'Saldo saat ini (Rp)'; }
+
+function openAccountForm(id){
+  const a=accounts.find(x=>x.id===id)||{type:'bank',balance:0,name:''};
+  const owed= a.type==='credit'? -a.balance : a.balance;
+  const body=`<div class="field"><label for="faName">Nama</label><input id="faName" type="text" value="${esc(a.name)}" placeholder="cth. BCA, Jago, GoPay, Jenius Credit"></div>
+  <div class="field"><label for="faType">Jenis</label><select id="faType" onchange="document.getElementById('faBalLabel').textContent=balLabel(this.value)">${Object.entries(ACC_TYPES).map(([k,t])=>`<option value="${k}" ${a.type===k?'selected':''}>${t.label}</option>`).join('')}</select></div>
+  <div class="field"><label for="faBal" id="faBalLabel">${balLabel(a.type)}</label>${amtInput('faBal',Math.abs(owed))}</div>
+  ${id?'<p class="rc-help" style="margin:0">Mengubah saldo di sini tidak membuat transaksi — gunakan untuk menyamakan dengan saldo di aplikasi bank.</p>':''}`;
+  modalShell(id?'Ubah Rekening':'Tambah Rekening', body, `<button class="btn btn-emerald" style="width:100%;padding:12px" onclick="saveAccount('${id||''}')">Simpan</button>`);
+  document.getElementById('faName').focus();
+}
+function saveAccount(id){
+  const name=fv('faName').trim(), type=fv('faType'); let bal=amtVal('faBal');
+  if(!name){ toast('Isi nama rekening dulu ya.'); return; }
+  if(type==='credit') bal=-bal; // credit balances are stored as negative (money owed)
+  const t=ACC_TYPES[type]||ACC_TYPES.bank, snap=snapshot();
+  if(id) accounts=accounts.map(a=> a.id===id? {...a,name,type,balance:bal,icon:t.icon,color:t.color}:a);
+  else accounts=[...accounts,{id:newId('acc'),name,type,balance:bal,icon:t.icon,color:t.color}];
+  settingsSaved(id?`Rekening "${name}" diperbarui.`:`Rekening "${name}" ditambahkan.`,snap);
+}
+function deleteAccount(id){
+  const a=accounts.find(x=>x.id===id); if(!a) return;
+  const used=transactions.filter(t=>t.accountId===id).length;
+  if(used){ toast(`"${a.name}" masih dipakai ${used} transaksi — hapus transaksinya dulu, atau ubah namanya saja.`); return; }
+  const snap=snapshot(); accounts=accounts.filter(x=>x.id!==id); if(settings.mainAccountId===id) settings={...settings,mainAccountId:null};
+  render(); toastUndo(`Rekening "${a.name}" dihapus.`,snap);
+}
+
+function openPocketForm(id){
+  const p=pockets.find(x=>x.id===id)||{name:'',description:'',targetAmount:0,currentAmount:0,targetDate:'',monthlyHint:0};
+  const body=`<div class="field"><label for="fpName">Nama pocket</label><input id="fpName" type="text" value="${esc(p.name)}" placeholder="cth. Dana Darurat, Liburan"></div>
+  <div class="field"><label for="fpDesc">Keterangan (opsional)</label><input id="fpDesc" type="text" value="${esc(p.description||'')}"></div>
+  <div class="form2"><div class="field"><label for="fpTarget">Target (Rp)</label>${amtInput('fpTarget',p.targetAmount)}</div><div class="field"><label for="fpCur">Sudah terkumpul (Rp)</label>${amtInput('fpCur',p.currentAmount)}</div></div>
+  <div class="form2"><div class="field"><label for="fpDate">Target bulan</label><input id="fpDate" type="month" value="${esc(p.targetDate||'')}"></div><div class="field"><label for="fpHint">Saran top up / bulan</label>${amtInput('fpHint',p.monthlyHint)}</div></div>`;
+  modalShell(id?'Ubah Pocket':'Buat Pocket', body, `<button class="btn btn-emerald" style="width:100%;padding:12px" onclick="savePocket('${id||''}')">Simpan</button>`);
+  document.getElementById('fpName').focus();
+}
+function savePocket(id){
+  const name=fv('fpName').trim(), targetAmount=amtVal('fpTarget');
+  if(!name||targetAmount<=0){ toast('Isi nama dan target pocket dulu ya.'); return; }
+  const data={name,description:fv('fpDesc').trim(),targetAmount,currentAmount:amtVal('fpCur'),targetDate:fv('fpDate'),monthlyHint:amtVal('fpHint')}, snap=snapshot();
+  if(id) pockets=pockets.map(p=> p.id===id? {...p,...data}:p);
+  else pockets=[...pockets,{id:newId('pock'),icon:'piggy-bank',...data}];
+  settingsSaved(id?`Pocket "${name}" diperbarui.`:`Pocket "${name}" dibuat.`,snap);
+}
+function deletePocket(id){
+  const p=pockets.find(x=>x.id===id); if(!p) return;
+  if(p.currentAmount>0&&!confirm(`"${p.name}" masih berisi ${fmt(p.currentAmount)}. Hapus pocket ini? Dananya kembali dihitung sebagai Safe-to-Spend.`)) return;
+  const snap=snapshot(); pockets=pockets.filter(x=>x.id!==id); render(); toastUndo(`Pocket "${p.name}" dihapus.`,snap);
+}
+
+function openBillForm(id){
+  const r=recurringItems.find(x=>x.id===id)||{name:'',categoryId:'cat_utilities',dueDay:15,expectedAmount:0,note:''};
+  const body=`<div class="field"><label for="nrName">Nama tagihan / langganan</label><input id="nrName" type="text" value="${esc(r.name)}" placeholder="cth. Netflix, Internet, Kost…"></div>
+  <div class="field"><label for="nrCat">Kategori</label>${catSelect('nrCat',r.categoryId)}</div>
+  <div class="form2"><div class="field"><label for="nrDay">Jatuh tempo (tgl 1–31)</label><input id="nrDay" type="number" min="1" max="31" value="${r.dueDay}"></div><div class="field"><label for="nrAmt">Perkiraan nominal (Rp)</label>${amtInput('nrAmt',r.expectedAmount)}</div></div>
+  <div class="field"><label for="nrNote">Catatan (opsional)</label><input id="nrNote" type="text" value="${esc(r.note||'')}" placeholder="cth. Auto-debit Jago"></div>`;
+  modalShell(id?'Ubah Tagihan Rutin':'Tambah Tagihan Rutin', body, `<button class="btn btn-emerald" style="width:100%;padding:12px" onclick="saveBill('${id||''}')">Simpan</button>`);
+  document.getElementById('nrName').focus();
+}
+function createRecurring(){ saveBill(''); }
+function saveBill(id){
+  const name=fv('nrName').trim(), amt=amtVal('nrAmt');
+  if(!name||amt<=0){ toast('Isi nama dan nominal yang valid dulu ya.'); return; }
+  const data={name,categoryId:fv('nrCat'),dueDay:Math.min(31,Math.max(1,parseInt(fv('nrDay'),10)||15)),expectedAmount:amt,note:fv('nrNote').trim()}, snap=snapshot();
+  if(id) recurringItems=recurringItems.map(r=> r.id===id? {...r,...data}:r);
+  else recurringItems=[...recurringItems,{id:newId('rec'),...data,actualAmount:null,status:'upcoming',statusMonth:currentMonth()}];
+  recurringItems.sort((a,b)=>a.dueDay-b.dueDay);
+  settingsSaved(id?`Tagihan "${name}" diperbarui.`:`Tagihan baru ditambahkan: "${name}"`,snap);
+}
+function deleteBill(id){
+  const r=recurringItems.find(x=>x.id===id); if(!r) return;
+  const snap=snapshot(); recurringItems=recurringItems.filter(x=>x.id!==id); render(); toastUndo(`Tagihan "${r.name}" dihapus (transaksi lama tetap ada).`,snap);
+}
+
+function openEssentialForm(id){
+  const e=essentials.find(x=>x.id===id)||{name:'',unitPrice:0,targetQty:1,categoryId:'cat_food'};
+  const body=`<div class="field"><label for="feName">Nama item</label><input id="feName" type="text" value="${esc(e.name)}" placeholder="cth. Telur, Beras, Sabun"></div>
+  <div class="form2"><div class="field"><label for="fePrice">Harga per beli (Rp)</label>${amtInput('fePrice',e.unitPrice)}</div><div class="field"><label for="feQty">Berapa kali / bulan</label><input id="feQty" type="number" min="1" max="99" value="${e.targetQty}"></div></div>
+  <div class="field"><label for="feCat">Kategori</label>${catSelect('feCat',e.categoryId)}</div>`;
+  modalShell(id?'Ubah Item Essentials':'Tambah Item Essentials', body, `<button class="btn btn-emerald" style="width:100%;padding:12px" onclick="saveEssential('${id||''}')">Simpan</button>`);
+  document.getElementById('feName').focus();
+}
+function saveEssential(id){
+  const name=fv('feName').trim(), unitPrice=amtVal('fePrice'), targetQty=Math.min(99,Math.max(1,parseInt(fv('feQty'),10)||1));
+  if(!name||unitPrice<=0){ toast('Isi nama dan harga dulu ya.'); return; }
+  const data={name,unitPrice,targetQty,categoryId:fv('feCat')}, snap=snapshot();
+  if(id) essentials=essentials.map(e=> e.id===id? {...e,...data}:e);
+  else essentials=[...essentials,{id:newId('ess'),...data}];
+  settingsSaved(id?`"${name}" diperbarui.`:`"${name}" ditambahkan ke Essentials.`,snap);
+}
+function deleteEssential(id){
+  const e=essentials.find(x=>x.id===id); if(!e) return;
+  const snap=snapshot(); essentials=essentials.filter(x=>x.id!==id); render(); toastUndo(`"${e.name}" dihapus dari Essentials.`,snap);
+}
+function setMainAccount(id){ const snap=snapshot(); settings={...settings,mainAccountId:id}; render(); toastUndo('Rekening utama diperbarui.',snap); }
+
+function settingsList(title,sub,addLabel,addFn,rows,empty){
+  return `<div class="card"><div class="set-head"><div><h3>${title}</h3><p class="sub">${sub}</p></div><button class="btn btn-dark btn-sm" onclick="${addFn}">${addLabel}</button></div>
+  ${rows.length? rows.join('') : `<p class="set-empty">${empty}</p>`}</div>`;
+}
+const setRow=(main,meta,editFn,delFn)=>`<div class="set-row"><div style="min-width:0"><strong>${main}</strong><div class="set-meta">${meta}</div></div><div class="set-actions"><button class="btn btn-sm" onclick="${editFn}">Ubah</button><button class="icon-btn" aria-label="Hapus" onclick="${delFn}">🗑</button></div></div>`;
+function renderSettings(){
+  const main=mainAccountId();
+  document.getElementById('view-settings').innerHTML=`<div class="set-grid">
+  ${settingsList('Rekening & Kartu','Semua rekening, e-wallet dan kartu kredit yang kamu punya.','+ Rekening','openAccountForm()',
+    accounts.map(a=>setRow(`${esc(a.name)}${a.id===main?' <span class="badge ok" style="margin-left:4px">utama</span>':''}`,`${esc((ACC_TYPES[a.type]||ACC_TYPES.bank).label)} · ${fmt(a.balance)}${a.id!==main&&a.type!=='credit'?` · <button class="link-btn" style="font-size:11px" onclick="setMainAccount('${a.id}')">Jadikan utama</button>`:''}`,`openAccountForm('${a.id}')`,`deleteAccount('${a.id}')`)),
+    'Belum ada rekening. Tambahkan rekening tempat gaji masuk terlebih dulu.')}
+  ${settingsList('Saving Pockets','Tabungan dengan target, dipisahkan dari uang belanja.','+ Pocket','openPocketForm()',
+    pockets.map(p=>setRow(esc(p.name),`${fmt(p.currentAmount)} dari ${fmt(p.targetAmount)}${p.targetDate?' · target '+esc(p.targetDate):''}`,`openPocketForm('${p.id}')`,`deletePocket('${p.id}')`)),
+    'Belum ada pocket.')}
+  ${settingsList('Tagihan Rutin','Tagihan bulanan dengan tanggal jatuh tempo.','+ Tagihan','openBillForm()',
+    recurringItems.map(r=>setRow(esc(r.name),`Tgl ${r.dueDay} · ${fmt(r.expectedAmount)}`,`openBillForm('${r.id}')`,`deleteBill('${r.id}')`)),
+    'Belum ada tagihan rutin.')}
+  ${settingsList('Daftar Essentials','Belanja kebutuhan rutin per bulan.','+ Item','openEssentialForm()',
+    essentials.map(e=>setRow(esc(e.name),`${fmt(e.unitPrice)} × ${e.targetQty}/bulan = ${fmt(e.unitPrice*e.targetQty)}`,`openEssentialForm('${e.id}')`,`deleteEssential('${e.id}')`)),
+    'Belum ada item Essentials.')}
+  <div class="card"><div class="set-head"><div><h3>Gajian</h3><p class="sub">Safe-to-Spend menyisihkan kebutuhan sampai tanggal ini.</p></div><button class="btn btn-sm" onclick="openPaydayModal()">Ubah</button></div><p style="margin:0;font-size:13px">Setiap tanggal <strong>${settings.payday}</strong></p></div>
+  </div>`;
+}
+function renderWelcome(){
+  return `<div class="card welcome"><div class="brand-icon" style="margin:0 auto 12px"><i data-lucide="wallet"></i></div>
+  <h3 style="font-size:18px">Selamat datang di FlowPocket</h3>
+  <p class="sub" style="max-width:420px;margin:6px auto 18px">Mulai dengan menambahkan rekening tempat gaji masuk. Setelah itu, atur tanggal gajian, pocket tabungan, tagihan, dan daftar Essentials kapan saja di Pengaturan.</p>
+  <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn btn-dark" onclick="openAccountForm()">+ Tambah rekening pertama</button><button class="btn" onclick="goTab('settings')">Buka Pengaturan</button></div></div>`;
+}
+
+/* Pockets */
+let pocketCtx=null;
+function openPocketAction(pid,mode){
+  if(needMainAccount()) return;
+  const p=pockById(pid); if(!p) return; pocketCtx={pocket:p,mode};
+  const body=`<p style="font-size:13px;margin:0 0 12px"><strong>${esc(p.name)}</strong> — terkumpul ${fmt(p.currentAmount)} dari target ${fmt(p.targetAmount)}<br><span style="color:var(--muted);font-size:12px">${mode==='topup'?`Dana disisihkan dari ${esc((accById(mainAccountId())||{name:'rekening utama'}).name)} dan langsung terlindungi di pocket ini.`:'Pengeluaran dari pocket dicatat terpisah dan tidak mengacaukan budget fleksibel bulanan.'}</span></p>
+  <div class="field"><label>Nominal (Rp)</label><input class="big" id="pockAmt" type="number" value="${mode==='topup'?p.monthlyHint:''}" placeholder="250000"></div>
+  <div class="field"><label>Catatan (opsional)</label><input id="pockNote" type="text" placeholder="${mode==='topup'?'Top up '+esc(p.name):'Belanja dari '+esc(p.name)}"></div>`;
+  modalShell(mode==='topup'?'Top Up Pocket':'Pakai Dana Pocket', body, `<button class="btn btn-emerald" style="width:100%;padding:12px" onclick="confirmPocketAction()">${mode==='topup'?'Pindahkan ke Pocket':'Catat Pengeluaran dari Pocket'}</button>`);
+}
+function confirmPocketAction(){
+  if(!pocketCtx) return; const amt=parseAmt(document.getElementById('pockAmt').value); const note=document.getElementById('pockNote').value.trim(); const {pocket,mode}=pocketCtx;
+  if(amt<=0){ toast('Nominal harus lebih dari nol.'); return; }
+  if(mode!=='topup'&&pocket.currentAmount<=0){ toast(`${pocket.name} masih kosong — tidak ada dana untuk dipakai.`); return; }
+  const snap=snapshot();
+  if(mode==='topup'){ pockets=pockets.map(p=> p.id===pocket.id? {...p,currentAmount:p.currentAmount+amt}:p); transactions=[{id:'tx_pock_'+Date.now(),date:todayISO(),title:note||`Top up ${pocket.name}`,amount:amt,type:'transfer',categoryId:null,accountId:mainAccountId(),tag:'#pocket-save',pocketId:pocket.id},...transactions]; toastUndo(`Berhasil memindahkan ${fmt(amt)} ke ${pocket.name}!`,snap); }
+  else { const deduct=Math.min(pocket.currentAmount,amt); pockets=pockets.map(p=> p.id===pocket.id? {...p,currentAmount:p.currentAmount-deduct}:p); accounts=accounts.map(a=> a.id===mainAccountId()? {...a,balance:a.balance-deduct}:a); transactions=[{id:'tx_pock_spend_'+Date.now(),date:todayISO(),title:note||`Spent from ${pocket.name}`,amount:deduct,type:'expense',categoryId:'cat_shopping',accountId:mainAccountId(),tag:'#'+pocket.name.toLowerCase().replace(/\s+/g,'-'),pocketId:pocket.id},...transactions]; }
+  closeModal(); render();
+  if(mode!=='topup') toastUndo(`Tercatat pengeluaran ${fmt(Math.min(pocket.currentAmount,amt))} dari ${pocket.name}.`,snap);
+}
+function autoSweep(targetId){
+  const fin=financialSummary(); const amt= fin.recurringNetVariance>0? fin.recurringNetVariance : 250000; const target=pockById(targetId)||pockets[0];
+  const snap=snapshot();
+  pockets=pockets.map(p=> p.id===target.id? {...p,currentAmount:p.currentAmount+amt}:p);
+  transactions=[{id:'tx_sweep_'+Date.now(),date:todayISO(),title:`Auto-Sweep Bill Savings → ${target.name}`,amount:amt,type:'transfer',categoryId:null,accountId:mainAccountId(),tag:'#auto-sweep',pocketId:target.id},...transactions];
+  render(); toastUndo(`Auto-sweep berhasil: ${fmt(amt)} masuk ke ${target.name}!`,snap);
+}
+function payoffCredit(){
+  if(needMainAccount()) return;
+  const fin=financialSummary(); const amt=fin.creditFloatHolding; if(amt<=0) return;
+  const snap=snapshot();
+  const creditPayoff=accounts.filter(a=>a.type==='credit'&&a.balance<0).map(a=>({id:a.id,amount:-a.balance}));
+  accounts=accounts.map(a=>{ if(a.id===mainAccountId()) return {...a,balance:a.balance-amt}; if(a.type==='credit') return {...a,balance:0}; return a; });
+  transactions=[{id:'tx_cc_'+Date.now(),date:todayISO(),title:'Credit Card Full Statement Payoff (From Float)',amount:amt,type:'transfer',categoryId:null,accountId:mainAccountId(),tag:'#cc-payoff',pocketId:null,creditPayoff},...transactions];
+  render(); toastUndo(`Kartu kredit lunas: ${fmt(amt)} dibayar dari float.`,snap);
+}
+function deleteTx(id){
+  const tx=transactions.find(t=>t.id===id); if(!tx) return;
+  const snap=snapshot();
+  reverseTx(tx);
+  transactions=transactions.filter(t=>t.id!==id);
+  render(); toastUndo(`Entri "${tx.title}" dihapus — saldo terkait dikembalikan.`,snap);
+}
+
+/* Nav wiring */
+document.querySelectorAll('[data-tab]').forEach(b=> b.addEventListener('click',()=>goTab(b.dataset.tab)));
+document.getElementById('fabBtn').addEventListener('click',()=>{ logState=freshLogState(); openLogger(); });
+document.getElementById('quickLogTop').addEventListener('click',()=>{ logState=freshLogState(); openLogger(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+render();
+initCloud();
+</script>
+</body>
+</html>

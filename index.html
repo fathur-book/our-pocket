@@ -375,9 +375,13 @@ function payCycle(){
   const next= t0<thisMonth? thisMonth : paydayIn(y,m+1); // on payday itself the salary is in, so look to next month
   return {next,daysUntil:Math.round((next-t0)/86400000)}; // days from today (inclusive) to payday (exclusive)
 }
-/* Bills whose due date falls before the next payday: unpaid ones this month, plus next month's occurrences. */
 /* The current pay cycle: from the last payday (inclusive) to the next payday (exclusive). */
-function cycleBounds(){ const {next}=payCycle(); const prev=paydayIn(next.getFullYear(),next.getMonth()-1); return {start:isoDate(prev),end:isoDate(next),prev,next}; }
+let cycleCache=null;
+function cycleBounds(){
+  const key=todayISO()+'|'+settings.payday;
+  if(!cycleCache||cycleCache.key!==key){ const {next}=payCycle(), prev=paydayIn(next.getFullYear(),next.getMonth()-1); cycleCache={key,start:isoDate(prev),end:isoDate(next),prev,next}; }
+  return cycleCache;
+}
 function inCycle(tx){ const {start,end}=cycleBounds(); return typeof tx.date==='string'&&tx.date>=start&&tx.date<end; }
 /* How a transaction changes spendable money. Savings pockets are separate money:
    putting money into a pocket sets it aside (−), spending from a pocket or moving money between
@@ -388,46 +392,54 @@ function spendableFlow(tx){
   if(tx.type==='transfer') return tx.pocketId? (tx.fromPocket? tx.amount : -tx.amount) : 0; // out of a pocket = spendable again
   return 0;
 }
+/* Due dates of a bill that fall inside the pay cycle [from, to). */
+function billOccurrences(r,from,to){
+  const out=[];
+  for(let k=-1;k<=1;k++){
+    const y=from.getFullYear(), m=from.getMonth()+k;
+    const due=new Date(y,m,Math.min(r.dueDay,new Date(y,m+1,0).getDate()));
+    if(due>=from&&due<to) out.push(due);
+  }
+  return out;
+}
+/* Is a bill's occurrence for `mon` (YYYY-MM) settled? Paid by a transaction for that month, skipped,
+   or already inside the opening balance (due before the Saldo awal date). */
+function billSettled(r,mon,due){
+  const base=openingDate();
+  if(base&&due&&isoDate(due)<base) return true;
+  return transactions.some(t=>t.recurringId===r.id&&(t.forMonth||t.date.slice(0,7))===mon) || (r.skippedMonths||[]).includes(mon);
+}
+/* The month this cycle's occurrence of a bill belongs to: the first one not yet settled, else the first one. */
+function billCycleMonth(r){
+  const {prev,next}=cycleBounds(), occ=billOccurrences(r,prev,next);
+  if(!occ.length) return currentMonth();
+  const open=occ.find(d=>!billSettled(r,isoDate(d).slice(0,7),d));
+  return isoDate(open||occ[0]).slice(0,7);
+}
+function billCycleDue(r){ const mon=billCycleMonth(r), [y,m]=mon.split('-').map(Number); return new Date(y,m-1,Math.min(r.dueDay,new Date(y,m,0).getDate())); }
 /* Bills due inside this pay cycle that are not paid or skipped yet (expected amount). */
 function billsDueUnpaid(){
   const {prev,next}=cycleBounds(); let total=0; const items=[];
   recurringItems.forEach(r=>{
-    for(let k=-1;k<=1;k++){
-      const y=prev.getFullYear(), m=prev.getMonth()+k;
-      const due=new Date(y,m,Math.min(r.dueDay,new Date(y,m+1,0).getDate()));
-      if(due<prev||due>=next) continue;
+    billOccurrences(r,prev,next).forEach(due=>{
       const mon=isoDate(due).slice(0,7);
-      const paid=transactions.some(t=>t.recurringId===r.id&&(t.forMonth||t.date.slice(0,7))===mon) || (r.skippedMonths||[]).includes(mon) || ((r.status==='paid'||r.status==='skipped')&&(r.statusMonth||'')===mon);
-      if(!paid){ total+=r.expectedAmount; items.push(r); }
-    }
+      const settled=billSettled(r,mon,due) || ((r.status==='paid'||r.status==='skipped')&&(r.statusMonth||'')===mon);
+      if(!settled){ total+=r.expectedAmount; items.push(r); }
+    });
   });
   return {total,items};
-}
-function billsBeforePayday(){
-  const {next}=payCycle(), t=today(), y=t.getFullYear(), m=t.getMonth();
-  let total=0;
-  recurringItems.forEach(r=>{
-    for(let k=0;k<3;k++){
-      const due=new Date(y,m+k,Math.min(r.dueDay,new Date(y,m+k+1,0).getDate()));
-      if(due>=next) break;
-      if(k>0||r.status==='upcoming') total+=r.expectedAmount; // overdue upcoming bills count too
-    }
-  });
-  return total;
-}
-/* Essentials budget is per calendar month, so the remainder is spread over the days left in this month. */
-function essentialsBeforePayday(remaining,monthlyBudget){
-  const {next,daysUntil}=payCycle(), t=today();
-  if(next.getFullYear()===t.getFullYear()&&next.getMonth()===t.getMonth()) return Math.round(remaining*daysUntil/monthInfo().daysLeft);
-  const dimNext=new Date(next.getFullYear(),next.getMonth()+1,0).getDate();
-  return Math.round(remaining + monthlyBudget*(next.getDate()-1)/dimNext);
 }
 function monthShort(){ return today().toLocaleDateString('id-ID',{month:'short'}).replace('.','').toUpperCase(); }
 const SEED_MONTH='2026-10'; // month the sample bills' paid/upcoming statuses belong to
 /* Bill statuses are per month: on a new month every bill becomes upcoming again. */
 function rolloverBills(){
-  const cm=currentMonth();
-  recurringItems=recurringItems.map(r=> (r.statusMonth||SEED_MONTH)===cm? r : {...r,status:'upcoming',actualAmount:null,txId:null,accountId:null,statusMonth:cm});
+  recurringItems=recurringItems.map(r=>{
+    const mon=billCycleMonth(r);
+    if((r.statusMonth||SEED_MONTH)===mon) return r;
+    const tx=transactions.find(t=>t.recurringId===r.id&&(t.forMonth||t.date.slice(0,7))===mon);
+    if(tx) return {...r,status:'paid',actualAmount:tx.amount,txId:tx.id,accountId:tx.accountId,statusMonth:mon};
+    return {...r,status:(r.skippedMonths||[]).includes(mon)?'skipped':'upcoming',actualAmount:null,txId:null,accountId:null,statusMonth:mon};
+  });
 }
 
 function freshLogState(){ return {fromPocket:null,transferTo:'',billId:null,type:'expense',amount:'',date:todayISO(),categoryId:'cat_food',accountId:mainAccountId()||(accounts[0]?accounts[0].id:null),pocketId:pockets[0]?pockets[0].id:null,title:'',tag:'',essentialId:null,essentialQty:1}; }
@@ -653,7 +665,7 @@ function essentialsSummary(){
     const spent=mtx.reduce((s,t)=>s+t.amount,0);
     const bought=mtx.reduce((s,t)=> s+(t.essentialQty? t.essentialQty : Math.max(1,Math.round(t.amount/item.unitPrice))),0);
     const remQty=Math.max(0,item.targetQty-bought);
-    const isComplete=remQty===0;
+    const isComplete=remQty===0||spent>=totalPlanned; // all units bought, or the planned money is used up
     return {...item,totalPlanned,spentAmount:spent,boughtQty:bought,remainingAmount:isComplete?0:item.unitPrice*remQty,remainingQty:remQty,isComplete};
   });
   return {items,totalEssentialsBudget:items.reduce((s,i)=>s+i.totalPlanned,0),totalEssentialsSpent:items.reduce((s,i)=>s+i.spentAmount,0),totalEssentialsRemaining:items.reduce((s,i)=>s+i.remainingAmount,0),completedCount:items.filter(i=>i.isComplete).length};
@@ -812,9 +824,16 @@ function openingTx(){ return transactions.filter(t=>t.opening).sort((a,b)=>b.dat
 function openingDate(){ const o=openingTx(); return o? o.date : null; }
 /* Suggested opening balance for a date: money in accounts now, minus card debt, minus the effect of
    everything already logged on/after that date (those entries will be counted separately). */
+/* How an entry changed (bank + e-wallet − card debt). Old pocket top-ups without `moves` changed nothing. */
+function balanceDelta(tx){
+  if(tx.type==='income'||tx.type==='refund') return tx.opening? 0 : tx.amount;
+  if(tx.type==='expense') return tx.accountId? -tx.amount : 0;
+  if(tx.type==='transfer') return (tx.moves||[]).reduce((s,m)=>s+m.amount,0) + (Array.isArray(tx.creditPayoff)? -tx.amount+tx.creditPayoff.reduce((s,c)=>s+c.amount,0) : 0);
+  return 0;
+}
 function openingSuggestion(date){
   const cash=accounts.filter(a=>a.type!=='credit').reduce((s,a)=>s+a.balance,0), owed=accounts.filter(a=>a.type==='credit').reduce((s,a)=>s+Math.max(0,-a.balance),0);
-  const later=transactions.filter(t=>!t.opening&&t.date>=date).reduce((s,t)=>s+spendableFlow(t),0);
+  const later=transactions.filter(t=>!t.opening&&t.date>=date).reduce((s,t)=>s+balanceDelta(t),0);
   return {cash,owed,later,value:Math.max(0,cash-owed-later)};
 }
 function refreshOpeningSuggestion(){ const d=document.getElementById('obDate').value||todayISO(), sg=openingSuggestion(d); document.getElementById('obAmt').value=sg.value?sg.value.toLocaleString('id-ID'):''; document.getElementById('obHint').innerHTML=openingHint(sg); }
@@ -889,7 +908,7 @@ function renderEssentials(fin,ess){
   <div class="card" style="margin-top:16px">
     <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-bottom:14px;border-bottom:1px solid var(--border)"><div><h3>Tagihan &amp; Langganan Rutin</h3><p class="sub">Perbandingan Expected vs Actual — selisihnya terlihat jelas, tidak tersembunyi</p></div><button class="btn btn-dark" onclick="openAddRecurring()">+ Tambah Tagihan Rutin</button></div>
     <div>${recurringItems.map(item=>{ const cat=catById(item.categoryId); const isPaid=item.status==='paid', isSkip=item.status==='skipped'; const variance=isPaid? item.expectedAmount-(item.actualAmount??item.expectedAmount):0; return `<div class="rec-row" style="${isSkip?'opacity:.55':''}">
-      <div style="display:flex;gap:12px;align-items:flex-start;min-width:min(260px,100%);flex:1"><div class="date-box ${isPaid?'paid':isSkip?'skipped':''}"><small>${monthShort()}</small><span>${Math.min(item.dueDay,monthInfo().dim)}</span></div>
+      <div style="display:flex;gap:12px;align-items:flex-start;min-width:min(260px,100%);flex:1"><div class="date-box ${isPaid?'paid':isSkip?'skipped':''}"><small>${billCycleDue(item).toLocaleDateString('id-ID',{month:'short'}).replace('.','').toUpperCase()}</small><span>${billCycleDue(item).getDate()}</span></div>
       <div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><strong style="font-size:14px">${esc(item.name)}</strong><span class="tag">${cat?cat.name:'Recurring'}</span>${isPaid?'<span class="badge ok">✓ Paid</span>':''}${isSkip?'<span class="badge" style="background:var(--surface2);color:var(--muted);border-color:var(--border)">Skipped</span>':''}</div><p style="font-size:12px;color:var(--muted);margin:3px 0 0">${esc(item.note||'')}</p></div></div>
       <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center">
         <div><div style="font-size:10px;color:var(--muted)">Expected</div><strong style="font-size:13px">${fmt(item.expectedAmount)}</strong></div>
@@ -1051,8 +1070,8 @@ function saveQuickLog(){
 }
 
 /* ===== TRANSFER: between own accounts, or into a saving pocket ===== */
-// Pockets are envelopes inside the main account: money sent to a pocket from another account
-// first lands in the main account, then the pocket's share is set aside.
+// Saving pockets are separate money: saving moves money out of an account into the pocket,
+// taking it out moves it back into an account.
 function defaultTransferTo(){ if(logState.fromPocket){ const m=accounts.find(a=>a.type!=='credit'); return m? 'acc:'+m.id : ''; } const other=accounts.find(a=>a.id!==logState.accountId); return other? 'acc:'+other.id : (pockets[0]? 'pock:'+pockets[0].id : ''); }
 function setTransferFrom(v){ if(v.startsWith('pock:')){ logState.fromPocket=v.slice(5); const t=logState.transferTo||''; if(t.startsWith('pock:')||(t.startsWith('acc:')&&(accById(t.slice(4))||{}).type==='credit')) logState.transferTo=''; } else { logState.fromPocket=null; logState.accountId=v; if(logState.transferTo==='acc:'+v) logState.transferTo=''; } if(!logState.transferTo) logState.transferTo=defaultTransferTo(); openLogger(); }
 function transferFieldsHTML(){
@@ -1440,7 +1459,7 @@ function stSave(){
       const moves=[{id:accId,amount:-it.amount},{id,amount:it.amount}]; moves.forEach(m=>adjBalance(m.id,m.amount));
       newTx.push({id:`tx_cc_${stamp}_${i}`,date:it.date,title,amount:it.amount,type:'transfer',categoryId:null,accountId:accId,toAccountId:id,pocketId:null,moves,tag:'#transfer'}); return;
     }
-    const t={id:`tx_cc_${stamp}_${i}`,date:it.date,title,amount:it.amount,type:'expense',categoryId:ess?ess.categoryId:it.categoryId,accountId:accId,tag:ess?'#essential':'#kartu-kredit',pocketId:null,essentialId:ess?ess.id:null,essentialQty:ess?1:null};
+    const t={id:`tx_cc_${stamp}_${i}`,date:it.date,title,amount:it.amount,type:'expense',categoryId:ess?ess.categoryId:it.categoryId,accountId:accId,tag:ess?'#essential':'#kartu-kredit',pocketId:null,essentialId:ess?ess.id:null,essentialQty:ess?Math.max(1,Math.round(it.amount/ess.unitPrice)):null};
     adjBalance(accId,-t.amount); newTx.push(t);
   });
   transactions=[...newTx,...transactions].sort((a,b)=>b.date.localeCompare(a.date));
@@ -1461,18 +1480,18 @@ function billSuggestion(text,amount){ return billByName(text)||billByAmount(amou
    a late payment for last month is saved as history and leaves this month's bill reserved. */
 function recordBillPayment(item,amt,accId,date,extra){
   const txId='tx_rec_'+Date.now()+Math.random().toString(36).slice(2,5);
-  const thisMonth= date.slice(0,7)===currentMonth();
+  const forMonth= inCycle({date})? billCycleMonth(item) : date.slice(0,7), thisMonth= forMonth===billCycleMonth(item);
   adjBalance(accId,-amt);
-  const tx={id:txId,date,title:item.name,amount:amt,type:'expense',categoryId:item.categoryId,accountId:accId,tag:'#recurring',pocketId:null,recurringId:item.id,forMonth:date.slice(0,7),...(extra||{})};
+  const tx={id:txId,date,title:item.name,amount:amt,type:'expense',categoryId:item.categoryId,accountId:accId,tag:'#recurring',pocketId:null,recurringId:item.id,forMonth,...(extra||{})};
   transactions=[tx,...transactions].sort((a,b)=>b.date.localeCompare(a.date));
-  if(thisMonth&&item.status!=='paid') recurringItems=recurringItems.map(r=> r.id===item.id? {...r,status:'paid',actualAmount:amt,txId,accountId:accId,statusMonth:currentMonth()}:r);
+  if(thisMonth&&item.status!=='paid') recurringItems=recurringItems.map(r=> r.id===item.id? {...r,status:'paid',actualAmount:amt,txId,accountId:accId,statusMonth:forMonth}:r);
   return thisMonth;
 }
 let payingId=null;
 function openPayModal(id){
   if(!accounts.length){ toast('Tambahkan rekening dulu di Pengaturan.'); goTab('settings'); return; }
   const item=recurringItems.find(r=>r.id===id); if(!item) return; payingId=id;
-  const body=`<p style="font-size:13px;margin:0 0 12px"><strong>${esc(item.name)}</strong><br><span style="color:var(--muted);font-size:12px">Jatuh tempo tgl ${item.dueDay} • Expected ${fmt(item.expectedAmount)} • ${esc(item.note||'')}</span></p>
+  const body=`<p style="font-size:13px;margin:0 0 12px"><strong>${esc(item.name)}</strong><br><span style="color:var(--muted);font-size:12px">Jatuh tempo ${billCycleDue(item).toLocaleDateString('id-ID',{day:'numeric',month:'short'})} • Expected ${fmt(item.expectedAmount)} • ${esc(item.note||'')}</span></p>
   <div class="field"><label for="payAmt">Nominal yang dibayar (Rp)</label>${amtInput('payAmt',item.actualAmount??item.expectedAmount).replace('<input','<input class="big"')}</div>
   <div class="field"><label for="payDate">Tanggal bayar</label><input id="payDate" type="date" value="${esc((transactions.find(t=>t.id===item.txId)||{}).date||todayISO())}" max="${todayISO()}"></div>
   <div class="field"><label for="payAcc">Bayar dari rekening</label><select id="payAcc">${accounts.map(a=>`<option value="${a.id}" ${(item.accountId||mainAccountId())===a.id?'selected':''}>${esc(a.name)} — ${fmt(a.balance)}</option>`).join('')}</select></div>
@@ -1491,8 +1510,9 @@ function confirmPay(){
   if(linked){
     // Edit an existing payment: move the money from the old account/amount to the new one, and keep a single transaction.
     adjBalance(linked.accountId,linked.amount); adjBalance(accId,-amt);
-    transactions=transactions.map(t=> t.id===linked.id? {...t,amount:amt,accountId:accId,date}:t);
-    if(date.slice(0,7)!==currentMonth()){
+    const mon=billCycleMonth(item), inThisCycle=inCycle({date});
+    transactions=transactions.map(t=> t.id===linked.id? {...t,amount:amt,accountId:accId,date,forMonth: inThisCycle? (t.forMonth||mon) : date.slice(0,7)}:t);
+    if(!inThisCycle){
       // Now a payment for another month: keep it as history, this month's bill is reserved again.
       recurringItems=recurringItems.map(r=> r.id===item.id? {...r,status:'upcoming',actualAmount:null,txId:null,accountId:null}:r);
       closeModal(); render(); toastUndo(`Pembayaran "${item.name}" dipindah ke bulan lain — tagihan bulan ini kembali disisihkan.`,snap); return;
@@ -1511,7 +1531,7 @@ function toggleRecurring(id,next){
     const tx=transactions.find(t=>t.id===item.txId);
     if(tx){ reverseTx(tx); transactions=transactions.filter(t=>t.id!==tx.id); }
   }
-  const cm=currentMonth(), keep=(item.skippedMonths||[]).filter(m=>m!==cm&&m>=isoDate(new Date(today().getFullYear(),today().getMonth()-2,1)).slice(0,7));
+  const cm=billCycleMonth(item), keep=(item.skippedMonths||[]).filter(m=>m!==cm&&m>=isoDate(new Date(today().getFullYear(),today().getMonth()-3,1)).slice(0,7));
   recurringItems=recurringItems.map(r=> r.id===id? {...r,status:next,actualAmount:null,txId:null,accountId:null,statusMonth:cm,skippedMonths: next==='skipped'? [...keep,cm] : keep}:r);
   render(); toastUndo(next==='skipped'?`"${item.name}" dilewati bulan ini — ${fmt(item.expectedAmount)} bebas.`:`"${item.name}" dikembalikan ke Upcoming.`,snap);
 }
@@ -1656,7 +1676,7 @@ function renderSettings(){
 }
 const SETUP_STEPS=[
   {id:'acc',  title:'Tambah rekening', sub:'Rekening tempat gaji masuk, e-wallet, dan kartu kredit.', done:()=>accounts.length>0, act:'openAccountForm()', optional:false},
-  {id:'opening',title:'Catat saldo awal', sub:'Uang yang bisa dibelanjakan saat ini, supaya Safe-to-Spend mulai dari angka yang benar.', done:()=>transactions.some(t=>t.type==='income'), act:'openOpeningBalance()', optional:false},
+  {id:'opening',title:'Catat saldo awal', sub:'Uang yang bisa dibelanjakan saat ini, supaya Safe-to-Spend mulai dari angka yang benar.', done:()=>!!openingTx(), act:'openOpeningBalance()', optional:false},
   {id:'payday',title:'Atur tanggal gajian', sub:'Safe-to-Spend dihitung sampai tanggal ini.', done:()=>!!settings.paydaySet, act:'openPaydayModal()', optional:false},
   {id:'bills',title:'Tambah tagihan rutin', sub:'Kos, internet, listrik, langganan…', done:()=>recurringItems.length>0, act:'openBillForm()', optional:true},
   {id:'ess',  title:'Buat daftar Essentials', sub:'Belanja kebutuhan bulanan (beras, telur…).', done:()=>essentials.length>0, act:'openEssentialForm()', optional:true},

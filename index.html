@@ -215,7 +215,7 @@ select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);backg
 <body>
 <div id="toast" class="toast hidden" role="status"></div>
 <div id="authGate" class="auth-gate" data-mode="signin">
-  <form class="auth-card" onsubmit="authSubmit(event)">
+  <form class="auth-card" onsubmit="return handleAuthForm(event)">
     <div class="brand-icon" style="margin:0 auto 14px"><i data-lucide="wallet"></i></div>
     <h2 id="authTitle" style="margin:0 0 4px;font-size:19px;text-align:center">Masuk ke FlowPocket</h2>
     <p style="margin:0 0 18px;font-size:12px;color:var(--muted);text-align:center">Data keuanganmu tersimpan aman dan bisa dibuka dari perangkat mana pun.</p>
@@ -459,8 +459,8 @@ function showAuth(mode,msg){
     : 'Belum punya akun? <button class="link-btn" onclick="showAuth(\'signup\')">Daftar</button> · <button class="link-btn" onclick="showAuth(\'reset\')">Lupa password?</button>';
   document.getElementById('authMsg').textContent=msg||'';
 }
-async function authSubmit(ev){
-  ev.preventDefault();
+function handleAuthForm(ev){ ev.preventDefault(); authSubmitAsync(); return false; }
+async function authSubmitAsync(){
   if(!sb){ document.getElementById('authMsg').textContent='Tidak bisa terhubung. Periksa koneksi internet lalu muat ulang halaman.'; return; }
   const mode=document.getElementById('authGate').dataset.mode, email=document.getElementById('authEmail').value.trim(), password=document.getElementById('authPw').value;
   const msg=document.getElementById('authMsg'), btn=document.getElementById('authSubmit'); btn.disabled=true; msg.textContent='Memproses…';

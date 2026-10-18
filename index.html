@@ -248,6 +248,11 @@ select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);backg
 @media(max-width:560px){.ess-grid{grid-template-columns:1fr 1fr}nav.tabs{order:3;width:100%}nav.tabs button{flex:1;justify-content:center}}
 /* Essentials table → one compact card per item on phones: name + action on top, progress + remaining below. */
 .ess-meta{display:none}
+.period{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.period-step{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700}
+.period-step span{min-width:0;text-align:center}
+.period-step .icon-btn{width:30px;height:30px;font-size:17px;line-height:1;border:1px solid var(--border);color:var(--text)}
+.period-step .icon-btn:disabled{opacity:.35;cursor:default}
 .amt-wrap{position:relative;display:block}
 .amt-wrap input{width:100%;padding-right:64px!important}
 .amt-k{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:1px solid var(--emerald-border);background:var(--emerald-bg);color:var(--emerald-text);font:inherit;font-size:13px;font-weight:800;padding:4px 8px;border-radius:8px;cursor:pointer}
@@ -390,7 +395,6 @@ const pad2=n=>String(n).padStart(2,'0');
 function isoDate(d){ return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; } // local time, not UTC
 function todayISO(){ return isoDate(today()); }
 function currentMonth(){ return todayISO().slice(0,7); }
-function inCurrentMonth(tx){ return typeof tx.date==='string' && tx.date.slice(0,7)===currentMonth(); }
 function monthInfo(){
   const t=today(), day=t.getDate(), dim=new Date(t.getFullYear(),t.getMonth()+1,0).getDate();
   return {day,dim,daysLeft:dim-day+1,elapsedPct:Math.round(day/dim*100)};
@@ -711,6 +715,39 @@ function essentialsSummary(){
   });
   return {items,paused,activeCount:items.filter(i=>!i.skipped).length,totalEssentialsBudget:items.reduce((s,i)=>s+i.totalPlanned,0),totalEssentialsSpent:items.reduce((s,i)=>s+i.spentAmount,0),totalEssentialsRemaining:items.reduce((s,i)=>s+i.remainingAmount,0),completedCount:items.filter(i=>i.isComplete).length};
 }
+/* Spending per category between two ISO dates (end exclusive): free spending, plus bills & Essentials kept apart as 'planned'. */
+function periodSpend(start,end){
+  const map={}, planned={}; categories.forEach(c=>{ map[c.id]=0; planned[c.id]=0; });
+  let income=0; const paused=essPaused(); // skipped period: Essentials buys are ordinary spending
+  transactions.forEach(tx=>{
+    if(typeof tx.date!=='string'||tx.date<start||tx.date>=end) return;
+    if(tx.type==='expense'&&!tx.pocketId&&(tx.recurringId||(tx.essentialId&&!(paused&&inCycle(tx))))){ if(planned[tx.categoryId]!==undefined) planned[tx.categoryId]+=tx.amount; }
+    else if(tx.type==='expense'&&!tx.pocketId){ if(map[tx.categoryId]!==undefined) map[tx.categoryId]+=tx.amount; }
+    else if(tx.type==='refund'){ if(map[tx.categoryId]!==undefined) map[tx.categoryId]=Math.max(0,map[tx.categoryId]-tx.amount); }
+    else if(tx.type==='income'&&!tx.opening){ income+=tx.amount; }
+  });
+  const free=Object.values(map).reduce((a,b)=>a+b,0); // free spending after refunds, never negative
+  return {map,planned,income,free};
+}
+/* A calendar period relative to today: a month, a Monday–Sunday week, or everything. offset 0 = current, -1 = previous… */
+function periodRange(p){
+  const t=today();
+  if(p.kind==='month'){ const a=new Date(t.getFullYear(),t.getMonth()+p.offset,1), b=new Date(a.getFullYear(),a.getMonth()+1,1);
+    return {start:isoDate(a),end:isoDate(b),label:a.toLocaleDateString('id-ID',{month:'long',year:'numeric'})}; }
+  if(p.kind==='week'){ const mon=new Date(t.getFullYear(),t.getMonth(),t.getDate()-((t.getDay()+6)%7)+7*p.offset), sun=new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+6), nxt=new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+7);
+    const f=d=>d.toLocaleDateString('id-ID',{day:'numeric',month:'short'}).replace('.','');
+    return {start:isoDate(mon),end:isoDate(nxt),label:`${p.offset===0?'Minggu ini · ':p.offset===-1?'Minggu lalu · ':''}${f(mon)} – ${f(sun)} ${sun.getFullYear()}`}; }
+  return {start:'0000-01-01',end:'9999-12-31',label:'Semua waktu'};
+}
+/* Kind switch plus ‹ label › stepper. key names the state object ('dashPeriod' or 'txPeriod'). */
+function periodPicker(key,p,withAll){
+  const r=periodRange(p), kinds=[...(withAll?[['all','Semua']]:[]),['month','Bulan'],['week','Minggu']];
+  return `<div class="period"><div class="seg">${kinds.map(([k,l])=>`<button class="${p.kind===k?'active':''}" onclick="setPeriod('${key}','${k}')">${l}</button>`).join('')}</div>
+  ${p.kind==='all'?'':`<div class="period-step"><button class="icon-btn" aria-label="Sebelumnya" onclick="stepPeriod('${key}',-1)">‹</button><span>${r.label}</span><button class="icon-btn" aria-label="Berikutnya" onclick="stepPeriod('${key}',1)" ${p.offset>=0?'disabled':''}>›</button></div>`}</div>`;
+}
+let dashPeriod={kind:'month',offset:0}, txPeriod={kind:'all',offset:0};
+function setPeriod(key,kind){ const p={kind,offset:0}; if(key==='dashPeriod') dashPeriod=p; else txPeriod=p; render(); }
+function stepPeriod(key,d){ const p=key==='dashPeriod'?dashPeriod:txPeriod; p.offset=Math.min(0,p.offset+d); render(); }
 function financialSummary(){
   const totalLiquidCash=accounts.filter(a=>a.type!=='credit').reduce((s,a)=>s+a.balance,0);
   const creditFloatHolding=accounts.filter(a=>a.type==='credit').reduce((s,a)=>s+Math.abs(Math.min(0,a.balance)),0);
@@ -738,17 +775,7 @@ function financialSummary(){
   const {elapsedPct:monthElapsedPercent}=monthInfo();
   const {next:nextPayday,daysUntil:daysToPayday}=payCycle();
   const perDay= safeToSpend>0? Math.floor(safeToSpend/daysToPayday) : 0;
-  // Category spending this month: free spending, plus bills & Essentials kept apart as 'planned'.
-  const map={}, planned={}; categories.forEach(c=>{ map[c.id]=0; planned[c.id]=0; });
-  let monthlyIncome=0, monthlyNetExpense=0; const paused=ess.paused; // skipped period: Essentials buys are ordinary spending
-  transactions.filter(inCurrentMonth).forEach(tx=>{
-    if(tx.type==='expense'&&!tx.pocketId&&(tx.recurringId||(tx.essentialId&&!(paused&&inCycle(tx))))){ if(planned[tx.categoryId]!==undefined) planned[tx.categoryId]+=tx.amount; }
-    else if(tx.type==='expense'&&!tx.pocketId){ monthlyNetExpense+=tx.amount; if(map[tx.categoryId]!==undefined) map[tx.categoryId]+=tx.amount; }
-    else if(tx.type==='refund'){ if(map[tx.categoryId]!==undefined) map[tx.categoryId]=Math.max(0,map[tx.categoryId]-tx.amount); }
-    else if(tx.type==='income'&&!tx.opening){ monthlyIncome+=tx.amount; }
-  });
-  monthlyNetExpense=Object.values(map).reduce((a,b)=>a+b,0); // free spending after refunds, never negative
-  return {carryOver,cycleIncome,cycleSpending,cycleSaved,cycleStart:cyc.prev,totalLiquidCash,creditFloatHolding,totalPocketsSaved,unpaidExpectedRecurring,essentialsRemaining,billsReserved,essentialsReserved,nextPayday,daysToPayday,perDay,recurringNetVariance,safeToSpend,monthlyNetExpense,monthlyIncome,monthElapsedPercent,categorySpendMap:map,plannedSpendMap:planned};
+  return {carryOver,cycleIncome,cycleSpending,cycleSaved,cycleStart:cyc.prev,totalLiquidCash,creditFloatHolding,totalPocketsSaved,unpaidExpectedRecurring,essentialsRemaining,billsReserved,essentialsReserved,nextPayday,daysToPayday,perDay,recurringNetVariance,safeToSpend,monthElapsedPercent};
 }
 
 /* The linked essential — set only by an explicit tap, never inferred on save. */
@@ -806,14 +833,15 @@ function renderDashboard(fin,ess){
       ${showFormula?`<div class="formula"><strong style="color:#fff">Cara menghitungnya (periode ${fin.cycleStart.toLocaleDateString('id-ID',{day:'numeric',month:'short'})} – ${fin.nextPayday.toLocaleDateString('id-ID',{day:'numeric',month:'short'})}):</strong><br>${fin.carryOver?`Sisa periode sebelumnya ${fmt(fin.carryOver)} + `:''}pemasukan ${fmt(fin.cycleIncome)} − pengeluaran ${fmt(fin.cycleSpending)}${fin.cycleSaved>0?` − ditabung ke pocket ${fmt(fin.cycleSaved)}`:fin.cycleSaved<0?` + diambil dari tabungan ${fmt(-fin.cycleSaved)}`:''} − tagihan yang belum dibayar ${fmt(fin.billsReserved)} − Essentials yang belum dibeli ${fmt(fin.essentialsReserved)}. Essentials dan tagihan yang sudah dibayar dihitung dengan nominal aslinya (masuk ke pengeluaran). Saving Pockets adalah tabungan terpisah (total ${fmt(fin.totalPocketsSaved)}) dan tidak mengurangi angka ini.</div>`:''}
     </div>
     <div class="card" style="grid-column:span 5;display:flex;flex-direction:column;justify-content:space-between">
-      ${(()=>{ const rows=categories.filter(c=>c.type==='expense').map(c=>({cat:c,amt:(fin.categorySpendMap[c.id]||0)+(fin.plannedSpendMap[c.id]||0)})).filter(r=>r.amt>0).sort((a,b)=>b.amt-a.amt), total=rows.reduce((t,r)=>t+r.amt,0), planned=Object.values(fin.plannedSpendMap).reduce((a,b)=>a+b,0), month=today().toLocaleDateString('id-ID',{month:'long',year:'numeric'});
+      ${(()=>{ const pr=periodRange(dashPeriod), sp=periodSpend(pr.start,pr.end), rows=categories.filter(c=>c.type==='expense').map(c=>({cat:c,amt:(sp.map[c.id]||0)+(sp.planned[c.id]||0)})).filter(r=>r.amt>0).sort((a,b)=>b.amt-a.amt), total=rows.reduce((t,r)=>t+r.amt,0), planned=Object.values(sp.planned).reduce((a,b)=>a+b,0);
         return `<div>
-        <span style="font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)">Pengeluaran ${month}</span>
+        <span style="font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)">Pengeluaran</span>
+        <div style="margin-top:8px">${periodPicker('dashPeriod',dashPeriod)}</div>
         <h3 style="font-size:24px;margin-top:8px;letter-spacing:-.02em">${fmt(total)}</h3>
         ${planned?`<p class="sub">termasuk ${fmt(planned)} tagihan &amp; Essentials</p>`:''}
-        <div style="margin-top:14px">${rows.length? rows.map(r=>{ const pct=Math.round(r.amt/total*100); return `<div class="cat-row"><div class="cat-head"><span class="cat-name"><span class="cat-ico"><i data-lucide="${r.cat.icon}"></i></span>${esc(r.cat.name)}</span><span><strong>${fmt(r.amt)}</strong> <span style="color:var(--muted)">${pct}%</span></span></div><div class="bar sm dark" style="margin-top:6px"><i style="width:${pct}%"></i></div></div>`; }).join('') : '<p class="sub">Belum ada pengeluaran bulan ini.</p>'}</div>
-      </div>`; })()}
-      <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--muted)">Pemasukan bulan ini:</span><strong style="color:var(--emerald)">+${fmt(fin.monthlyIncome)}</strong></div>
+        <div style="margin-top:14px">${rows.length? rows.map(r=>{ const pct=Math.round(r.amt/total*100); return `<div class="cat-row"><div class="cat-head"><span class="cat-name"><span class="cat-ico"><i data-lucide="${r.cat.icon}"></i></span>${esc(r.cat.name)}</span><span><strong>${fmt(r.amt)}</strong> <span style="color:var(--muted)">${pct}%</span></span></div><div class="bar sm dark" style="margin-top:6px"><i style="width:${pct}%"></i></div></div>`; }).join('') : '<p class="sub">Belum ada pengeluaran di periode ini.</p>'}</div>
+      </div>
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--muted)">Pemasukan periode ini:</span><strong style="color:var(--emerald)">+${fmt(sp.income)}</strong></div>`; })()}
     </div>
   </div>
 
@@ -963,11 +991,13 @@ function accountsCard(fin){
 }
 
 function groupedTx(){
+  const pr=periodRange(txPeriod);
   const filtered=transactions.filter(tx=>{
     const q=tx.title.toLowerCase().includes(searchQuery.toLowerCase())||(tx.tag&&tx.tag.toLowerCase().includes(searchQuery.toLowerCase()));
     const t=filterType==='all'||tx.type===filterType;
     const c=filterCategory==='all'||tx.categoryId===filterCategory;
-    return q&&t&&c;
+    const d=tx.date>=pr.start&&tx.date<pr.end;
+    return q&&t&&c&&d;
   });
   const groups={};
   filtered.forEach(tx=>{ if(!groups[tx.date]) groups[tx.date]={date:tx.date,items:[],net:0}; groups[tx.date].items.push(tx); if(tx.type==='expense'&&!tx.pocketId) groups[tx.date].net-=tx.amount; if(tx.type==='refund'||tx.type==='income') groups[tx.date].net+=tx.amount; });
@@ -975,21 +1005,23 @@ function groupedTx(){
 }
 function renderActivity(){
   const groups=groupedTx();
+  const shown=groups.flatMap(g=>g.items), out=shown.filter(t=>t.type==='expense'&&!t.pocketId).reduce((a,t)=>a+t.amount,0), inc=shown.filter(t=>t.type==='income'&&!t.opening).reduce((a,t)=>a+t.amount,0);
   const fmtDate=d=>{ try{ return new Date(d+'T00:00:00').toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short',year:'numeric'}); }catch(e){ return d; } };
   document.getElementById('view-activity').innerHTML=`
   <div class="card" style="padding:14px"><div class="searchbar">
     <div class="search-wrap"><i data-lucide="search"></i><input id="searchInput" type="text" placeholder="Cari transaksi atau tag (#essential, #recurring)…" value="${esc(searchQuery)}" oninput="onSearch(this.value)"></div>
     <select onchange="filterType=this.value;render()" aria-label="Filter tipe"><option value="all" ${filterType==='all'?'selected':''}>Semua Tipe</option><option value="expense" ${filterType==='expense'?'selected':''}>Expenses</option><option value="income" ${filterType==='income'?'selected':''}>Income</option><option value="transfer" ${filterType==='transfer'?'selected':''}>Transfers</option><option value="refund" ${filterType==='refund'?'selected':''}>Refunds</option></select>
     <select onchange="filterCategory=this.value;render()" aria-label="Filter kategori"><option value="all">Semua Kategori</option>${categories.map(c=>`<option value="${c.id}" ${filterCategory===c.id?'selected':''}>${c.name}</option>`).join('')}</select>
-    ${(searchQuery||filterType!=='all'||filterCategory!=='all')?`<button class="btn" onclick="clearFilters()">✕ Reset filter</button>`:''}
-  </div><p style="font-size:11px;color:var(--muted);margin:10px 0 0">${transactions.length} transaksi total • menampilkan ${groups.reduce((s,g)=>s+g.items.length,0)} transaksi</p></div>
+    ${(searchQuery||filterType!=='all'||filterCategory!=='all'||txPeriod.kind!=='all')?`<button class="btn" onclick="clearFilters()">✕ Reset filter</button>`:''}
+  </div><div style="margin-top:10px">${periodPicker('txPeriod',txPeriod,true)}</div>
+  <p style="font-size:11px;color:var(--muted);margin:10px 0 0">Menampilkan ${shown.length} dari ${transactions.length} transaksi${txPeriod.kind!=='all'||shown.length?` • keluar <strong style="color:var(--text)">${fmt(out)}</strong> • masuk <strong style="color:var(--emerald)">${fmt(inc)}</strong>`:''}</p></div>
   <div style="margin-top:14px">${groups.length===0?`<div class="card" style="text-align:center;padding:36px"><p style="font-weight:700;margin:0">Tidak ada transaksi yang cocok</p><p style="font-size:12px;color:var(--muted)">Coba ubah kata kunci atau reset filter di atas.</p><button class="btn btn-dark" onclick="clearFilters()">Reset filter</button></div>`: groups.map(g=>`<div class="tx-group"><div class="tx-group-head"><strong>${esc(fmtDate(g.date))} • ${esc(g.date)}</strong><span>Net harian: <strong style="color:${g.net>=0?'var(--emerald)':'inherit'}">${fmt(g.net,true)}</strong></span></div>${g.items.map(tx=>{ const cat=catById(tx.categoryId), acc=accById(tx.accountId), pock=pockById(tx.pocketId); const isIn=tx.type==='income'||tx.type==='refund'; return `<div class="tx-row"><div style="display:flex;gap:12px;align-items:center;min-width:0"><span class="tx-ico ${isIn?'green':tx.type==='transfer'?'indigo':''}"><i data-lucide="${tx.type==='transfer'?'arrow-right-left':tx.type==='refund'?'rotate-ccw':(cat?cat.icon:'wallet')}"></i></span><div style="min-width:0"><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><strong style="font-size:13px">${esc(tx.title)}</strong>${tx.tag?`<span class="tag">${esc(tx.tag)}</span>`:''}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${acc?esc(acc.name):''}${tx.type==='transfer'&&accById(tx.toAccountId)?' → '+esc(accById(tx.toAccountId).name):''}${cat?' • '+cat.name:''}${pock?(tx.type==='transfer'?' → Pocket ':' • Pocket: ')+esc(pock.name):''}</div></div></div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0"><strong style="font-size:13px;color:${isIn?'var(--emerald)':tx.type==='transfer'?'var(--indigo)':'inherit'}">${isIn?'+'+fmt(tx.amount): tx.type==='transfer'?fmt(tx.amount):'-'+fmt(tx.amount)}</strong><button class="icon-btn" title="Hapus entri ini (saldo akan dikembalikan)" aria-label="Hapus ${esc(tx.title)}" onclick="deleteTx('${tx.id}')">🗑</button></div></div>`;}).join('')}</div>`).join('')}</div>
   <div class="card" style="margin-top:14px;padding:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><p style="margin:0;font-size:12px;color:var(--muted)">Data tersinkron otomatis ke akunmu dan tersimpan juga di perangkat ini. Ekspor cadangan sesekali untuk arsip pribadi.</p><div style="display:flex;gap:8px"><button class="btn btn-sm" onclick="exportData()">Ekspor cadangan</button><label class="btn btn-sm" style="cursor:pointer">Impor cadangan<input type="file" accept="application/json,.json" class="hidden" onchange="importData(this.files[0]);this.value=''"></label></div></div>`;
   const si=document.getElementById('searchInput'); if(si && document.activeElement!==si){ /* keep focus handling simple */ }
 }
 let searchDeb=null;
 function onSearch(v){ searchQuery=v; clearTimeout(searchDeb); searchDeb=setTimeout(()=>{ const pos=document.getElementById('searchInput')?.selectionStart; render(); const el=document.getElementById('searchInput'); if(el){ el.focus(); el.setSelectionRange(pos,pos);} },220); }
-function clearFilters(){ searchQuery=''; filterType='all'; filterCategory='all'; render(); }
+function clearFilters(){ searchQuery=''; filterType='all'; filterCategory='all'; txPeriod={kind:'all',offset:0}; render(); }
 
 /* ===== MODALS ===== */
 function closeModal(){ document.getElementById('modalRoot').innerHTML=''; rcpt=null; stmt=null; }

@@ -229,6 +229,10 @@ select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);backg
 @media(max-width:560px){.ess-grid{grid-template-columns:1fr 1fr}nav.tabs{order:3;width:100%}nav.tabs button{flex:1;justify-content:center}}
 /* Essentials table → one compact card per item on phones: name + action on top, progress + remaining below. */
 .ess-meta{display:none}
+.qty-btn{border:1px dashed var(--border);background:transparent;color:inherit;font:inherit;font-weight:800;padding:3px 8px;border-radius:8px;cursor:pointer}
+.qty-btn:hover{border-color:var(--emerald)}
+.ess-plan{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px 12px;padding:12px 14px;margin-bottom:14px;border:1px solid var(--border);border-radius:14px;background:var(--surface2)}
+.ess-plan.paused{border-color:var(--amber);background:color-mix(in srgb, var(--amber) 10%, transparent)}
 @media(max-width:560px){
   .ess-table thead,.ess-table .c-price,.ess-table .c-qty,.ess-table .c-total{display:none}
   .ess-table,.ess-table tbody{display:block}
@@ -467,6 +471,7 @@ function isValidState(s){
   if(s.essentials!=null&&!(Array.isArray(s.essentials)&&s.essentials.every(e=>e&&okId(e.id)&&str(e.name)&&num(e.unitPrice)&&e.unitPrice>0&&Number.isInteger(e.targetQty)&&e.targetQty>0&&optId(e.categoryId)))) return false;
   if(s.settings&&s.settings.mainAccountId!=null&&!okId(s.settings.mainAccountId)) return false;
   if(s.settings&&s.settings.budgets!=null&&!(typeof s.settings.budgets==='object'&&!Array.isArray(s.settings.budgets)&&Object.entries(s.settings.budgets).every(([k,v])=>okId(k)&&num(v)&&v>=0))) return false;
+  if(s.settings&&s.settings.essPlan!=null){ const ep=s.settings.essPlan; if(!(typeof ep==='object'&&str(ep.cycle)&&/^\d{4}-\d{2}-\d{2}$/.test(ep.cycle)&&(ep.skip==null||typeof ep.skip==='boolean')&&(ep.qty==null||(typeof ep.qty==='object'&&!Array.isArray(ep.qty)&&Object.entries(ep.qty).every(([k,v])=>okId(k)&&Number.isInteger(v)&&v>=0&&v<=99))))) return false; }
   if(s.settings&&s.settings.setupSkip!=null&&!(Array.isArray(s.settings.setupSkip)&&s.settings.setupSkip.every(okId))) return false;
   const okMoves=m=>m==null||(Array.isArray(m)&&m.every(x=>x&&okId(x.id)&&num(x.amount)));
   return s.accounts.every(a=>okId(a.id)&&str(a.name)&&str(a.type)&&num(a.balance)&&okId(a.icon)&&/^#[0-9a-f]{3,8}$/i.test(a.color))
@@ -667,18 +672,25 @@ function toast(msg,onUndo){ const t=document.getElementById('toast'); toastUndoF
 function runToastUndo(){ const fn=toastUndoFn; toastUndoFn=null; document.getElementById('toast').classList.add('hidden'); if(fn) fn(); }
 function toastUndo(msg,snap){ toast(msg,()=>{ applyState(snap); render(); toast('Dibatalkan — data dikembalikan seperti semula.'); }); }
 
+/* This pay period's Essentials plan: per-item quantity overrides and a skip-all switch.
+   Stored with the cycle's start date, so it resets by itself on the next payday. */
+function essPlan(){ const p=settings.essPlan, c=cycleBounds().start; return p&&p.cycle===c? {cycle:c,skip:!!p.skip,qty:p.qty||{}} : {cycle:c,skip:false,qty:{}}; }
+function essPaused(){ return essPlan().skip; }
+function planQtyOf(item){ const p=essPlan(); if(p.skip) return 0; const q=p.qty[item.id]; return Number.isInteger(q)? q : item.targetQty; }
 function essentialsSummary(){
+  const paused=essPaused();
   const items=essentials.map(item=>{
-    const totalPlanned=item.unitPrice*item.targetQty;
+    const planQty=planQtyOf(item), skipped=planQty===0;
+    const totalPlanned=item.unitPrice*planQty;
     // Only purchases the user explicitly linked count — no guessing from titles.
     const mtx=transactions.filter(tx=> tx.type==='expense' && tx.essentialId===item.id && inCycle(tx));
     const spent=mtx.reduce((s,t)=>s+t.amount,0);
     const bought=mtx.reduce((s,t)=> s+(t.essentialQty? t.essentialQty : Math.max(1,Math.round(t.amount/item.unitPrice))),0);
-    const remQty=Math.max(0,item.targetQty-bought);
-    const isComplete=remQty===0||spent>=totalPlanned; // all units bought, or the planned money is used up
-    return {...item,totalPlanned,spentAmount:spent,boughtQty:bought,remainingAmount:isComplete?0:item.unitPrice*remQty,remainingQty:remQty,isComplete};
+    const remQty=Math.max(0,planQty-bought);
+    const isComplete=!skipped&&(remQty===0||spent>=totalPlanned); // all units bought, or the planned money is used up
+    return {...item,defaultQty:item.targetQty,targetQty:planQty,skipped,totalPlanned,spentAmount:spent,boughtQty:bought,remainingAmount:isComplete||skipped?0:item.unitPrice*remQty,remainingQty:skipped?0:remQty,isComplete};
   });
-  return {items,totalEssentialsBudget:items.reduce((s,i)=>s+i.totalPlanned,0),totalEssentialsSpent:items.reduce((s,i)=>s+i.spentAmount,0),totalEssentialsRemaining:items.reduce((s,i)=>s+i.remainingAmount,0),completedCount:items.filter(i=>i.isComplete).length};
+  return {items,paused,activeCount:items.filter(i=>!i.skipped).length,totalEssentialsBudget:items.reduce((s,i)=>s+i.totalPlanned,0),totalEssentialsSpent:items.reduce((s,i)=>s+i.spentAmount,0),totalEssentialsRemaining:items.reduce((s,i)=>s+i.remainingAmount,0),completedCount:items.filter(i=>i.isComplete).length};
 }
 function budgetOf(catId){ const v=(settings.budgets||{})[catId]; return typeof v==='number'&&v>0? v : 0; }
 function financialSummary(){
@@ -711,9 +723,9 @@ function financialSummary(){
   // Budgets cover free spending only: bills and Essentials are planned (and reserved) separately.
   const totalFlexibleBudget=categories.filter(c=>c.type==='expense').reduce((s,c)=>s+budgetOf(c.id),0);
   const map={}, planned={}; categories.forEach(c=>{ map[c.id]=0; planned[c.id]=0; });
-  let monthlyIncome=0, monthlyNetExpense=0;
+  let monthlyIncome=0, monthlyNetExpense=0; const paused=ess.paused; // skipped period: Essentials buys are ordinary spending
   transactions.filter(inCurrentMonth).forEach(tx=>{
-    if(tx.type==='expense'&&!tx.pocketId&&(tx.recurringId||tx.essentialId)){ if(planned[tx.categoryId]!==undefined) planned[tx.categoryId]+=tx.amount; }
+    if(tx.type==='expense'&&!tx.pocketId&&(tx.recurringId||(tx.essentialId&&!(paused&&inCycle(tx))))){ if(planned[tx.categoryId]!==undefined) planned[tx.categoryId]+=tx.amount; }
     else if(tx.type==='expense'&&!tx.pocketId){ monthlyNetExpense+=tx.amount; if(map[tx.categoryId]!==undefined) map[tx.categoryId]+=tx.amount; }
     else if(tx.type==='refund'){ if(map[tx.categoryId]!==undefined) map[tx.categoryId]=Math.max(0,map[tx.categoryId]-tx.amount); }
     else if(tx.type==='income'&&!tx.opening){ monthlyIncome+=tx.amount; }
@@ -731,7 +743,7 @@ function matchedEssential(){
 }
 /* A suggestion the user must confirm: whole-word match of an essential's name in the title. */
 function essentialSuggestion(){
-  if(logState.type!=='expense'||logState.essentialId) return null;
+  if(logState.type!=='expense'||logState.essentialId||essPaused()) return null;
   const q=logState.title.trim().toLowerCase(); if(q.length<3) return null;
   return essentials.find(e=>{ const n=e.name.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); return new RegExp('(^|[^a-z])'+n+'([^a-z]|$)').test(q); })||null;
 }
@@ -804,16 +816,16 @@ function renderDashboard(fin,ess){
   <div class="card" style="margin-top:16px">
     <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start">
       <div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><h3>🛒 Essentials Tracker</h3><span class="badge ok">Sisa: ${fmt(ess.totalEssentialsRemaining)}</span></div>
-      <p class="sub">Terpakai ${fmt(ess.totalEssentialsSpent)} dari ${fmt(ess.totalEssentialsBudget)} • ${ess.completedCount} dari ${ess.items.length} item terpenuhi. Ketuk item untuk langsung mencatat pembelian.</p></div>
+      <p class="sub">Terpakai ${fmt(ess.totalEssentialsSpent)} dari ${fmt(ess.totalEssentialsBudget)} • ${ess.completedCount} dari ${ess.activeCount} item terpenuhi. Ketuk item untuk langsung mencatat pembelian.</p></div>
       <button class="link-btn" onclick="goTab('essentials')">Buka tabel lengkap →</button>
     </div>
     <div class="bar" style="margin:14px 0"><i style="width:${pctEss}%"></i></div>
-    <div class="ess-grid">${ess.items.filter(i=>!i.isComplete).slice(0,6).map(item=>`
+    <div class="ess-grid">${ess.items.filter(i=>!i.isComplete&&!i.skipped).slice(0,6).map(item=>`
       <button class="ess-tile" onclick="openLoggerWithEssential('${item.id}')">
         <div class="t1"><span>Butuh ${item.remainingQty}x lagi</span><span>/ ${item.targetQty}</span></div>
         <h4>${esc(item.name)}</h4>
         <div class="t3">Sisa budget<strong>${fmt(item.remainingAmount)}</strong></div>
-      </button>`).join('') || (essentials.length? '<p style="font-size:13px;color:var(--muted)">Semua essentials bulan ini sudah terpenuhi 🎉</p>' : '<p style="font-size:13px;color:var(--muted)">Belum ada daftar Essentials. <button class="link-btn" onclick="goTab(&quot;settings&quot;)">Tambahkan di Pengaturan →</button></p>')}</div>
+      </button>`).join('') || (ess.paused? '<p style="font-size:13px;color:var(--muted)">Essentials dilewati periode ini — semua belanja dihitung sebagai pengeluaran biasa.</p>' : essentials.length? '<p style="font-size:13px;color:var(--muted)">Semua essentials bulan ini sudah terpenuhi 🎉</p>' : '<p style="font-size:13px;color:var(--muted)">Belum ada daftar Essentials. <button class="link-btn" onclick="goTab(&quot;settings&quot;)">Tambahkan di Pengaturan →</button></p>')}</div>
   </div>
 
   <div class="grid" style="grid-template-columns:1fr 1fr;margin-top:16px">
@@ -893,25 +905,28 @@ function goTab(t){ activeTab=t; render(); window.scrollTo({top:0,behavior:'smoot
 
 function renderEssentials(fin,ess){
   const pct= ess.totalEssentialsBudget? Math.round(ess.totalEssentialsSpent/ess.totalEssentialsBudget*100):0;
-  const filtered=ess.items.filter(i=> essentialsFilter==='remaining'? !i.isComplete : essentialsFilter==='completed'? i.isComplete : true);
+  const filtered=ess.items.filter(i=> essentialsFilter==='remaining'? !i.isComplete&&!i.skipped : essentialsFilter==='completed'? i.isComplete : true);
+  const open=ess.activeCount-ess.completedCount, cyc=cycleBounds(), period=`${cyc.prev.toLocaleDateString('id-ID',{day:'numeric',month:'short'})} – ${cyc.next.toLocaleDateString('id-ID',{day:'numeric',month:'short'})}`;
+  const qtyLabel=item=> item.targetQty!==item.defaultQty? `${item.targetQty}x <span style="font-size:10px;color:var(--muted);font-weight:500">(biasanya ${item.defaultQty}x)</span>` : `${item.targetQty}x`;
   document.getElementById('view-essentials').innerHTML=`
   <div class="stats4">
-    <div class="stat"><span>Total Budget Essentials</span><p>${fmt(ess.totalEssentialsBudget)}</p><small>${ess.items.length} item</small></div>
+    <div class="stat"><span>Total Budget Essentials</span><p>${fmt(ess.totalEssentialsBudget)}</p><small>${ess.activeCount} item periode ini</small></div>
     <div class="stat"><span>Sudah Terpakai</span><p>${fmt(ess.totalEssentialsSpent)}</p><small style="color:var(--emerald);font-weight:700">${pct}% terpenuhi</small></div>
     <div class="stat dark"><span style="color:#6ee7b7">Sisa Essentials</span><p>${fmt(ess.totalEssentialsRemaining)}</p><small>Budget yang masih dibutuhkan</small></div>
-    <div class="stat"><span>Item Selesai</span><p style="color:var(--emerald)">${ess.completedCount} / ${ess.items.length}</p><small>${ess.items.length-ess.completedCount} item masih dibutuhkan</small></div>
+    <div class="stat"><span>Item Selesai</span><p style="color:var(--emerald)">${ess.completedCount} / ${ess.activeCount}</p><small>${open} item masih dibutuhkan</small></div>
   </div>
   <div class="card" style="margin-top:16px">
+    ${essentials.length?`<div class="ess-plan${ess.paused?' paused':''}"><div style="min-width:0"><strong>${ess.paused?'Essentials dilewati periode ini':'Rencana periode ini'}</strong><div style="font-size:12px;color:var(--muted);margin-top:2px">${ess.paused?`Tidak ada yang disisihkan untuk Essentials (${period}). Semua belanja dihitung sebagai pengeluaran biasa. Otomatis aktif lagi saat gajian.`:`${period} · ketuk jumlah (mis. <strong>3x</strong>) untuk menyesuaikan kebutuhan periode ini. Isi 0 untuk melewati satu item.`}</div></div><button class="btn btn-sm ${ess.paused?'btn-dark':''}" onclick="toggleEssPause()">${ess.paused?'Aktifkan lagi':'Lewati periode ini'}</button></div>`:''}
     <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-bottom:14px;border-bottom:1px solid var(--border)">
       <div class="seg">
         <button class="${essentialsFilter==='all'?'active':''}" onclick="setEssFilter('all')">Semua Item</button>
-        <button class="${essentialsFilter==='remaining'?'active':''}" onclick="setEssFilter('remaining')">Masih Dibutuhkan (${ess.items.length-ess.completedCount})</button>
+        <button class="${essentialsFilter==='remaining'?'active':''}" onclick="setEssFilter('remaining')">Masih Dibutuhkan (${open})</button>
         <button class="${essentialsFilter==='completed'?'active':''}" onclick="setEssFilter('completed')">Selesai (${ess.completedCount})</button>
       </div>
       <p style="font-size:12px;color:var(--muted);margin:0;align-self:center">Klik <strong>+ Log Buy</strong> di baris mana pun, atau tombol <strong>Quick Log</strong>.</p>
     </div>
     <div style="overflow-x:auto"><table class="ess-table"><thead><tr><th>Item</th><th class="num">Harga / Unit</th><th class="center">Target</th><th class="num">Total Rencana</th><th class="center">Sudah Dibeli</th><th class="num">Sisa</th><th class="num">Aksi</th></tr></thead>
-    <tbody>${filtered.map(item=>{ const cat=catById(item.categoryId); return `<tr class="${item.isComplete?'done':''}"><td class="c-item"><div style="display:flex;gap:10px;align-items:center"><span class="cat-ico">${item.isComplete?'✓':''}<i data-lucide="${cat?cat.icon:'shopping-bag'}"></i></span><div><strong style="${item.isComplete?'text-decoration:line-through;color:var(--muted)':''}">${esc(item.name)}</strong><div style="font-size:10px;color:var(--muted)">${cat?cat.name:''}</div><div class="ess-meta" style="font-size:12px;color:var(--muted);margin-top:2px">${fmt(item.unitPrice)} × ${item.targetQty} = <strong style="color:var(--text)">${fmt(item.totalPlanned)}</strong></div></div></div></td><td class="num c-price">${fmt(item.unitPrice)}</td><td class="center c-qty"><strong>${item.targetQty}x</strong></td><td class="num c-total"><strong>${fmt(item.totalPlanned)}</strong></td><td class="center c-bought"><span class="badge ${item.boughtQty>0?'ok':''}" style="${item.boughtQty===0?'background:var(--surface2);color:var(--muted);border-color:var(--border)':''}">${item.boughtQty} / ${item.targetQty}</span></td><td class="num c-left">${item.isComplete?'<span style="color:var(--emerald);font-weight:800">✓ Terpenuhi</span>':`<strong style="color:var(--amber-text)">${fmt(item.remainingAmount)}</strong><div style="font-size:11px;color:var(--muted)">kurang ${item.remainingQty}x lagi</div>`}</td><td class="num c-act"><button class="btn ${item.isComplete?'':'btn-dark'} btn-sm" onclick="openLoggerWithEssential('${item.id}')">${item.isComplete?'+ Beli Extra':'+ Log Buy'}</button></td></tr>`;}).join('')}</tbody></table></div>
+    <tbody>${filtered.map(item=>{ const cat=catById(item.categoryId); return `<tr class="${item.isComplete?'done':''}" style="${item.skipped?'opacity:.6':''}"><td class="c-item"><div style="display:flex;gap:10px;align-items:center"><span class="cat-ico">${item.isComplete?'✓':''}<i data-lucide="${cat?cat.icon:'shopping-bag'}"></i></span><div><strong style="${item.isComplete?'text-decoration:line-through;color:var(--muted)':''}">${esc(item.name)}</strong><div style="font-size:10px;color:var(--muted)">${cat?cat.name:''}</div><div class="ess-meta" style="font-size:12px;color:var(--muted);margin-top:2px">${fmt(item.unitPrice)} × ${ess.paused?item.defaultQty:`<button class="qty-btn" onclick="openEssQty('${item.id}')">${qtyLabel(item)}</button>`}${item.skipped?'':` = <strong style="color:var(--text)">${fmt(item.totalPlanned)}</strong>`}</div></div></div></td><td class="num c-price">${fmt(item.unitPrice)}</td><td class="center c-qty">${ess.paused?`<span style="color:var(--muted)">${item.defaultQty}x</span>`:`<button class="qty-btn" title="Ubah jumlah untuk periode ini" onclick="openEssQty('${item.id}')">${qtyLabel(item)}</button>`}</td><td class="num c-total"><strong>${fmt(item.totalPlanned)}</strong></td><td class="center c-bought">${item.skipped?'<span style="color:var(--muted)">—</span>':`<span class="badge ${item.boughtQty>0?'ok':''}" style="${item.boughtQty===0?'background:var(--surface2);color:var(--muted);border-color:var(--border)':''}">${item.boughtQty} / ${item.targetQty}</span>`}</td><td class="num c-left">${item.skipped?`<span style="color:var(--muted);font-weight:700">Dilewati</span>${item.spentAmount?`<div style="font-size:11px;color:var(--muted)">dibeli ${fmt(item.spentAmount)}</div>`:''}`:item.isComplete?'<span style="color:var(--emerald);font-weight:800">✓ Terpenuhi</span>':`<strong style="color:var(--amber-text)">${fmt(item.remainingAmount)}</strong><div style="font-size:11px;color:var(--muted)">kurang ${item.remainingQty}x lagi</div>`}</td><td class="num c-act"><button class="btn ${item.isComplete?'':'btn-dark'} btn-sm" onclick="openLoggerWithEssential('${item.id}')">${item.isComplete?'+ Beli Extra':'+ Log Buy'}</button></td></tr>`;}).join('')}</tbody></table></div>
     ${filtered.length===0?'<p style="text-align:center;color:var(--muted);font-size:13px;padding:20px">Tidak ada item di filter ini.</p>':''}
   </div>
 
@@ -1641,7 +1656,7 @@ function deleteBill(id){
 function openEssentialForm(id){
   const e=essentials.find(x=>x.id===id)||{name:'',unitPrice:0,targetQty:1,categoryId:'cat_food'};
   const body=`<div class="field"><label for="feName">Nama item</label><input id="feName" type="text" value="${esc(e.name)}" placeholder="cth. Telur, Beras, Sabun"></div>
-  <div class="form2"><div class="field"><label for="fePrice">Harga per beli (Rp)</label>${amtInput('fePrice',e.unitPrice)}</div><div class="field"><label for="feQty">Berapa kali / bulan</label><input id="feQty" type="number" min="1" max="99" value="${e.targetQty}"></div></div>
+  <div class="form2"><div class="field"><label for="fePrice">Harga per beli (Rp)</label>${amtInput('fePrice',e.unitPrice)}</div><div class="field"><label for="feQty">Default berapa kali / bulan</label><input id="feQty" type="number" min="1" max="99" value="${e.targetQty}"></div></div>
   <div class="field"><label for="feCat">Kategori</label>${catSelect('feCat',e.categoryId)}</div>`;
   modalShell(id?'Ubah Item Essentials':'Tambah Item Essentials', body, `<button class="btn btn-emerald" style="width:100%;padding:12px" onclick="saveEssential('${id||''}')">Simpan</button>`);
   document.getElementById('feName').focus();
@@ -1653,6 +1668,28 @@ function saveEssential(id){
   if(id) essentials=essentials.map(e=> e.id===id? {...e,...data}:e);
   else essentials=[...essentials,{id:newId('ess'),...data}];
   settingsSaved(id?`"${name}" diperbarui.`:`"${name}" ditambahkan ke Essentials.`,snap);
+}
+function setEssPlan(next){ const p=essPlan(); settings={...settings,essPlan:{cycle:p.cycle,skip:p.skip,qty:p.qty,...next}}; }
+function toggleEssPause(){
+  const snap=snapshot(), on=!essPaused(); setEssPlan({skip:on}); render();
+  toastUndo(on?'Essentials dilewati periode ini — anggarannya dilepas ke Safe-to-Spend.':'Essentials aktif lagi untuk periode ini.',snap);
+}
+function openEssQty(id){
+  const e=essentials.find(x=>x.id===id); if(!e) return;
+  const cur=planQtyOf(e);
+  modalShell('Kebutuhan periode ini', `<p class="rc-help" style="margin:0 0 12px"><b>${esc(e.name)}</b> — biasanya ${e.targetQty}x × ${fmt(e.unitPrice)}. Ubah hanya untuk periode gajian ini; periode berikutnya kembali ke ${e.targetQty}x. Isi 0 untuk melewati item ini.</p>
+  <div class="field"><label for="eqQty">Berapa kali periode ini</label><input id="eqQty" type="number" inputmode="numeric" min="0" max="99" value="${cur}"></div>`,
+  `<div style="display:flex;gap:8px">${cur!==e.targetQty?`<button class="btn" style="flex:1;padding:12px" onclick="saveEssQty('${id}',true)">Kembali ke ${e.targetQty}x</button>`:''}<button class="btn btn-emerald" style="flex:1;padding:12px" onclick="saveEssQty('${id}')">Simpan</button></div>`);
+  const el=document.getElementById('eqQty'); el.focus(); el.select();
+}
+function saveEssQty(id,reset){
+  const e=essentials.find(x=>x.id===id); if(!e) return;
+  const raw=parseInt(fv('eqQty'),10);
+  if(!reset&&(!Number.isInteger(raw)||raw<0)){ toast('Isi angka 0 atau lebih.'); return; }
+  const q=reset? e.targetQty : Math.min(99,raw), snap=snapshot(), qty={...essPlan().qty};
+  if(q===e.targetQty) delete qty[id]; else qty[id]=q;
+  setEssPlan({qty});
+  settingsSaved(q===0?`"${e.name}" dilewati periode ini.`:q===e.targetQty?`"${e.name}" kembali ke ${q}x.`:`"${e.name}" periode ini: ${q}x (biasanya ${e.targetQty}x).`,snap);
 }
 function deleteEssential(id){
   const e=essentials.find(x=>x.id===id); if(!e) return;

@@ -240,6 +240,7 @@ select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);backg
 .tag{font-size:12px;font-weight:600;padding:2px 7px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--muted)}
 .icon-btn{border:0;background:transparent;color:var(--muted2);padding:6px;border-radius:8px}
 .icon-btn:hover{color:var(--rose);background:color-mix(in srgb, var(--rose) 12%, transparent)}
+.icon-btn.edit:hover{color:var(--indigo);background:color-mix(in srgb, var(--indigo) 12%, transparent)}
 .head-log{display:flex;align-items:center;gap:4px;white-space:nowrap}
 .head-log svg{width:16px;height:16px;stroke-width:2.5}
 .fab{position:fixed;right:18px;bottom:20px;z-index:40;display:flex;align-items:center;gap:6px;background:#059669;color:#fff;border:0;padding:12px 20px 12px 16px;border-radius:999px;font-weight:700;font-size:15px;line-height:1;box-shadow:0 8px 20px rgba(5,150,105,.3)}
@@ -1161,7 +1162,7 @@ function renderActivity(){
     ${(searchQuery||filterType!=='all'||filterCategory!=='all'||txPeriod.kind!=='all')?`<button class="btn" onclick="clearFilters()">✕ Reset filter</button>`:''}
   </div><div style="margin-top:10px">${periodPicker('txPeriod',txPeriod,true)}</div>
   <p style="font-size:12px;color:var(--muted);margin:10px 0 0">Menampilkan ${shown.length} dari ${transactions.length} transaksi${txPeriod.kind!=='all'||shown.length?` • keluar <strong style="color:var(--text)">${fmt(out)}</strong> • masuk <strong style="color:var(--emerald)">${fmt(inc)}</strong>`:''}</p></div>
-  <div>${groups.length===0?`<div class="card" style="text-align:center;padding:36px"><p style="font-weight:700;margin:0">Tidak ada transaksi yang cocok</p><p style="font-size:13px;color:var(--muted)">Coba ubah kata kunci atau reset filter di atas.</p><button class="btn btn-dark" onclick="clearFilters()">Reset filter</button></div>`: groups.map(g=>`<div class="tx-group"><div class="tx-group-head"><strong>${esc(fmtDate(g.date))}</strong><span>Net harian: <strong style="color:${g.net>=0?'var(--emerald)':'inherit'}">${fmt(g.net,true)}</strong></span></div>${g.items.map(tx=>{ const cat=catById(tx.categoryId), acc=accById(tx.accountId), pock=pockById(tx.pocketId); const isIn=tx.type==='income'||tx.type==='refund'; return `<div class="tx-row"><div style="display:flex;gap:12px;align-items:center;min-width:0"><span class="tx-ico ${isIn?'green':tx.type==='transfer'?'indigo':cat&&cat.tone?'tint':''}"${!isIn&&tx.type!=='transfer'?catTone(cat):''}><i data-lucide="${tx.type==='transfer'?'arrow-right-left':tx.type==='refund'?'rotate-ccw':(cat?cat.icon:'wallet')}"></i></span><div style="min-width:0"><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><strong style="font-size:14px">${esc(tx.title)}</strong>${tx.tag?`<span class="tag">${esc(tx.tag)}</span>`:''}</div><div style="font-size:12px;color:var(--muted);margin-top:2px">${acc?esc(acc.name):''}${tx.type==='transfer'&&accById(tx.toAccountId)?' → '+esc(accById(tx.toAccountId).name):''}${cat?' • '+cat.name:''}${pock?(tx.type==='transfer'?' → Pocket ':' • Pocket: ')+esc(pock.name):''}</div></div></div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0"><strong style="font-size:14px;color:${isIn?'var(--emerald)':tx.type==='transfer'?'var(--indigo)':'inherit'}">${isIn?'+'+fmt(tx.amount): tx.type==='transfer'?fmt(tx.amount):'-'+fmt(tx.amount)}</strong><button class="icon-btn" title="Hapus entri ini (saldo akan dikembalikan)" aria-label="Hapus ${esc(tx.title)}" onclick="deleteTx('${tx.id}')">🗑</button></div></div>`;}).join('')}</div>`).join('')}</div>
+  <div>${groups.length===0?`<div class="card" style="text-align:center;padding:36px"><p style="font-weight:700;margin:0">Tidak ada transaksi yang cocok</p><p style="font-size:13px;color:var(--muted)">Coba ubah kata kunci atau reset filter di atas.</p><button class="btn btn-dark" onclick="clearFilters()">Reset filter</button></div>`: groups.map(g=>`<div class="tx-group"><div class="tx-group-head"><strong>${esc(fmtDate(g.date))}</strong><span>Net harian: <strong style="color:${g.net>=0?'var(--emerald)':'inherit'}">${fmt(g.net,true)}</strong></span></div>${g.items.map(tx=>{ const cat=catById(tx.categoryId), acc=accById(tx.accountId), pock=pockById(tx.pocketId); const isIn=tx.type==='income'||tx.type==='refund'; return `<div class="tx-row"><div style="display:flex;gap:12px;align-items:center;min-width:0"><span class="tx-ico ${isIn?'green':tx.type==='transfer'?'indigo':cat&&cat.tone?'tint':''}"${!isIn&&tx.type!=='transfer'?catTone(cat):''}><i data-lucide="${tx.type==='transfer'?'arrow-right-left':tx.type==='refund'?'rotate-ccw':(cat?cat.icon:'wallet')}"></i></span><div style="min-width:0"><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><strong style="font-size:14px">${esc(tx.title)}</strong>${tx.tag?`<span class="tag">${esc(tx.tag)}</span>`:''}</div><div style="font-size:12px;color:var(--muted);margin-top:2px">${acc?esc(acc.name):''}${tx.type==='transfer'&&accById(tx.toAccountId)?' → '+esc(accById(tx.toAccountId).name):''}${cat?' • '+cat.name:''}${pock?(tx.type==='transfer'?' → Pocket ':' • Pocket: ')+esc(pock.name):''}</div></div></div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0"><strong style="font-size:14px;color:${isIn?'var(--emerald)':tx.type==='transfer'?'var(--indigo)':'inherit'}">${isIn?'+'+fmt(tx.amount): tx.type==='transfer'?fmt(tx.amount):'-'+fmt(tx.amount)}</strong><button class="icon-btn edit" title="Ubah entri ini" aria-label="Ubah ${esc(tx.title)}" onclick="${tx.opening?'openOpeningBalance()':`openTxEdit('${tx.id}')`}">✎</button><button class="icon-btn" title="Hapus entri ini (saldo akan dikembalikan)" aria-label="Hapus ${esc(tx.title)}" onclick="deleteTx('${tx.id}')">🗑</button></div></div>`;}).join('')}</div>`).join('')}</div>
   <div class="card" style="padding:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><p style="margin:0;font-size:13px;color:var(--muted)">Data tersinkron otomatis ke akunmu dan tersimpan juga di perangkat ini. Ekspor cadangan sesekali untuk arsip pribadi.</p><div style="display:flex;gap:8px"><button class="btn btn-sm" onclick="exportData()">Ekspor cadangan</button><label class="btn btn-sm" style="cursor:pointer">Impor cadangan<input type="file" accept="application/json,.json" class="hidden" onchange="importData(this.files[0]);this.value=''"></label></div></div>`;
   const si=document.getElementById('searchInput'); if(si && document.activeElement!==si){ /* keep focus handling simple */ }
 }
@@ -2005,6 +2006,44 @@ function deleteTx(id){
   reverseTx(tx);
   transactions=transactions.filter(t=>t.id!==id);
   render(); toastUndo(`Entri "${tx.title}" dihapus — saldo terkait dikembalikan.`,snap);
+}
+/* Edit a Riwayat entry: undo its old effect (reverseTx), then apply the edited copy (applyTx).
+   Transfers keep their route — only amount, title, date and tag change; to change the route, delete and log it again. */
+function openTxEdit(id){
+  const tx=transactions.find(t=>t.id===id); if(!tx) return;
+  const isTf=tx.type==='transfer', fixedAmt=Array.isArray(tx.creditPayoff);
+  const cats=categories.filter(c=> tx.type==='income'? c.type==='income'&&c.id!=='cat_opening' : c.type==='expense');
+  const body=`
+    <div class="field"><label for="teAmt">Nominal (Rp)</label>${fixedAmt? `<div style="font-weight:700">${fmt(tx.amount)}</div><p class="rc-help" style="margin:4px 0 0">Nominal pelunasan kartu tidak bisa diubah — hapus lalu catat ulang bila perlu.</p>` : amtInput('teAmt',tx.amount).replace('<input','<input class="big"')}</div>
+    <div class="field"><label for="teTitle">Judul / Catatan</label><input id="teTitle" type="text" value="${esc(tx.title)}"></div>
+    <div class="field"><label for="teDate">Tanggal</label><input id="teDate" type="date" value="${esc(tx.date)}" max="${todayISO()}"></div>
+    ${isTf?'':`<div class="field"><label for="teCat">Kategori</label><select id="teCat">${cats.map(c=>`<option value="${c.id}" ${tx.categoryId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>
+    <div class="field"><label for="teAcc">Rekening</label><select id="teAcc">${accounts.map(a=>`<option value="${a.id}" ${tx.accountId===a.id?'selected':''}>${esc(a.name)} — ${fmt(a.balance)}</option>`).join('')}</select></div>`}
+    <div class="field"><label for="teTag">Tag (opsional)</label><input id="teTag" type="text" value="${esc(tx.tag||'')}"></div>
+    <p style="font-size:12px;color:var(--muted);line-height:1.5;margin:0">${isTf?'Rute transfer (dari/ke) tetap. Untuk mengubahnya, hapus entri ini lalu catat ulang.':'Saldo rekening, pocket, dan tagihan terkait ikut disesuaikan.'}</p>`;
+  modalShell('Ubah transaksi', body, `<button class="btn btn-emerald" style="width:100%;padding:13px;font-size:15px" onclick="saveTxEdit('${tx.id}')">Simpan perubahan</button>`);
+}
+function saveTxEdit(id){
+  const tx=transactions.find(t=>t.id===id); if(!tx) return;
+  const isTf=tx.type==='transfer', amt= Array.isArray(tx.creditPayoff)? tx.amount : amtVal('teAmt');
+  if(amt<=0){ toast('Masukkan nominal lebih dari nol dulu ya.'); return; }
+  const raw=fv('teDate'), date=/^\d{4}-\d{2}-\d{2}$/.test(raw)? raw : tx.date;
+  if(date>todayISO()){ toast('Tanggal tidak boleh di masa depan.'); return; }
+  const accountId= isTf? tx.accountId : fv('teAcc');
+  if(!accById(accountId)){ toast('Pilih rekening dulu.'); return; }
+  const p= isTf&&tx.pocketId? pockById(tx.pocketId) : null;
+  if(p&&amt!==tx.amount){
+    if(tx.fromPocket&&amt>p.currentAmount+tx.amount){ toast(`Saldo ${p.name} hanya ${fmt(p.currentAmount+tx.amount)}.`); return; }
+    if(!tx.fromPocket&&p.currentAmount<tx.amount){ toast(`${p.name} tinggal ${fmt(p.currentAmount)} — sebagian dana ini sudah dipakai, jadi nominalnya tidak bisa diubah.`); return; }
+  }
+  const edited={...tx,amount:amt,date,accountId,title:fv('teTitle').trim()||tx.title,tag:fv('teTag').trim(),
+    ...(isTf? {} : {categoryId:fv('teCat')}),
+    ...(Array.isArray(tx.moves)? {moves:tx.moves.map(m=>({...m,amount:Math.sign(m.amount)*amt}))} : {})};
+  const snap=snapshot();
+  // A transfer into a pocket that was partly spent can't be reversed cleanly; when its amount is unchanged, don't touch balances.
+  if(!isTf||amt!==tx.amount){ reverseTx(tx); applyTx(edited); }
+  transactions=transactions.map(t=> t.id===id? edited : t).sort((a,b)=>b.date.localeCompare(a.date));
+  closeModal(); render(); toastUndo(`Entri "${edited.title}" diperbarui.`,snap,true);
 }
 
 /* Nav wiring */

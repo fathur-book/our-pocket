@@ -87,22 +87,38 @@ main{max-width:1440px;margin:0 auto;padding:20px 24px 8px}
 .hero-head .btn-ghost-light{white-space:nowrap}
 @media(prefers-color-scheme:dark){.hero{border-color:var(--dark-border)}}
 .hero .label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8;font-weight:700}
-.hero .big{font-size:clamp(32px,5vw,56px);font-weight:800;letter-spacing:-.03em;margin:4px 0 0;line-height:1.05}
+.hero .big{font-size:clamp(40px,7vw,76px);font-weight:800;letter-spacing:-.04em;margin:12px 0 0;line-height:.95;font-variant-numeric:tabular-nums}
+.hero .big .cur{font-size:.4em;font-weight:700;letter-spacing:0;color:#94a3b8;margin-right:.2em;vertical-align:.7em}
 .btn-ghost-light{background:#ffffff1a;color:#e2e8f0;border:1px solid #ffffff22;padding:6px 10px;border-radius:9px;font-size:11px;font-weight:600}
 .hero{container-type:inline-size}
-.breakdown{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-top:12px}
-/* Pay-cycle progress; margin-top:auto pins it and the breakdown to the bottom when the card stretches to the spending column. */
-.cycle{margin-top:auto;padding-top:20px}
-.cycle-head,.cycle-ends{display:flex;justify-content:space-between;gap:8px;font-size:12px;font-weight:600;color:#94a3b8}
-.cycle-head strong{color:#e2e8f0}
-.cycle-bar{height:8px;margin:8px 0 6px;border-radius:999px;background:#ffffff14;overflow:hidden}
-.cycle-bar>i{display:block;height:100%;border-radius:inherit;background:#34d399}
-.cycle-ends{font-size:11px;font-weight:500}
-.breakdown>*{background:#ffffff0f;border:1px solid var(--dark-border);border-radius:12px;padding:10px;min-width:0;text-align:left;width:100%;color:#fff}
-.breakdown button{cursor:pointer}
-.breakdown span{display:block;font-size:11px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.breakdown strong{display:block;margin-top:3px;font-size:clamp(11px,2.1cqi,13px);white-space:nowrap}
-@container (max-width:560px){.breakdown{grid-template-columns:repeat(2,minmax(0,1fr))}.breakdown>:first-child{grid-column:1/-1}}
+/* Safe-to-Spend card: a pace line, a payday runway (time) and one allocation bar (money). */
+.pace{margin:14px 0 0;font-size:15px;color:#cbd5e1}
+.pace strong{color:#fff;font-variant-numeric:tabular-nums}
+.runway{margin-top:20px}
+.runway-row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:#94a3b8}
+.runway-row strong{color:#e2e8f0}
+.runway-track{position:relative;height:6px;margin:10px 7px 8px;border-radius:999px;background:#ffffff14}
+.runway-track>i{position:absolute;left:0;top:0;bottom:0;border-radius:inherit;background:#ffffff3d}
+.runway-track>b{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:#fff;border:3px solid var(--dark)}
+/* margin-top:auto pins the allocation to the bottom when the card stretches to the spending column. */
+.alloc{margin-top:auto;padding-top:26px}
+.alloc-cap{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:12px;color:#94a3b8}
+.alloc-cap strong{color:#fff;font-variant-numeric:tabular-nums}
+.alloc-cap .short{color:#fda4af}
+.alloc-bar{position:relative;display:flex;gap:2px;height:18px;margin:10px 0 12px;border-radius:8px;overflow:hidden;background:#ffffff0f}
+.alloc-bar>i{display:block;min-width:3px}
+.alloc-bar>u{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:#fff}
+/* Solid = money already moved; striped = set aside for bills / Essentials not paid yet. */
+.sw-safe{background:#34d399}.sw-spent{background:#94a3b8}.sw-saved{background:#059669}
+.sw-bills{background:repeating-linear-gradient(135deg,#fcd34d 0 4px,#fcd34d80 4px 7px)}
+.sw-ess{background:repeating-linear-gradient(135deg,#f59e0b 0 4px,#f59e0b80 4px 7px)}
+.sw-prev{background:repeating-linear-gradient(135deg,#e11d48 0 4px,#e11d4880 4px 7px)}
+.alloc-legend{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));column-gap:20px}
+.alloc-legend>*{display:flex;align-items:center;gap:8px;width:100%;min-width:0;padding:8px 0;background:none;border:0;border-top:1px solid #ffffff14;color:#cbd5e1;font:inherit;font-size:12px;text-align:left}
+.alloc-legend button:hover{color:#fff}
+.alloc-legend .sw{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.alloc-legend .lb{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.alloc-legend strong{color:#fff;white-space:nowrap;font-variant-numeric:tabular-nums}
 .formula{margin-top:12px;background:#ffffff0f;border:1px solid var(--dark-border);border-radius:14px;padding:12px;font-size:12px;line-height:1.6;color:#cbd5e1}
 .bar{height:10px;background:var(--surface2);border:1px solid var(--border);border-radius:999px;overflow:hidden}
 .bar>i{display:block;height:100%;border-radius:999px;background:var(--emerald);transition:width .4s}
@@ -113,14 +129,24 @@ main{max-width:1440px;margin:0 auto;padding:20px 24px 8px}
 .badge{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid}
 .badge.ok{background:var(--emerald-bg);color:var(--emerald-text);border-color:var(--emerald-border)}
 .badge.warn{background:var(--amber-bg);color:var(--amber-text);border-color:var(--amber-border)}
-.ess-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
-.ess-tile{border:1px solid var(--border);background:var(--surface2);border-radius:14px;padding:12px;text-align:left;width:100%;transition:.15s}
-.ess-tile:hover{background:var(--dark);color:#fff;border-color:var(--dark)}
-.ess-tile:hover .t1{color:#6ee7b7}.ess-tile:hover .t3{color:#94a3b8;border-color:#334155}
-.ess-tile .t1{font-size:10px;font-weight:800;color:var(--emerald);display:flex;justify-content:space-between}
-.ess-tile h4{margin:5px 0 0;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ess-tile .t3{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:10px;color:var(--muted)}
-.ess-tile .t3 strong{display:block;font-size:12px;color:inherit}
+/* Essentials on Ringkasan: a shopping list; dots = units bought / planned this pay period. */
+.shop-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px 24px;flex-wrap:wrap}
+.shop-left{text-align:right}
+.shop-left .amt{font-size:32px;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--amber-text);font-variant-numeric:tabular-nums}
+.shop-left .sub{margin-top:4px}
+.shop{display:grid;grid-template-columns:1fr 1fr;column-gap:32px;margin-top:14px}
+.shop-row{display:flex;align-items:center;gap:12px;width:100%;min-width:0;padding:12px 6px;border:0;border-top:1px solid var(--border);background:none;color:var(--text);font:inherit;text-align:left}
+.shop-row:hover{background:var(--surface2)}
+.shop-row .nm{flex:1;min-width:0}
+.shop-row .n{display:block;font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.shop-row .mt{display:flex;align-items:center;gap:8px;margin-top:5px;font-size:11px;color:var(--muted)}
+.shop-row .left{font-size:14px;font-weight:800;color:var(--amber-text);white-space:nowrap;font-variant-numeric:tabular-nums}
+.shop-row.done .n{color:var(--muted);text-decoration:line-through}
+.shop-row.done .left{color:var(--emerald);font-size:12px}
+.pips{display:flex;flex-wrap:wrap;gap:3px}
+.pip{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--muted2)}
+.pip.on{background:var(--emerald);border-color:var(--emerald)}
+@media(max-width:760px){.shop{grid-template-columns:1fr}.shop-left{text-align:left}}
 .cat-row{margin-bottom:16px}.cat-row:last-child{margin-bottom:0}
 .cat-head{display:flex;justify-content:space-between;align-items:center;font-size:12px;gap:8px}
 .cat-name{display:flex;align-items:center;gap:8px;font-weight:700}
@@ -268,8 +294,8 @@ select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);backg
 .ess-suggest{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;background:var(--surface2);border:1px dashed var(--border2);border-radius:14px;padding:10px 12px;margin-bottom:14px;font-size:12px}
 .toast{position:fixed;top:14px;right:14px;z-index:60;background:var(--dark);color:#fff;padding:12px 16px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.3);font-size:13px;font-weight:600;display:flex;gap:8px;align-items:center;max-width:min(92vw,460px);border:1px solid var(--dark-border)}
 .hidden{display:none!important}
-@media(max-width:900px){.ess-grid{grid-template-columns:repeat(3,1fr)}.stats4{grid-template-columns:1fr 1fr}.pocket-grid{grid-template-columns:1fr}.grid{grid-template-columns:1fr !important}.grid>*{grid-column:auto !important}}
-@media(max-width:560px){.ess-grid{grid-template-columns:1fr 1fr}nav.tabs{order:3;width:100%}nav.tabs button{flex:1;justify-content:center}}
+@media(max-width:900px){.stats4{grid-template-columns:1fr 1fr}.pocket-grid{grid-template-columns:1fr}.grid{grid-template-columns:1fr !important}.grid>*{grid-column:auto !important}}
+@media(max-width:560px){nav.tabs{order:3;width:100%}nav.tabs button{flex:1;justify-content:center}}
 /* Essentials table → one compact card per item on phones: name + action on top, progress + remaining below. */
 .ess-meta{display:none}
 .period{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
@@ -870,28 +896,45 @@ function render(){
   saveState();
 }
 
+/* Where this pay period's money is: one bar, scaled to whichever is larger — the money in, or what it is committed to. */
+function safeAlloc(fin){
+  const inSaved=Math.max(0,-fin.cycleSaved), avail=Math.max(0,fin.carryOver)+fin.cycleIncome+inSaved;
+  const segs=[
+    {k:'spent',l:'Sudah keluar',v:fin.cycleSpending,go:'activity',t:'Semua pengeluaran periode ini (termasuk kartu kredit)'},
+    {k:'saved',l:'Ditabung',v:Math.max(0,fin.cycleSaved),go:'pockets',t:'Dipindah ke pocket tabungan periode ini'},
+    {k:'bills',l:'Tagihan belum dibayar',v:fin.billsReserved,go:'essentials',t:'Tagihan periode ini yang belum dibayar (perkiraan)'},
+    {k:'ess',l:'Essentials belum dibeli',v:fin.essentialsReserved,go:'essentials',t:'Essentials yang belum dibeli (harga perkiraan)'},
+    {k:'prev',l:'Minus periode lalu',v:Math.max(0,-fin.carryOver),t:'Kekurangan dari periode gajian sebelumnya'},
+    {k:'safe',l:'Aman dibelanjakan',v:Math.max(0,fin.safeToSpend),t:'Safe-to-Spend'}].filter(x=>x.v>0);
+  const scale=Math.max(avail,segs.reduce((t,x)=>t+x.v,0)); if(!scale) return '';
+  const src=[fin.carryOver>0?`sisa ${fmt(fin.carryOver)}`:'',inSaved?`${fmt(inSaved)} dari tabungan`:''].filter(Boolean).join(' + ');
+  return `<div class="alloc"><div class="alloc-cap"><span>Dana periode ini <strong>${fmt(avail)}</strong>${src?` (termasuk ${src})`:''}</span>${fin.safeToSpend<0?`<span class="short">Kurang <strong style="color:inherit">${fmt(-fin.safeToSpend)}</strong></span>`:''}</div>
+    <div class="alloc-bar" role="img" aria-label="${segs.map(x=>`${x.l} ${fmt(x.v)}`).join(', ')}">${segs.map(x=>`<i class="sw-${x.k}" style="flex:${x.v} 1 0"></i>`).join('')}${fin.safeToSpend<0&&avail?`<u style="left:${(avail/scale*100).toFixed(1)}%" title="Batas dana periode ini"></u>`:''}</div>
+    <div class="alloc-legend">${segs.map(x=>{ const inner=`<span class="sw sw-${x.k}"></span><span class="lb">${x.l}</span><strong>${fmt(x.v)}</strong>`; return x.go? `<button title="${x.t}" onclick="goTab('${x.go}')">${inner}</button>` : `<div title="${x.t}">${inner}</div>`; }).join('')}</div></div>`;
+}
+/* Essentials as a shopping list: open items first, each with one dot per planned unit (filled = bought). */
+function essShopList(ess){
+  const rows=ess.items.filter(i=>!i.skipped).sort((a,b)=>a.isComplete-b.isComplete), shown=rows.slice(0,10);
+  const got=i=>Math.min(i.boughtQty,i.targetQty);
+  const pips=i=> i.targetQty<=12? `<span class="pips" aria-hidden="true">${Array.from({length:i.targetQty},(_,k)=>`<i class="pip${k<got(i)?' on':''}"></i>`).join('')}</span>` : '';
+  return `<div class="shop">${shown.map(i=>`<button class="shop-row${i.isComplete?' done':''}" onclick="openLoggerWithEssential('${i.id}')" aria-label="${esc(i.name)}: ${got(i)} dari ${i.targetQty} dibeli. Catat pembelian">
+      <span class="nm"><span class="n">${esc(i.name)}</span><span class="mt">${pips(i)}<span>${got(i)}/${i.targetQty} · ${fmt(i.unitPrice)}</span></span></span>
+      <span class="left">${i.isComplete?'Terpenuhi':fmt(i.remainingAmount)}</span></button>`).join('')}</div>
+    ${rows.length>shown.length?`<button class="link-btn" style="margin-top:12px" onclick="goTab('essentials')">+${rows.length-shown.length} item lagi →</button>`:''}`;
+}
 function renderDashboard(fin,ess){
-  const pctEss= ess.totalEssentialsBudget? Math.round(ess.totalEssentialsSpent/ess.totalEssentialsBudget*100):0;
   document.getElementById('view-dashboard').innerHTML=`
   <div class="grid" style="grid-template-columns:repeat(12,1fr)">
     <div class="hero" style="grid-column:span 7">
       <div class="hero-head">
-        <p class="label" style="margin:6px 0 0">Safe-to-Spend saat ini</p>
+        <p class="label" style="margin:6px 0 0">Safe-to-Spend sampai gajian</p>
         <button class="btn-ghost-light" onclick="toggleFormula()">${showFormula?'Sembunyikan rumus':'Cara menghitungnya?'}</button>
       </div>
-      <div class="big" style="${fin.safeToSpend<0?'color:#fcd34d':''}">${fmt(fin.safeToSpend)}</div>
-      <p style="font-size:13px;color:#e2e8f0;margin:6px 0 0;font-weight:700">${fin.safeToSpend>0?`≈ ${fmt(fin.perDay)} per hari sampai gajian`: (fin.cycleIncome+fin.carryOver<=0&&!openingTx()? `Belum ada pemasukan tercatat. <button class="btn-ghost-light" onclick="openOpeningBalance()">Catat saldo awal</button>` : 'Rencana belanja melebihi pemasukan periode ini.')}</p>
-      <p style="font-size:12px;color:#94a3b8;margin:6px 0 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span>Gajian berikutnya: <strong style="color:#e2e8f0">${fin.nextPayday.toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short'})}</strong> · ${fin.daysToPayday} hari lagi</span><button class="btn-ghost-light" onclick="openPaydayModal()">Ubah tanggal gajian</button></p>
-      ${(()=>{ const t=today(), t0=new Date(t.getFullYear(),t.getMonth(),t.getDate()), total=Math.max(1,Math.round((fin.nextPayday-fin.cycleStart)/86400000)), day=Math.min(total,Math.max(1,Math.round((t0-fin.cycleStart)/86400000)+1)), short=d=>d.toLocaleDateString('id-ID',{day:'numeric',month:'short'});
-        return `<div class="cycle"><div class="cycle-head"><span>Periode gajian</span><span>Hari ke-<strong>${day}</strong> dari ${total}</span></div><div class="cycle-bar" role="progressbar" aria-label="Periode gajian berjalan" aria-valuemin="1" aria-valuemax="${total}" aria-valuenow="${day}"><i style="width:${Math.round(day/total*100)}%"></i></div><div class="cycle-ends"><span>${short(fin.cycleStart)}</span><span>Gajian ${short(fin.nextPayday)}</span></div></div>`; })()}
-      <div class="breakdown">
-        ${fin.carryOver?`<div title="Sisa dari periode gajian sebelumnya"><span>Sisa sebelumnya</span><strong>${fmt(fin.carryOver)}</strong></div>`:''}
-        <button title="Pemasukan sejak gajian terakhir" onclick="goTab('activity')"><span style="color:#6ee7b7">+ Pemasukan</span><strong style="color:#34d399">${fmt(fin.cycleIncome)}</strong></button>
-        <button title="Semua pengeluaran periode ini (termasuk kartu kredit)" onclick="goTab('activity')"><span>− Pengeluaran</span><strong>${fmt(fin.cycleSpending)}</strong></button>
-        ${fin.cycleSaved>0?`<button title="Dipindah ke pocket tabungan periode ini" onclick="goTab('pockets')"><span style="color:#6ee7b7">− Ditabung</span><strong style="color:#34d399">${fmt(fin.cycleSaved)}</strong></button>`:fin.cycleSaved<0?`<button title="Diambil dari pocket tabungan periode ini" onclick="goTab('pockets')"><span style="color:#6ee7b7">+ Dari tabungan</span><strong style="color:#34d399">${fmt(-fin.cycleSaved)}</strong></button>`:''}
-        <button title="Tagihan periode ini yang belum dibayar (perkiraan)" onclick="goTab('essentials')"><span style="color:#fcd34d">− Tagihan</span><strong style="color:#fcd34d">${fmt(fin.billsReserved)}</strong></button>
-        <button title="Essentials yang belum dibeli (harga perkiraan)" onclick="goTab('essentials')"><span style="color:#fcd34d">− Essentials</span><strong style="color:#fcd34d">${fmt(fin.essentialsReserved)}</strong></button>
-      </div>
+      <div class="big" style="${fin.safeToSpend<0?'color:#fcd34d':''}"><span class="cur">Rp</span>${fin.safeToSpend<0?'−':''}${fmt(Math.abs(fin.safeToSpend)).replace(/Rp\s/,'')}</div>
+      <p class="pace">${fin.safeToSpend>0?`≈ <strong>${fmt(fin.perDay)}</strong> per hari selama ${fin.daysToPayday} hari ke depan`: (fin.cycleIncome+fin.carryOver<=0&&!openingTx()? `Belum ada pemasukan tercatat. <button class="btn-ghost-light" onclick="openOpeningBalance()">Catat saldo awal</button>` : 'Rencana belanja melebihi dana periode ini.')}</p>
+      ${(()=>{ const t=today(), t0=new Date(t.getFullYear(),t.getMonth(),t.getDate()), total=Math.max(1,Math.round((fin.nextPayday-fin.cycleStart)/86400000)), day=Math.min(total,Math.max(1,Math.round((t0-fin.cycleStart)/86400000)+1)), pct=((day-.5)/total*100).toFixed(1), short=d=>d.toLocaleDateString('id-ID',{day:'numeric',month:'short'});
+        return `<div class="runway"><div class="runway-row"><span>Hari ke-<strong>${day}</strong> dari ${total}</span><button class="btn-ghost-light" onclick="openPaydayModal()">Ubah tanggal gajian</button></div><div class="runway-track" role="progressbar" aria-label="Periode gajian berjalan" aria-valuemin="1" aria-valuemax="${total}" aria-valuenow="${day}"><i style="width:${pct}%"></i><b style="left:${pct}%"></b></div><div class="runway-row"><span>${short(fin.cycleStart)}</span><span>Gajian <strong>${fin.nextPayday.toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short'})}</strong></span></div></div>`; })()}
+      ${safeAlloc(fin)}
       ${showFormula?`<div class="formula"><strong style="color:#fff">Cara menghitungnya (periode ${fin.cycleStart.toLocaleDateString('id-ID',{day:'numeric',month:'short'})} – ${fin.nextPayday.toLocaleDateString('id-ID',{day:'numeric',month:'short'})}):</strong><br>${fin.carryOver?`Sisa periode sebelumnya ${fmt(fin.carryOver)} + `:''}pemasukan ${fmt(fin.cycleIncome)} − pengeluaran ${fmt(fin.cycleSpending)}${fin.cycleSaved>0?` − ditabung ke pocket ${fmt(fin.cycleSaved)}`:fin.cycleSaved<0?` + diambil dari tabungan ${fmt(-fin.cycleSaved)}`:''} − tagihan yang belum dibayar ${fmt(fin.billsReserved)} − Essentials yang belum dibeli ${fmt(fin.essentialsReserved)}. Essentials dan tagihan yang sudah dibayar dihitung dengan nominal aslinya (masuk ke pengeluaran). Pocket tabungan disimpan terpisah (total ${fmt(fin.totalPocketsSaved)}) dan tidak mengurangi angka ini.</div>`:''}
     </div>
     <div class="card" style="grid-column:span 5;display:flex;flex-direction:column;justify-content:space-between">
@@ -908,18 +951,11 @@ function renderDashboard(fin,ess){
   </div>
 
   <div class="card" style="margin-top:16px">
-    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start">
-      <div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><h3>Essentials periode ini</h3><span class="badge ok">Sisa: ${fmt(ess.totalEssentialsRemaining)}</span></div>
-      <p class="sub">Terpakai ${fmt(ess.totalEssentialsSpent)} dari ${fmt(ess.totalEssentialsBudget)} • ${ess.completedCount} dari ${ess.activeCount} item terpenuhi. Ketuk item untuk langsung mencatat pembelian.</p></div>
-      <button class="link-btn" onclick="goTab('essentials')">Buka tabel lengkap →</button>
+    <div class="shop-head">
+      <div><h3>Essentials sampai gajian</h3><p class="sub">${ess.completedCount} dari ${ess.activeCount} item terpenuhi · ketuk item untuk mencatat pembelian. <button class="link-btn" style="font-size:12px" onclick="goTab('essentials')">Tabel lengkap →</button></p></div>
+      ${ess.totalEssentialsRemaining>0&&!ess.paused?`<div class="shop-left"><div class="amt">${fmt(ess.totalEssentialsRemaining)}</div><p class="sub">masih perlu dibeli · dari ${fmt(ess.totalEssentialsBudget)}</p></div>`:''}
     </div>
-    <div class="bar" style="margin:14px 0"><i style="width:${pctEss}%"></i></div>
-    <div class="ess-grid">${ess.items.filter(i=>!i.isComplete&&!i.skipped).slice(0,6).map(item=>`
-      <button class="ess-tile" onclick="openLoggerWithEssential('${item.id}')">
-        <div class="t1"><span>Butuh ${item.remainingQty}x lagi</span><span>/ ${item.targetQty}</span></div>
-        <h4>${esc(item.name)}</h4>
-        <div class="t3">Sisa anggaran<strong>${fmt(item.remainingAmount)}</strong></div>
-      </button>`).join('') || (ess.paused? '<p style="font-size:13px;color:var(--muted)">Essentials dilewati periode ini — semua belanja dihitung sebagai pengeluaran biasa.</p>' : essentials.length? '<p style="font-size:13px;color:var(--muted)">Semua Essentials periode ini sudah terpenuhi.</p>' : '<p style="font-size:13px;color:var(--muted)">Belum ada daftar Essentials. <button class="link-btn" onclick="goTab(&quot;settings&quot;)">Tambahkan di Pengaturan →</button></p>')}</div>
+    ${ess.activeCount&&!ess.paused? essShopList(ess) : ess.paused? '<p style="font-size:13px;color:var(--muted)">Essentials dilewati periode ini — semua belanja dihitung sebagai pengeluaran biasa.</p>' : essentials.length? '<p style="font-size:13px;color:var(--muted)">Semua item Essentials dilewati periode ini.</p>' : '<p style="font-size:13px;color:var(--muted)">Belum ada daftar Essentials. <button class="link-btn" onclick="goTab(&quot;settings&quot;)">Tambahkan di Pengaturan →</button></p>'}
   </div>
 
   <div style="margin-top:16px">

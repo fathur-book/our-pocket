@@ -73,6 +73,31 @@ const results = await page.evaluate(async () => {
     check(name + ': delete restores everything', state() === before && transactions.length === 0, `${before} -> ${state()}`);
   }
 
+  // Editing an entry in Riwayat: the result must equal logging the edited entry from scratch.
+  const editTx = (amt, o = {}) => { const id = transactions[0].id; openTxEdit(id); setAmt(document.getElementById('teAmt'), amt);
+    if (o.acc) document.getElementById('teAcc').value = o.acc; if (o.title) document.getElementById('teTitle').value = o.title; saveTxEdit(id); closeModal(); };
+  const edits = {
+    'expense, new amount and account': [() => log({ type: 'expense', amount: '50000', accountId: 'a1' }), () => editTx(80000, { acc: 'a2', title: 'Edited' }), () => log({ type: 'expense', amount: '80000', accountId: 'a2' })],
+    'income, new amount': [() => log({ type: 'income', amount: '900000', accountId: 'a2', categoryId: 'cat_salary' }), () => editTx(950000), () => log({ type: 'income', amount: '950000', accountId: 'a2', categoryId: 'cat_salary' })],
+    'bill payment, new amount': [() => log({ type: 'expense', amount: '110000', accountId: 'a1', billId: 'r1' }), () => editTx(120000), () => log({ type: 'expense', amount: '120000', accountId: 'a1', billId: 'r1' })],
+    'transfer to account, new amount': [() => log({ type: 'transfer', amount: '40000', accountId: 'a1', transferTo: 'acc:a2' }), () => editTx(45000), () => log({ type: 'transfer', amount: '45000', accountId: 'a1', transferTo: 'acc:a2' })],
+    'save into pocket, new amount': [() => log({ type: 'transfer', amount: '30000', accountId: 'a1', transferTo: 'pock:p1' }), () => editTx(10000), () => log({ type: 'transfer', amount: '10000', accountId: 'a1', transferTo: 'pock:p1' })],
+    'take out of pocket, new amount': [() => log({ type: 'transfer', amount: '25000', fromPocket: 'p1', transferTo: 'acc:a2' }), () => editTx(50000), () => log({ type: 'transfer', amount: '50000', fromPocket: 'p1', transferTo: 'acc:a2' })],
+  };
+  for (const [name, [create, edit, direct]] of Object.entries(edits)) {
+    reset(); create(); closeModal(); edit();
+    const noIds = s => s.replace(/"tx_[^"]*"/g, '"tx"'); // a bill links to its entry id, which differs between the two runs
+    const edited = noIds(state()), title = transactions[0].title;
+    reset(); direct(); closeModal();
+    check('edit ' + name + ': same as logging it directly', edited === noIds(state()), `${edited} vs ${noIds(state())}`);
+    if (name.startsWith('expense')) check('edit ' + name + ': title saved', title === 'Edited', title);
+  }
+  reset(); log({ type: 'transfer', amount: '30000', accountId: 'a1', transferTo: 'pock:p1' });
+  pocketAction('spend', 220000); const spent = state();
+  const saveId = transactions.find(t => t.tag === '#pocket-save').id;
+  openTxEdit(saveId); setAmt(document.getElementById('teAmt'), 10000); saveTxEdit(saveId); closeModal();
+  check('edit refuses a pocket transfer that was already spent', state() === spent, `${spent} -> ${state()}`);
+
   // Sync conflict: the other phone added X, this phone added Y before seeing X. Both must survive, balances include both.
   reset();
   const base = JSON.parse(stateJSON());

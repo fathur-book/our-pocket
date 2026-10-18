@@ -509,8 +509,14 @@ function isValidState(s){
 function applyState(s){ accounts=s.accounts; pockets=s.pockets; recurringItems=s.recurringItems; transactions=s.transactions; if(Array.isArray(s.essentials)) essentials=s.essentials; settings={...DEFAULT_SETTINGS,...(s.settings||{})}; if(s.settings&&s.settings.paydaySet==null&&(s.settings.payday!==25||s.transactions.length)) settings.paydaySet=true; }
 function snapshot(){ return JSON.parse(JSON.stringify({accounts,pockets,recurringItems,transactions,essentials,settings})); }
 let saveWarned=false;
-function saveState(){ if(!STORE_KEY) return; scheduleCloudPush(); writeMeta(); try{ localStorage.setItem(STORE_KEY,JSON.stringify({v:1,accounts,pockets,recurringItems,transactions,essentials,settings})); }catch(e){ if(!saveWarned){ saveWarned=true; setTimeout(()=>toast('Browser ini tidak bisa menyimpan data — ekspor cadangan secara berkala.'),0); } } }
-function loadState(){ if(!STORE_KEY) return; try{ const raw=localStorage.getItem(STORE_KEY); if(!raw) return; const s=JSON.parse(raw); if(isValidState(s)) applyState(s); }catch(e){} }
+let invalidWarned=false;
+function saveState(){ if(!STORE_KEY) return;
+  // Never persist or push state the loader would refuse: one bad entry would make the whole dataset unloadable.
+  if(!isValidState(JSON.parse(stateJSON()))){ if(!invalidWarned){ invalidWarned=true; toast('Ada data yang tidak valid — perubahan terakhir tidak disimpan. Urungkan atau hapus entri itu.'); } return; }
+  invalidWarned=false; scheduleCloudPush(); writeMeta(); try{ localStorage.setItem(STORE_KEY,JSON.stringify({v:1,accounts,pockets,recurringItems,transactions,essentials,settings})); }catch(e){ if(!saveWarned){ saveWarned=true; setTimeout(()=>toast('Browser ini tidak bisa menyimpan data — ekspor cadangan secara berkala.'),0); } } }
+/* Returns 'rejected' when a cached copy exists but fails validation; it is kept under .bad for recovery. */
+function loadState(){ if(!STORE_KEY) return; let raw=null; try{ raw=localStorage.getItem(STORE_KEY); if(!raw) return; const s=JSON.parse(raw); if(isValidState(s)){ applyState(s); return 'loaded'; } }catch(e){}
+  if(raw){ try{ if(!localStorage.getItem(STORE_KEY+'.bad')) localStorage.setItem(STORE_KEY+'.bad',raw); }catch(e){} return 'rejected'; } }
 /* ============ CLOUD: Supabase login + sync (one row of JSON per owner) ============ */
 // Meta = which cloud version the cache is based on, and whether it has unsynced edits (survives reloads/offline).
 // ids = entries in the last synced copy, so after a reload new local entries can be told apart from ones deleted elsewhere.
@@ -521,6 +527,7 @@ function readMeta(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY+'.met
 // The publishable key is meant to be public; row-level security keeps the data private to its owner.
 const SB_URL='https://jmzirikqbslkamferwfd.supabase.co';
 const SB_KEY='sb_publishable_hX9TfthdPvqglk27txy4Sw_v0krEGSW';
+let cloudInvalid=false; // the cloud row exists but fails validation: never treat that as a first sign-in and overwrite it
 let sb=null, cloudUser=null, cloudRowExists=false, cloudUpdatedAt=null, lastPushed=null, pushTimer=null, pushing=false, syncStatus='', initialPullDone=false;
 function stateJSON(){ return JSON.stringify({v:1,accounts,pockets,recurringItems,transactions,essentials,settings}); }
 function setSync(status){
@@ -570,7 +577,7 @@ async function cloudPull(conflict){
   if(!row){ cloudRowExists=false; return false; }
   cloudRowExists=true;
   if(row.updated_at===cloudUpdatedAt&&!conflict) return true;
-  if(!isValidState(row.data)){ setSync('error'); toast('Data di cloud tidak valid — tidak dimuat.'); return false; }
+  if(!isValidState(row.data)){ cloudInvalid=true; setSync('error'); toast('Data di cloud tidak valid — tidak dimuat. Impor cadangan untuk memulihkan.'); return false; }
   const hadUnsynced= lastPushed!==stateJSON();
   // Entries created here since the last sync: in neither the last synced copy nor the cloud copy.
   // No record of the last synced copy (very first sync): keep nothing rather than bring back entries deleted elsewhere.
@@ -589,14 +596,17 @@ async function onSignedIn(user){
   document.getElementById('userEmail').textContent=user.email||'';
   document.getElementById('acctInitial').textContent=((user.email||'?').trim()[0]||'?').toUpperCase();
   document.querySelector('#acctMenu .acct-btn').title=user.email||'';
-  loadState(); // cached copy first, so the app opens instantly / offline
+  const cached=loadState(); // cached copy first, so the app opens instantly / offline
   const meta=readMeta();
   cloudUpdatedAt=meta.base||null; cloudRowExists=!!meta.base; lastPushed= meta.dirty? null : stateJSON();
+  // A rejected cache means the empty state on screen is NOT what the cloud holds: load and validate the cloud copy instead of trusting meta.
+  if(cached==='rejected'){ cloudUpdatedAt=null; cloudRowExists=false; lastPushed=stateJSON(); }
   render();
   setSync('saving');
   const found=await cloudPull(false);
   initialPullDone=true;
   if(found){ if(stateJSON()!==lastPushed) scheduleCloudPush(); else setSync('saved'); } // unsynced offline edits on top of the latest cloud copy
+  if(!found&&cloudInvalid) return; // keep the invalid cloud row untouched; the user can restore from a backup file
   if(!found){
     // First sign-in: offer data saved in this browser before login (if any), else start empty.
     const legacy=localStorage.getItem('flowpocket.v1');
@@ -637,8 +647,14 @@ async function authSubmitAsync(){
 }
 async function signOut(){
   if(stateJSON()!==lastPushed&&!confirm('Ada perubahan yang belum tersinkron. Tetap keluar? Perubahan itu akan hilang.')) return;
-  try{ localStorage.removeItem(STORE_KEY); localStorage.removeItem(STORE_KEY+'.meta'); }catch(e){}
-  await sb.auth.signOut(); location.reload();
+  clearLocalCaches();
+  let res; try{ res=await sb.auth.signOut(); }catch(e){ res={error:e}; }
+  if(res&&res.error){
+    // supabase-js keeps the stored session when the logout call fails (offline, 5xx): remove it here so this device is signed out.
+    try{ localStorage.removeItem(sb.auth.storageKey); localStorage.removeItem(sb.auth.storageKey+'-code-verifier'); }catch(e){}
+    alert('Kamu sudah keluar di perangkat ini, tetapi sesi belum dicabut di server (koneksi gagal). Masuk lalu keluar lagi saat online.');
+  }
+  location.reload();
 }
 function openNewPasswordModal(){
   modalShell('Password Baru', `<div class="field"><label for="npw">Password baru (min. 8 karakter)</label><input id="npw" type="password" autocomplete="new-password"></div>`,
@@ -649,6 +665,8 @@ async function saveNewPassword(){
   const {error}=await sb.auth.updateUser({password:pw}); if(error){ toast(error.message); return; }
   closeModal(); toast('Password berhasil diganti.');
 }
+/* Remove every per-user cache (flowpocket.v1.<uid>, .meta, .bad) from this browser. Unsynced edits are lost, as with Keluar. */
+function clearLocalCaches(){ STORE_KEY=null; try{ Object.keys(localStorage).filter(k=>k.startsWith('flowpocket.v1.')).forEach(k=>localStorage.removeItem(k)); }catch(e){} }
 function initCloud(){
   if(!window.supabase){ showAuth('signin','Tidak bisa memuat layanan login. Periksa koneksi internet lalu muat ulang.'); return; }
   sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
@@ -656,9 +674,9 @@ function initCloud(){
     if(event==='PASSWORD_RECOVERY') setTimeout(openNewPasswordModal,0);
     if(session&&session.user&&cloudUser&&cloudUser.id!==session.user.id){ location.reload(); return; }
     if(session&&session.user&&!cloudUser) setTimeout(()=>onSignedIn(session.user),0);
-    if(event==='SIGNED_OUT'&&cloudUser){ location.reload(); return; }
+    if(event==='SIGNED_OUT'){ clearLocalCaches(); if(cloudUser) location.reload(); return; }
   });
-  sb.auth.getSession().then(({data})=>{ if(!data.session) showAuth('signin'); });
+  sb.auth.getSession().then(({data})=>{ if(!data.session){ clearLocalCaches(); showAuth('signin'); } }); // a session that lapsed while closed
   document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&cloudUser&&!pushing&&stateJSON()===lastPushed) cloudPull(false); });
   window.addEventListener('online',()=>{ if(cloudUser) scheduleCloudPush(); });
   window.addEventListener('beforeunload',e=>{ if(cloudUser&&stateJSON()!==lastPushed){ e.preventDefault(); e.returnValue=''; } });
@@ -1198,7 +1216,9 @@ const RC_SKIP=/(sub\s*total|harga\s*jual|grand|netto|tunai|cash|kembali|change|p
 const RC_DISC=/\b(diskon|disc|potongan|hemat|promo)\b/i;
 let rcpt=null;
 /* "12.500", "12,500", "12.500,00", "Rp12500" → 12500. Two-decimal cents are dropped (rupiah has none). */
-function rcNum(raw){ let t=raw; if(/[.,]\d{2}$/.test(t)&&(/[.,]\d{3}[.,]\d{2}$/.test(t)||!/[.,]\d{3}/.test(t))) t=t.slice(0,-3); return parseInt(t.replace(/\D/g,''),10)||0; }
+function rcNum(raw){ let t=raw; if(/[.,]\d{2}$/.test(t)&&(/[.,]\d{3}[.,]\d{2}$/.test(t)||!/[.,]\d{3}/.test(t))) t=t.slice(0,-3); return digitsInt(t); }
+/* Digits only, as a safe integer; absurdly long numbers (OCR noise) become 0 instead of Infinity. */
+function digitsInt(v){ const d=String(v).replace(/\D/g,''); return d.length>15? 0 : parseInt(d,10)||0; }
 function rcTitle(s){ return s.toLowerCase().replace(/\b[a-z]/g,c=>c.toUpperCase()).trim(); }
 function rcLev(a,b){ const d=Array.from({length:a.length+1},(_,i)=>[i]); for(let j=1;j<=b.length;j++) d[0][j]=j; for(let i=1;i<=a.length;i++) for(let j=1;j<=b.length;j++) d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1)); return d[a.length][b.length]; }
 /* Everyday Indonesian words that receipts use for each Essential. */
@@ -1296,7 +1316,7 @@ async function rcScanPhoto(file){
 }
 function rcUpdate(i,field,value){
   const it=rcpt.items[i]; if(!it) return;
-  if(field==='amount'||field==='qty'){ const v=parseInt(String(value).replace(/\D/g,''),10)||0; it[field]= field==='qty'? Math.max(1,v) : v; }
+  if(field==='amount'||field==='qty'){ const v=digitsInt(value); it[field]= field==='qty'? Math.max(1,v) : v; }
   else it[field]=value;
   rcUpdateSummary();
 }
@@ -1355,6 +1375,7 @@ function rcSave(){
   if(!sel.length){ toast('Tidak ada item terpilih dengan harga lebih dari nol.'); return; }
   const date= /^\d{4}-\d{2}-\d{2}$/.test(rcpt.date||'')? rcpt.date : todayISO();
   if(date>todayISO()){ toast('Tanggal tidak boleh di masa depan.'); return; }
+  if(sel.some(it=>!Number.isSafeInteger(it.amount))){ toast('Ada nominal yang tidak valid — periksa lagi.'); return; }
   const snap=snapshot(), stamp=Date.now(), accId=rcpt.accountId;
   const newTx=sel.map((it,i)=>{ const e=essentials.find(x=>x.id===it.essentialId);
     return {id:`tx_rc_${stamp}_${i}`,date,title:it.name.trim()||(e?e.name:'Item struk'),amount:it.amount,type:'expense',categoryId:e?e.categoryId:it.categoryId,accountId:accId,tag:e?'#essential':'#struk',pocketId:null,essentialId:e?e.id:null,essentialQty:e?it.qty:null}; });
@@ -1367,7 +1388,7 @@ function rcSave(){
 
 /* ===== CREDIT CARD STATEMENT (PDF) → review list → one expense per charge ===== */
 const ST_MONTHS={jan:1,feb:2,mar:3,apr:4,mei:5,may:5,jun:6,jul:7,agt:8,agu:8,aug:8,sep:9,okt:10,oct:10,nov:11,des:12,dec:12};
-const ST_DATE=/^(\d{1,2})[\s\/-]([A-Za-z]{3})[a-z]*[\s\/-](\d{2,4})$/;
+const ST_DATE=/^(\d{1,2})[\s\/-]([A-Za-z]{3})[a-z]*[\s\/-](\d{2}|\d{4})$/;
 const ST_AMT=/^-?(?:rp\.?\s*)?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?(?:\s*cr)?$/i;
 /* Guess a category from the merchant text; always shown for review. */
 const ST_RULES=[
@@ -1387,7 +1408,9 @@ async function loadPdfjs(){
   m.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs';
   return pdfjsLib=m;
 }
-function stDate(s){ const m=s.trim().match(ST_DATE); if(!m) return null; const mo=ST_MONTHS[m[2].toLowerCase()]; if(!mo) return null; const y=m[3].length===2?2000+Number(m[3]):Number(m[3]); return `${y}-${pad2(mo)}-${pad2(Number(m[1]))}`; }
+function stDate(s){ const m=s.trim().match(ST_DATE); if(!m) return null; const mo=ST_MONTHS[m[2].toLowerCase()]; if(!mo) return null; const y=m[3].length===2?2000+Number(m[3]):Number(m[3]), d=Number(m[1]);
+  if(y<2000||y>2099||d<1||d>new Date(y,mo,0).getDate()) return null; // only real calendar dates the loader accepts
+  return `${y}-${pad2(mo)}-${pad2(d)}`; }
 /* "360,365.48" / "360.365,48" → 360365 (cents rounded, so totals match the bank's). */
 function stAmount(s){ const t=s.trim(), credit=/cr\s*$/i.test(t)||/^-/.test(t); const core=t.replace(/cr\s*$/i,'').replace(/^-|rp\.?/gi,'').trim();
   const m=core.match(/^(.*?)[.,](\d{2})$/); const whole=rcNum(m?m[1]:core), cents=m?Number(m[2]):0;
@@ -1486,7 +1509,7 @@ async function stReadFile(file,password){
   }
 }
 function stUnlock(){ const pw=document.getElementById('stPw').value; stReadFile(stmt.file,pw); }
-function stUpdate(i,field,value){ const it=stmt.items[i]; if(!it) return; it[field]= field==='amount'? (parseInt(String(value).replace(/\D/g,''),10)||0) : value; stUpdateSummary(); }
+function stUpdate(i,field,value){ const it=stmt.items[i]; if(!it) return; it[field]= field==='amount'? digitsInt(value) : value; stUpdateSummary(); }
 function stToggle(i){ stmt.items[i].include=!stmt.items[i].include; renderStatement(); }
 function stRemove(i){ stmt.items.splice(i,1); renderStatement(); }
 function stAll(on){ stmt.items.forEach(it=>{ if(!it.credit&&!(on&&it.note&&/dobel|sudah tercatat/i.test(it.note))) it.include=on; }); renderStatement(); } // never re-tick likely duplicates
@@ -1530,6 +1553,7 @@ function renderStatement(){
 function stSave(){
   const sel=stSelected();
   if(!sel.length){ toast('Tidak ada transaksi terpilih.'); return; }
+  if(sel.some(it=>!/^\d{4}-\d{2}-\d{2}$/.test(it.date||'')||it.date>todayISO()||!Number.isSafeInteger(it.amount))){ toast('Ada tanggal atau nominal yang tidak valid — periksa lagi.'); return; }
   const snap=snapshot(), stamp=Date.now(), accId=stmt.accountId;
   const newTx=[]; // plain charges; bill-linked ones are recorded through recordBillPayment
   sel.forEach((it,i)=>{

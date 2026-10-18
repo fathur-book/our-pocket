@@ -10,6 +10,7 @@ const page_url = 'file://' + path.resolve(path.dirname(fileURLToPath(import.meta
 
 const browser = await chromium.launch();
 const page = await browser.newPage();
+page.on('dialog', d => d.dismiss()); // confirm/alert from the app
 const pageErrors = [];
 page.on('pageerror', e => pageErrors.push(e.message));
 await page.route('**/*', r => r.request().url().startsWith('file:') ? r.continue() : r.abort()); // offline: no login, no CDN
@@ -109,8 +110,60 @@ const results = await page.evaluate(async () => {
   const billDue = billsDueUnpaid().total;
   const s2s = financialSummary().safeToSpend;
   check('Safe-to-Spend example', s2s === 2000000 - 150000 - billDue - 100000, `got ${s2s}, bill reserved ${billDue}`);
+
+  // Security audit fix 1: parsers never produce values the loader rejects, and invalid state is never saved.
+  const nines = '9'.repeat(400);
+  check('receipt amount of 400 digits is not Infinity', rcNum(nines) === 0 && Number.isFinite(rcNum('Rp 12.500')) && rcNum('Rp 12.500') === 12500, String(rcNum(nines)));
+  const d = s => stDate(s);
+  check('statement dates: only real 2- or 4-digit-year dates', d('05 Jan 0999') === null && d('01 Jan 026') === null && d('31 Feb 2026') === null && d('00 Mar 2026') === null && d('05 Jan 26') === '2026-01-05' && d('29 Feb 2028') === '2028-02-29', [d('05 Jan 0999'), d('01 Jan 026'), d('31 Feb 2026'), d('05 Jan 26')].join());
+  reset();
+  stmt = { accountId: 'c1', items: [{ name: 'Bad', amount: 45000, date: '999-01-05', include: true, link: '', categoryId: 'cat_food' }] }; stSave(); closeModal();
+  check('statement save refuses a malformed date', transactions.length === 0, String(transactions.length));
+  reset(); STORE_KEY = 'test.invalid'; localStorage.removeItem('test.invalid');
+  transactions = [{ id: 'x1', date: '999-01-05', title: 'Bad', amount: 1000, type: 'expense', categoryId: 'cat_food', accountId: 'a1', tag: '', pocketId: null }];
+  saveState();
+  check('invalid state is never written to the cache', localStorage.getItem('test.invalid') === null, 'cache was written');
+  STORE_KEY = null; transactions = [];
+
+  // A rejected cache must not be treated as synced: the valid cloud copy is loaded instead of an empty app.
+  reset(); const good = JSON.parse(stateJSON()); accounts = []; transactions = []; pockets = []; recurringItems = []; essentials = [];
+  localStorage.setItem('flowpocket.v1.u9', JSON.stringify({ v: 1, ...good, transactions: [{ id: 'bad', date: '999-01-05', title: 'Bad', amount: 1, type: 'expense', categoryId: 'cat_food', accountId: 'a1', tag: '', pocketId: null }] }));
+  localStorage.setItem('flowpocket.v1.u9.meta', JSON.stringify({ base: 'v2', dirty: false }));
+  let pushes = 0;
+  sb = { from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { data: good, updated_at: 'v2' }, error: null }) }) }), insert: () => { pushes++; return { select: () => ({ single: async () => ({ error: { message: 'dup' } }) }) }; }, update: () => { pushes++; return { eq: () => ({ eq: () => ({ select: async () => ({ data: [], error: null }) }) }) }; } }) };
+  cloudUser = null; cloudInvalid = false; initialPullDone = false; await onSignedIn({ id: 'u9', email: 'u9@example.test' }); clearTimeout(pushTimer);
+  check('rejected cache: valid cloud copy is loaded, not an empty app', accounts.length === 3 && !!localStorage.getItem('flowpocket.v1.u9.bad'), `${accounts.length} accounts`);
+  // An invalid cloud row is never overwritten by a "first sign-in" push.
+  const badCloud = { ...good, transactions: [{ id: 'bad', date: '999-01-05', title: 'Bad', amount: 1, type: 'expense', categoryId: 'cat_food', accountId: 'a1', tag: '', pocketId: null }] };
+  localStorage.removeItem('flowpocket.v1.u8'); localStorage.removeItem('flowpocket.v1.u8.meta');
+  sb = { from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { data: badCloud, updated_at: 'v5' }, error: null }) }) }), insert: () => { pushes++; return { select: () => ({ single: async () => ({ error: { message: 'dup' } }) }) }; }, update: () => { pushes++; return { eq: () => ({ eq: () => ({ select: async () => ({ data: [], error: null }) }) }) }; } }) };
+  pushes = 0; cloudUser = null; cloudInvalid = false; accounts = []; transactions = []; pockets = []; recurringItems = []; essentials = [];
+  await onSignedIn({ id: 'u8', email: 'u8@example.test' }); await new Promise(r => setTimeout(r, 1500)); clearTimeout(pushTimer);
+  check('invalid cloud row is not overwritten', pushes === 0, `${pushes} push attempts`);
+
+  // Security audit fix 3: per-user caches are cleared whenever the session ends, not only from the Keluar button.
+  let authCb = null;
+  window.supabase = { createClient: () => ({ auth: { onAuthStateChange: cb => { authCb = cb; }, getSession: async () => ({ data: { session: null } }) } }) };
+  localStorage.setItem('flowpocket.v1.lapsed', '{}'); localStorage.setItem('flowpocket.v1.lapsed.meta', '{}');
+  initCloud(); await new Promise(r => setTimeout(r, 50));
+  check('boot without a session clears leftover caches', !localStorage.getItem('flowpocket.v1.lapsed') && !localStorage.getItem('flowpocket.v1.lapsed.meta'), 'cache left behind');
+  localStorage.setItem('flowpocket.v1.u7', '{}'); localStorage.setItem('flowpocket.v1.u7.meta', '{}'); cloudUser = null;
+  authCb('SIGNED_OUT', null);
+  check('SIGNED_OUT (e.g. remote sign-out) clears the cache', !localStorage.getItem('flowpocket.v1.u7') && !localStorage.getItem('flowpocket.v1.u7.meta') && STORE_KEY === null, 'cache left behind');
+  cloudUser = null; sb = null; STORE_KEY = null;
   return out;
 });
+
+// Security audit fix 2: a sign-out whose server call fails still removes the stored session (checked after the reload).
+await page.evaluate(() => {
+  localStorage.setItem('sb-test-auth-token', '{"access_token":"dummy"}'); localStorage.setItem('flowpocket.v1.u6', '{}');
+  STORE_KEY = 'flowpocket.v1.u6'; lastPushed = stateJSON();
+  sb = { auth: { storageKey: 'sb-test-auth-token', signOut: async () => ({ error: new Error('network down') }) } };
+  setTimeout(() => signOut(), 0);
+});
+await page.waitForEvent('load');
+const afterSignOut = await page.evaluate(() => ({ token: localStorage.getItem('sb-test-auth-token'), cache: localStorage.getItem('flowpocket.v1.u6') }));
+results.push({ name: 'failed sign-out still removes the stored session', ok: afterSignOut.token === null && afterSignOut.cache === null, detail: JSON.stringify(afterSignOut) });
 
 let failed = 0;
 for (const r of results) { if (!r.ok) failed++; console.log(`${r.ok ? 'ok  ' : 'FAIL'} ${r.name}${r.ok ? '' : '  — ' + r.detail}`); }

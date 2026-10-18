@@ -21,7 +21,7 @@
 <style>
 :root{
   --bg:#f6f7f9; --surface:#ffffff; --surface2:#f8fafc; --border:#e2e8f0; --border2:#cbd5e1;
-  --text:#0f172a; --muted:#64748b; --muted2:#94a3b8;
+  --text:#0f172a; --muted:#64748b; --muted2:#64748b;
   --dark:#0f172a; --dark2:#1e293b; --dark-border:#334155;
   --emerald:#059669; --emerald-bg:#ecfdf5; --emerald-border:#a7f3d0; --emerald-text:#065f46;
   --amber:#d97706; --amber-bg:#fffbeb; --amber-border:#fde68a; --amber-text:#92400e;
@@ -33,7 +33,9 @@
 @media (prefers-color-scheme: dark){
   :root{
     --bg:#0b1220; --surface:#111827; --surface2:#0f172a; --border:#1f2937; --border2:#374151;
-    --text:#f1f5f9; --muted:#94a3b8; --muted2:#64748b;
+    --text:#f1f5f9; --muted:#94a3b8; --muted2:#8391a7;
+    /* --dark is the "ink" fill (hero, date boxes, toasts). Its light value (#0f172a) is the same as the dark-mode page, so raise it here. */
+    --dark:#1e293b; --dark2:#273449;
     --emerald-bg:#064e3b33; --emerald-border:#065f46; --emerald-text:#6ee7b7;
     --amber-bg:#78350f33; --amber-border:#92400e; --amber-text:#fcd34d;
     --indigo-bg:#312e8133;
@@ -80,20 +82,28 @@ main{max-width:1440px;margin:0 auto;padding:20px 24px 8px}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
 .card h3{margin:0;font-size:15px}
 .card .sub{font-size:12px;color:var(--muted);margin-top:2px}
-.hero{background:var(--dark);color:#fff;border-radius:24px;padding:22px;position:relative;overflow:hidden}
-.hero::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,#05966955,transparent 70%)}
+.hero{background:var(--dark);color:#fff;border:1px solid var(--dark);border-radius:24px;padding:22px;position:relative;overflow:hidden;display:flex;flex-direction:column}
+.hero-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:8px}
+.hero-head .btn-ghost-light{white-space:nowrap}
+@media(prefers-color-scheme:dark){.hero{border-color:var(--dark-border)}}
 .hero .label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8;font-weight:700}
-.hero .big{font-size:clamp(28px,4vw,40px);font-weight:800;letter-spacing:-.03em;margin:4px 0 0;line-height:1.05}
-.pill-green{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:#05966926;color:#6ee7b7;border:1px solid #05966944;font-size:11px;font-weight:700}
+.hero .big{font-size:clamp(32px,5vw,56px);font-weight:800;letter-spacing:-.03em;margin:4px 0 0;line-height:1.05}
 .btn-ghost-light{background:#ffffff1a;color:#e2e8f0;border:1px solid #ffffff22;padding:6px 10px;border-radius:9px;font-size:11px;font-weight:600}
 .hero{container-type:inline-size}
-.breakdown{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-top:16px;position:relative;z-index:1}
-.breakdown>*{background:#1e293bcc;border:1px solid var(--dark-border);border-radius:12px;padding:10px;min-width:0;text-align:left;width:100%;color:#fff}
+.breakdown{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-top:12px}
+/* Pay-cycle progress; margin-top:auto pins it and the breakdown to the bottom when the card stretches to the spending column. */
+.cycle{margin-top:auto;padding-top:20px}
+.cycle-head,.cycle-ends{display:flex;justify-content:space-between;gap:8px;font-size:12px;font-weight:600;color:#94a3b8}
+.cycle-head strong{color:#e2e8f0}
+.cycle-bar{height:8px;margin:8px 0 6px;border-radius:999px;background:#ffffff14;overflow:hidden}
+.cycle-bar>i{display:block;height:100%;border-radius:inherit;background:#34d399}
+.cycle-ends{font-size:11px;font-weight:500}
+.breakdown>*{background:#ffffff0f;border:1px solid var(--dark-border);border-radius:12px;padding:10px;min-width:0;text-align:left;width:100%;color:#fff}
 .breakdown button{cursor:pointer}
 .breakdown span{display:block;font-size:11px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .breakdown strong{display:block;margin-top:3px;font-size:clamp(11px,2.1cqi,13px);white-space:nowrap}
 @container (max-width:560px){.breakdown{grid-template-columns:repeat(2,minmax(0,1fr))}.breakdown>:first-child{grid-column:1/-1}}
-.formula{margin-top:12px;background:#1e293b;border:1px solid var(--dark-border);border-radius:14px;padding:12px;font-size:12px;line-height:1.6;color:#cbd5e1;position:relative;z-index:1}
+.formula{margin-top:12px;background:#ffffff0f;border:1px solid var(--dark-border);border-radius:14px;padding:12px;font-size:12px;line-height:1.6;color:#cbd5e1}
 .bar{height:10px;background:var(--surface2);border:1px solid var(--border);border-radius:999px;overflow:hidden}
 .bar>i{display:block;height:100%;border-radius:999px;background:var(--emerald);transition:width .4s}
 .bar.amber>i{background:#f59e0b}.bar.dark>i{background:var(--dark)}
@@ -125,6 +135,12 @@ main{max-width:1440px;margin:0 auto;padding:20px 24px 8px}
 .btn-dark{background:var(--dark);color:#fff;border-color:var(--dark)}
 .btn-dark:hover{background:var(--emerald);border-color:var(--emerald)}
 .btn-emerald{background:#059669;color:#fff;border-color:#059669}
+.btn-emerald:hover{background:#047857;border-color:#047857}
+/* Dark mode: the primary button inverts to a light fill so it reads as a button, not as text on the card. */
+@media(prefers-color-scheme:dark){
+  .btn-dark{background:#e2e8f0;color:#0f172a;border-color:#e2e8f0}
+  .btn-dark:hover{background:#34d399;border-color:#34d399;color:#022c22}
+}
 .btn-sm{padding:6px 10px;font-size:11px;border-radius:9px}
 .link-btn{background:none;border:0;font-size:12px;font-weight:700;color:var(--muted);display:inline-flex;align-items:center;gap:4px;padding:0}
 .link-btn:hover{color:var(--text)}
@@ -177,10 +193,14 @@ select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);backg
 .tx-ico.indigo{background:var(--indigo-bg);color:var(--indigo)}
 .tag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--muted)}
 .icon-btn{border:0;background:transparent;color:var(--muted2);padding:6px;border-radius:8px}
-.icon-btn:hover{color:var(--rose);background:#fff1f2}
+.icon-btn:hover{color:var(--rose);background:color-mix(in srgb, var(--rose) 12%, transparent)}
+.head-log{display:flex;align-items:center;gap:4px;white-space:nowrap}
+.head-log svg{width:16px;height:16px;stroke-width:2.5}
 .fab{position:fixed;right:18px;bottom:20px;z-index:40;display:flex;align-items:center;gap:6px;background:#059669;color:#fff;border:0;padding:12px 20px 12px 16px;border-radius:999px;font-weight:700;font-size:14px;line-height:1;box-shadow:0 8px 20px rgba(5,150,105,.3)}
 .fab:hover{background:#047857}
 .fab svg{width:18px;height:18px;stroke-width:2.5}
+/* Desktop & tablet: "+ Catat" lives in the sticky header, so no floating button covers row actions. */
+@media(min-width:561px){.fab{display:none}}
 .ql-imports{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
 .ql-imports .btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 8px;text-align:center}
 .ql-imports svg{width:16px;height:16px;flex-shrink:0}
@@ -200,6 +220,7 @@ select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);backg
 .type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;background:var(--surface2);border:1px solid var(--border);padding:3px;border-radius:11px}
 .type-grid button{border:0;background:transparent;padding:8px 4px;border-radius:8px;font-size:11px;font-weight:800;color:var(--muted)}
 .type-grid button.active{background:var(--dark);color:#fff}
+@media(prefers-color-scheme:dark){.type-grid button.active{background:#e2e8f0;color:#0f172a}}
 .toast-undo{margin-left:6px;background:#ffffff1f;color:#6ee7b7;border:1px solid #ffffff33;padding:4px 10px;border-radius:8px;font-size:12px;font-weight:800}
 .rc-opt{border:1px solid var(--border);background:var(--surface2);border-radius:14px;padding:14px;margin-bottom:12px}
 .rc-opt textarea{width:100%;margin-top:6px;padding:10px 12px;border-radius:12px;border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:13px;font-family:inherit;resize:vertical}
@@ -275,7 +296,7 @@ select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);backg
 /* ---- Phones: nothing may be wider than the screen, and fields never trigger iOS auto-zoom ---- */
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{overflow-x:clip;overflow-wrap:anywhere}
-.modal,.modal-body{max-width:100vw}
+.modal{max-width:min(460px,100vw)}.modal-body{max-width:100vw} /* keep the 460px cap: a bare 100vw stretched dialogs across desktop screens */
 @media(max-width:768px){input,select,textarea{font-size:16px!important}}
 @media(max-width:560px){
   body{padding-bottom:calc(150px + env(safe-area-inset-bottom))}
@@ -305,6 +326,7 @@ input,select,textarea{max-width:100%;min-width:0;box-sizing:border-box}
 input[type=date],input[type=month]{-webkit-appearance:none;appearance:none;display:block;width:100%;min-height:46px;text-align:left;line-height:1.2}
 input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-and-time-value{text-align:left;margin:0}
 .modal{overflow-x:hidden}
+.modal:focus{outline:none}
 .field{min-width:0}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -337,7 +359,7 @@ input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-an
       <button data-tab="activity"><i data-lucide="calendar"></i><span class="tl">Riwayat</span><span class="ts">Riwayat</span></button>
       <button data-tab="settings"><i data-lucide="settings"></i><span class="tl">Pengaturan</span><span class="ts">Atur</span></button>
     </nav>
-    <div class="head-right"><button class="safe-pill" onclick="goTab('dashboard')" title="Uang yang aman dibelanjakan sampai gajian"><span class="safe-label">Safe-to-Spend</span><strong id="safePill">Rp 0</strong></button>
+    <div class="head-right"><button class="btn btn-emerald head-log" id="quickLogTop" title="Catat pengeluaran, pemasukan atau transfer"><i data-lucide="plus"></i>Catat</button><button class="safe-pill" onclick="goTab('dashboard')" title="Uang yang aman dibelanjakan sampai gajian"><span class="safe-label">Safe-to-Spend</span><strong id="safePill">Rp 0</strong></button>
     <div class="acct" id="acctMenu">
       <button class="acct-btn" onclick="toggleAcctMenu(event)" aria-haspopup="true" aria-expanded="false" aria-label="Akun"><span id="acctInitial">?</span><i id="syncDot" class="sync-dot"></i></button>
       <div class="acct-pop hidden" role="menu">
@@ -351,8 +373,7 @@ input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-an
 
 <main>
   <div class="page-head">
-    <div><h2 id="pageTitle">Dashboard Overview</h2><p id="pageSub"></p></div>
-    <button class="btn btn-dark" id="quickLogTop">+ Quick Log</button>
+    <div><h2 id="pageTitle">Ringkasan</h2><p id="pageSub"></p></div>
   </div>
 
   <section id="view-dashboard"></section>
@@ -362,7 +383,7 @@ input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-an
   <section id="view-settings" class="hidden"></section>
 </main>
 
-<button class="fab" id="fabBtn"><i data-lucide="plus"></i>Quick Log</button>
+<button class="fab" id="fabBtn"><i data-lucide="plus"></i>Catat</button>
 
 <div id="modalRoot"></div>
 
@@ -371,14 +392,14 @@ input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-an
 /* Starts empty — the user adds accounts, pockets, bills and Essentials in Pengaturan. */
 let accounts=[];
 const categories=[
-{id:'cat_food',name:'Food & Dining',type:'expense',icon:'utensils'},
-{id:'cat_coffee',name:'Coffee & Snacks',type:'expense',icon:'coffee'},
-{id:'cat_transport',name:'Transport & Fuel',type:'expense',icon:'car'},
-{id:'cat_utilities',name:'Home & Utilities',type:'expense',icon:'zap'},
-{id:'cat_subs',name:'Digital & AI Subs',type:'expense',icon:'repeat'},
-{id:'cat_shopping',name:'Lifestyle & Gear',type:'expense',icon:'shopping-bag'},
-{id:'cat_salary',name:'Primary Income',type:'income',icon:'briefcase'},
-{id:'cat_freelance',name:'Side / Dividend',type:'income',icon:'trending-up'},
+{id:'cat_food',name:'Makan & Minum',type:'expense',icon:'utensils'},
+{id:'cat_coffee',name:'Kopi & Camilan',type:'expense',icon:'coffee'},
+{id:'cat_transport',name:'Transportasi & BBM',type:'expense',icon:'car'},
+{id:'cat_utilities',name:'Rumah & Utilitas',type:'expense',icon:'zap'},
+{id:'cat_subs',name:'Langganan Digital & AI',type:'expense',icon:'repeat'},
+{id:'cat_shopping',name:'Gaya Hidup & Barang',type:'expense',icon:'shopping-bag'},
+{id:'cat_salary',name:'Gaji',type:'income',icon:'briefcase'},
+{id:'cat_freelance',name:'Sampingan & Dividen',type:'income',icon:'trending-up'},
 {id:'cat_opening',name:'Saldo awal',type:'income',icon:'wallet'}];
 let essentials=[];
 let pockets=[];
@@ -830,13 +851,14 @@ function render(){
   rolloverBills();
   const fin=financialSummary(), ess=essentialsSummary();
   const sp=document.getElementById('safePill'); sp.textContent=fmt(fin.safeToSpend); sp.classList.toggle('neg',fin.safeToSpend<0);
-  const titles={dashboard:'Dashboard Overview',essentials:'Essentials & Recurring Bills',pockets:'Saving Pockets & Accounts',activity:'Activity Log & Reimbursements',settings:'Pengaturan'};
+  const titles={dashboard:'Ringkasan',essentials:'Belanja Essentials & Tagihan',pockets:'Tabungan & Rekening',activity:'Riwayat Transaksi',settings:'Pengaturan'};
   document.getElementById('pageTitle').textContent=titles[activeTab];
   const mi=monthInfo(), now=today();
   document.getElementById('pageSub').textContent=`${now.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'short',year:'numeric'})} • Hari ke-${mi.day} dari ${mi.dim} (${fin.monthElapsedPercent}% berjalan)`;
   ['dashboard','essentials','pockets','activity','settings'].forEach(t=>{
     const v=document.getElementById('view-'+t); v.classList.toggle('hidden', t!==activeTab); if(t!==activeTab) v.innerHTML='';
-    document.querySelector(`[data-tab="${t}"]`).classList.toggle('active', t===activeTab);
+    const b=document.querySelector(`[data-tab="${t}"]`); b.classList.toggle('active', t===activeTab);
+    if(t===activeTab) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current');
   });
   // Only the open tab is built: hidden tabs are rebuilt when opened (goTab renders), so taps stay fast as history grows.
   ({dashboard:()=>renderDashboard(fin,ess),essentials:()=>renderEssentials(fin,ess),pockets:()=>renderPockets(fin),activity:renderActivity,settings:renderSettings})[activeTab]();
@@ -853,23 +875,24 @@ function renderDashboard(fin,ess){
   document.getElementById('view-dashboard').innerHTML=`
   <div class="grid" style="grid-template-columns:repeat(12,1fr)">
     <div class="hero" style="grid-column:span 7">
-      <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;position:relative;z-index:1">
-        <span class="pill-green">✓ True Discretionary Balance</span>
+      <div class="hero-head">
+        <p class="label" style="margin:6px 0 0">Safe-to-Spend saat ini</p>
         <button class="btn-ghost-light" onclick="toggleFormula()">${showFormula?'Sembunyikan rumus':'Cara menghitungnya?'}</button>
       </div>
-      <p class="label" style="margin-top:16px">Safe-to-Spend saat ini</p>
       <div class="big" style="${fin.safeToSpend<0?'color:#fcd34d':''}">${fmt(fin.safeToSpend)}</div>
-      <p style="font-size:13px;color:#e2e8f0;margin:6px 0 0;font-weight:700;position:relative;z-index:1">${fin.safeToSpend>0?`≈ ${fmt(fin.perDay)} per hari sampai gajian`: (fin.cycleIncome+fin.carryOver<=0&&!openingTx()? `Belum ada pemasukan tercatat. <button class="btn-ghost-light" onclick="openOpeningBalance()">Catat saldo awal</button>` : 'Rencana belanja melebihi pemasukan periode ini.')}</p>
-      <p style="font-size:12px;color:#94a3b8;margin:6px 0 0;position:relative;z-index:1;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span>Gajian berikutnya: <strong style="color:#e2e8f0">${fin.nextPayday.toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short'})}</strong> · ${fin.daysToPayday} hari lagi</span><button class="btn-ghost-light" onclick="openPaydayModal()">Ubah tanggal gajian</button></p>
+      <p style="font-size:13px;color:#e2e8f0;margin:6px 0 0;font-weight:700">${fin.safeToSpend>0?`≈ ${fmt(fin.perDay)} per hari sampai gajian`: (fin.cycleIncome+fin.carryOver<=0&&!openingTx()? `Belum ada pemasukan tercatat. <button class="btn-ghost-light" onclick="openOpeningBalance()">Catat saldo awal</button>` : 'Rencana belanja melebihi pemasukan periode ini.')}</p>
+      <p style="font-size:12px;color:#94a3b8;margin:6px 0 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span>Gajian berikutnya: <strong style="color:#e2e8f0">${fin.nextPayday.toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short'})}</strong> · ${fin.daysToPayday} hari lagi</span><button class="btn-ghost-light" onclick="openPaydayModal()">Ubah tanggal gajian</button></p>
+      ${(()=>{ const t=today(), t0=new Date(t.getFullYear(),t.getMonth(),t.getDate()), total=Math.max(1,Math.round((fin.nextPayday-fin.cycleStart)/86400000)), day=Math.min(total,Math.max(1,Math.round((t0-fin.cycleStart)/86400000)+1)), short=d=>d.toLocaleDateString('id-ID',{day:'numeric',month:'short'});
+        return `<div class="cycle"><div class="cycle-head"><span>Periode gajian</span><span>Hari ke-<strong>${day}</strong> dari ${total}</span></div><div class="cycle-bar" role="progressbar" aria-label="Periode gajian berjalan" aria-valuemin="1" aria-valuemax="${total}" aria-valuenow="${day}"><i style="width:${Math.round(day/total*100)}%"></i></div><div class="cycle-ends"><span>${short(fin.cycleStart)}</span><span>Gajian ${short(fin.nextPayday)}</span></div></div>`; })()}
       <div class="breakdown">
         ${fin.carryOver?`<div title="Sisa dari periode gajian sebelumnya"><span>Sisa sebelumnya</span><strong>${fmt(fin.carryOver)}</strong></div>`:''}
         <button title="Pemasukan sejak gajian terakhir" onclick="goTab('activity')"><span style="color:#6ee7b7">+ Pemasukan</span><strong style="color:#34d399">${fmt(fin.cycleIncome)}</strong></button>
         <button title="Semua pengeluaran periode ini (termasuk kartu kredit)" onclick="goTab('activity')"><span>− Pengeluaran</span><strong>${fmt(fin.cycleSpending)}</strong></button>
-        ${fin.cycleSaved>0?`<button title="Dipindah ke Saving Pockets periode ini" onclick="goTab('pockets')"><span style="color:#6ee7b7">− Ditabung</span><strong style="color:#34d399">${fmt(fin.cycleSaved)}</strong></button>`:fin.cycleSaved<0?`<button title="Diambil dari Saving Pockets periode ini" onclick="goTab('pockets')"><span style="color:#6ee7b7">+ Dari tabungan</span><strong style="color:#34d399">${fmt(-fin.cycleSaved)}</strong></button>`:''}
+        ${fin.cycleSaved>0?`<button title="Dipindah ke pocket tabungan periode ini" onclick="goTab('pockets')"><span style="color:#6ee7b7">− Ditabung</span><strong style="color:#34d399">${fmt(fin.cycleSaved)}</strong></button>`:fin.cycleSaved<0?`<button title="Diambil dari pocket tabungan periode ini" onclick="goTab('pockets')"><span style="color:#6ee7b7">+ Dari tabungan</span><strong style="color:#34d399">${fmt(-fin.cycleSaved)}</strong></button>`:''}
         <button title="Tagihan periode ini yang belum dibayar (perkiraan)" onclick="goTab('essentials')"><span style="color:#fcd34d">− Tagihan</span><strong style="color:#fcd34d">${fmt(fin.billsReserved)}</strong></button>
         <button title="Essentials yang belum dibeli (harga perkiraan)" onclick="goTab('essentials')"><span style="color:#fcd34d">− Essentials</span><strong style="color:#fcd34d">${fmt(fin.essentialsReserved)}</strong></button>
       </div>
-      ${showFormula?`<div class="formula"><strong style="color:#fff">Cara menghitungnya (periode ${fin.cycleStart.toLocaleDateString('id-ID',{day:'numeric',month:'short'})} – ${fin.nextPayday.toLocaleDateString('id-ID',{day:'numeric',month:'short'})}):</strong><br>${fin.carryOver?`Sisa periode sebelumnya ${fmt(fin.carryOver)} + `:''}pemasukan ${fmt(fin.cycleIncome)} − pengeluaran ${fmt(fin.cycleSpending)}${fin.cycleSaved>0?` − ditabung ke pocket ${fmt(fin.cycleSaved)}`:fin.cycleSaved<0?` + diambil dari tabungan ${fmt(-fin.cycleSaved)}`:''} − tagihan yang belum dibayar ${fmt(fin.billsReserved)} − Essentials yang belum dibeli ${fmt(fin.essentialsReserved)}. Essentials dan tagihan yang sudah dibayar dihitung dengan nominal aslinya (masuk ke pengeluaran). Saving Pockets adalah tabungan terpisah (total ${fmt(fin.totalPocketsSaved)}) dan tidak mengurangi angka ini.</div>`:''}
+      ${showFormula?`<div class="formula"><strong style="color:#fff">Cara menghitungnya (periode ${fin.cycleStart.toLocaleDateString('id-ID',{day:'numeric',month:'short'})} – ${fin.nextPayday.toLocaleDateString('id-ID',{day:'numeric',month:'short'})}):</strong><br>${fin.carryOver?`Sisa periode sebelumnya ${fmt(fin.carryOver)} + `:''}pemasukan ${fmt(fin.cycleIncome)} − pengeluaran ${fmt(fin.cycleSpending)}${fin.cycleSaved>0?` − ditabung ke pocket ${fmt(fin.cycleSaved)}`:fin.cycleSaved<0?` + diambil dari tabungan ${fmt(-fin.cycleSaved)}`:''} − tagihan yang belum dibayar ${fmt(fin.billsReserved)} − Essentials yang belum dibeli ${fmt(fin.essentialsReserved)}. Essentials dan tagihan yang sudah dibayar dihitung dengan nominal aslinya (masuk ke pengeluaran). Pocket tabungan disimpan terpisah (total ${fmt(fin.totalPocketsSaved)}) dan tidak mengurangi angka ini.</div>`:''}
     </div>
     <div class="card" style="grid-column:span 5;display:flex;flex-direction:column;justify-content:space-between">
       ${(()=>{ const pr=periodRange(dashPeriod), sp=periodSpend(pr.start,pr.end), rows=categories.filter(c=>c.type==='expense').map(c=>({cat:c,amt:(sp.map[c.id]||0)+(sp.planned[c.id]||0)})).filter(r=>r.amt>0).sort((a,b)=>b.amt-a.amt), total=rows.reduce((t,r)=>t+r.amt,0), planned=Object.values(sp.planned).reduce((a,b)=>a+b,0);
@@ -886,7 +909,7 @@ function renderDashboard(fin,ess){
 
   <div class="card" style="margin-top:16px">
     <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start">
-      <div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><h3>🛒 Essentials Tracker</h3><span class="badge ok">Sisa: ${fmt(ess.totalEssentialsRemaining)}</span></div>
+      <div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><h3>Essentials periode ini</h3><span class="badge ok">Sisa: ${fmt(ess.totalEssentialsRemaining)}</span></div>
       <p class="sub">Terpakai ${fmt(ess.totalEssentialsSpent)} dari ${fmt(ess.totalEssentialsBudget)} • ${ess.completedCount} dari ${ess.activeCount} item terpenuhi. Ketuk item untuk langsung mencatat pembelian.</p></div>
       <button class="link-btn" onclick="goTab('essentials')">Buka tabel lengkap →</button>
     </div>
@@ -895,15 +918,15 @@ function renderDashboard(fin,ess){
       <button class="ess-tile" onclick="openLoggerWithEssential('${item.id}')">
         <div class="t1"><span>Butuh ${item.remainingQty}x lagi</span><span>/ ${item.targetQty}</span></div>
         <h4>${esc(item.name)}</h4>
-        <div class="t3">Sisa budget<strong>${fmt(item.remainingAmount)}</strong></div>
-      </button>`).join('') || (ess.paused? '<p style="font-size:13px;color:var(--muted)">Essentials dilewati periode ini — semua belanja dihitung sebagai pengeluaran biasa.</p>' : essentials.length? '<p style="font-size:13px;color:var(--muted)">Semua essentials bulan ini sudah terpenuhi 🎉</p>' : '<p style="font-size:13px;color:var(--muted)">Belum ada daftar Essentials. <button class="link-btn" onclick="goTab(&quot;settings&quot;)">Tambahkan di Pengaturan →</button></p>')}</div>
+        <div class="t3">Sisa anggaran<strong>${fmt(item.remainingAmount)}</strong></div>
+      </button>`).join('') || (ess.paused? '<p style="font-size:13px;color:var(--muted)">Essentials dilewati periode ini — semua belanja dihitung sebagai pengeluaran biasa.</p>' : essentials.length? '<p style="font-size:13px;color:var(--muted)">Semua Essentials periode ini sudah terpenuhi.</p>' : '<p style="font-size:13px;color:var(--muted)">Belum ada daftar Essentials. <button class="link-btn" onclick="goTab(&quot;settings&quot;)">Tambahkan di Pengaturan →</button></p>')}</div>
   </div>
 
   <div style="margin-top:16px">
     <div class="card">
-      <div style="display:flex;justify-content:space-between"><div><h3>Saving Pockets</h3><p class="sub">Total tabungan: <strong style="color:var(--emerald)">${fmt(fin.totalPocketsSaved)}</strong></p></div><button class="link-btn" onclick="goTab('pockets')">Kelola Pockets →</button></div>
-      <div class="pocket-grid" style="margin-top:14px">${pockets.map(p=>{ const pct=Math.min(100,Math.round(p.currentAmount/p.targetAmount*100)); return `<div class="pocket-mini"><div style="display:flex;justify-content:space-between"><span class="cat-ico" style="background:var(--emerald-bg);color:var(--emerald-text)"><i data-lucide="${p.icon}"></i></span><span class="badge ok">${pct}%</span></div><h4>${esc(p.name)}</h4><p>${fmt(p.currentAmount)} dari ${fmt(p.targetAmount)}</p><div class="bar sm" style="margin-top:8px"><i style="width:${pct}%"></i></div><div style="display:flex;gap:6px;margin-top:10px"><button class="btn btn-sm" style="flex:1" onclick="openPocketAction('${p.id}','topup')">+ Top Up ${fmt(p.monthlyHint)}</button><button class="btn btn-sm" onclick="openPocketAction('${p.id}','spend')">Pakai</button></div></div>`;}).join('')}</div>
-      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px"><div style="display:flex;gap:10px;align-items:center"><span class="cat-ico" style="background:var(--amber-bg);color:var(--amber)">💳</span><div><div style="font-size:12px;font-weight:800">Tagihan kartu kredit</div><div style="font-size:11px;color:var(--muted)">Belanja kartu sudah dihitung saat transaksi</div></div></div><strong>${fmt(fin.creditFloatHolding)}</strong></div>
+      <div style="display:flex;justify-content:space-between"><div><h3>Pocket Tabungan</h3><p class="sub">Total tabungan: <strong style="color:var(--emerald)">${fmt(fin.totalPocketsSaved)}</strong></p></div><button class="link-btn" onclick="goTab('pockets')">Kelola pocket →</button></div>
+      <div class="pocket-grid" style="margin-top:14px">${pockets.map(p=>{ const pct=Math.min(100,Math.round(p.currentAmount/p.targetAmount*100)); return `<div class="pocket-mini"><div style="display:flex;justify-content:space-between"><span class="cat-ico" style="background:var(--emerald-bg);color:var(--emerald-text)"><i data-lucide="${p.icon}"></i></span><span class="badge ok">${pct}%</span></div><h4>${esc(p.name)}</h4><p>${fmt(p.currentAmount)} dari ${fmt(p.targetAmount)}</p><div class="bar sm" style="margin-top:8px"><i style="width:${pct}%"></i></div><div style="display:flex;gap:6px;margin-top:10px"><button class="btn btn-sm" style="flex:1" onclick="openPocketAction('${p.id}','topup')">+ Isi ${fmt(p.monthlyHint)}</button><button class="btn btn-sm" onclick="openPocketAction('${p.id}','spend')">Pakai</button></div></div>`;}).join('')}</div>
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px"><div style="display:flex;gap:10px;align-items:center"><span class="cat-ico" style="background:var(--amber-bg);color:var(--amber)"><i data-lucide="credit-card"></i></span><div><div style="font-size:12px;font-weight:800">Tagihan kartu kredit</div><div style="font-size:11px;color:var(--muted)">Belanja kartu sudah dihitung saat transaksi</div></div></div><strong>${fmt(fin.creditFloatHolding)}</strong></div>
     </div>
   </div>`;
 }
@@ -930,7 +953,7 @@ function openingHint(sg){ return `Saran: saldo rekening ${fmt(sg.cash)} − kart
 function openOpeningBalance(){
   if(!accounts.length){ toast('Tambahkan rekening dulu di Pengaturan.'); goTab('settings'); return; }
   const sg=openingSuggestion(todayISO()), suggest=sg.value;
-  modalShell('Saldo Awal', `<p class="rc-help" style="margin:0 0 12px">Berapa uang yang bisa kamu belanjakan saat mulai memakai FlowPocket? Biasanya: saldo semua rekening & e-wallet dikurangi tagihan kartu kredit — <b>tanpa</b> tabungan di Saving Pockets. Saldo rekening tidak berubah; angka ini hanya titik awal Safe-to-Spend.</p>
+  modalShell('Saldo Awal', `<p class="rc-help" style="margin:0 0 12px">Berapa uang yang bisa kamu belanjakan saat mulai memakai FlowPocket? Biasanya: saldo semua rekening & e-wallet dikurangi tagihan kartu kredit — <b>tanpa</b> tabungan di pocket. Saldo rekening tidak berubah; angka ini hanya titik awal Safe-to-Spend.</p>
     <div class="field"><label for="obAmt">Saldo awal (Rp)</label>${amtInput('obAmt',suggest).replace('<input','<input class="big"')}<div class="rc-help" id="obHint">${openingHint(sg)}</div></div>
     <div class="field"><label for="obDate">Per tanggal</label><input id="obDate" type="date" value="${todayISO()}" max="${todayISO()}" onchange="refreshOpeningSuggestion()"></div>
     ${openingTx()?`<p class="rc-help" style="margin:0">Saldo awal sebelumnya (${esc(openingTx().date)}) akan diganti dengan yang baru.</p>`:''}`,
@@ -967,9 +990,9 @@ function renderEssentials(fin,ess){
   const qtyLabel=item=> item.targetQty!==item.defaultQty? `${item.targetQty}x <span style="font-size:10px;color:var(--muted);font-weight:500">(biasanya ${item.defaultQty}x)</span>` : `${item.targetQty}x`;
   document.getElementById('view-essentials').innerHTML=`
   <div class="stats4">
-    <div class="stat"><span>Total Budget Essentials</span><p>${fmt(ess.totalEssentialsBudget)}</p><small>${ess.activeCount} item periode ini</small></div>
+    <div class="stat"><span>Anggaran Essentials</span><p>${fmt(ess.totalEssentialsBudget)}</p><small>${ess.activeCount} item periode ini</small></div>
     <div class="stat"><span>Sudah Terpakai</span><p>${fmt(ess.totalEssentialsSpent)}</p><small style="color:var(--emerald);font-weight:700">${pct}% terpenuhi</small></div>
-    <div class="stat dark"><span style="color:#6ee7b7">Sisa Essentials</span><p>${fmt(ess.totalEssentialsRemaining)}</p><small>Budget yang masih dibutuhkan</small></div>
+    <div class="stat dark"><span style="color:#6ee7b7">Sisa Essentials</span><p>${fmt(ess.totalEssentialsRemaining)}</p><small>Anggaran yang masih dibutuhkan</small></div>
     <div class="stat"><span>Item Selesai</span><p style="color:var(--emerald)">${ess.completedCount} / ${ess.activeCount}</p><small>${open} item masih dibutuhkan</small></div>
   </div>
   <div class="card" style="margin-top:16px">
@@ -980,22 +1003,22 @@ function renderEssentials(fin,ess){
         <button class="${essentialsFilter==='remaining'?'active':''}" onclick="setEssFilter('remaining')">Masih Dibutuhkan (${open})</button>
         <button class="${essentialsFilter==='completed'?'active':''}" onclick="setEssFilter('completed')">Selesai (${ess.completedCount})</button>
       </div>
-      <p style="font-size:12px;color:var(--muted);margin:0;align-self:center">Klik <strong>+ Log Buy</strong> di baris mana pun, atau tombol <strong>Quick Log</strong>.</p>
+      <p style="font-size:12px;color:var(--muted);margin:0;align-self:center">Klik <strong>+ Catat beli</strong> di baris mana pun, atau tombol <strong>Catat</strong>.</p>
     </div>
     <div style="overflow-x:auto"><table class="ess-table"><thead><tr><th>Item</th><th class="num">Harga / Unit</th><th class="center">Target</th><th class="num">Total Rencana</th><th class="center">Sudah Dibeli</th><th class="num">Sisa</th><th class="num">Aksi</th></tr></thead>
-    <tbody>${filtered.map(item=>{ const cat=catById(item.categoryId); return `<tr class="${item.isComplete?'done':''}" style="${item.skipped?'opacity:.6':''}"><td class="c-item"><div style="display:flex;gap:10px;align-items:center"><span class="cat-ico">${item.isComplete?'✓':''}<i data-lucide="${cat?cat.icon:'shopping-bag'}"></i></span><div><strong style="${item.isComplete?'text-decoration:line-through;color:var(--muted)':''}">${esc(item.name)}</strong><div style="font-size:10px;color:var(--muted)">${cat?cat.name:''}</div><div class="ess-meta" style="font-size:12px;color:var(--muted);margin-top:2px">${fmt(item.unitPrice)} × ${ess.paused?item.defaultQty:`<button class="qty-btn" onclick="openEssQty('${item.id}')">${qtyLabel(item)}</button>`}${item.skipped?'':` = <strong style="color:var(--text)">${fmt(item.totalPlanned)}</strong>`}</div></div></div></td><td class="num c-price">${fmt(item.unitPrice)}</td><td class="center c-qty">${ess.paused?`<span style="color:var(--muted)">${item.defaultQty}x</span>`:`<button class="qty-btn" title="Ubah jumlah untuk periode ini" onclick="openEssQty('${item.id}')">${qtyLabel(item)}</button>`}</td><td class="num c-total"><strong>${fmt(item.totalPlanned)}</strong></td><td class="center c-bought">${item.skipped?'<span style="color:var(--muted)">—</span>':`<span class="badge ${item.boughtQty>0?'ok':''}" style="${item.boughtQty===0?'background:var(--surface2);color:var(--muted);border-color:var(--border)':''}">${item.boughtQty} / ${item.targetQty}</span>`}</td><td class="num c-left">${item.skipped?`<span style="color:var(--muted);font-weight:700">Dilewati</span>${item.spentAmount?`<div style="font-size:11px;color:var(--muted)">dibeli ${fmt(item.spentAmount)}</div>`:''}`:item.isComplete?'<span style="color:var(--emerald);font-weight:800">✓ Terpenuhi</span>':`<strong style="color:var(--amber-text)">${fmt(item.remainingAmount)}</strong><div style="font-size:11px;color:var(--muted)">kurang ${item.remainingQty}x lagi</div>`}</td><td class="num c-act"><button class="btn ${item.isComplete?'':'btn-dark'} btn-sm" onclick="openLoggerWithEssential('${item.id}')">${item.isComplete?'+ Beli Extra':'+ Log Buy'}</button></td></tr>`;}).join('')}</tbody></table></div>
+    <tbody>${filtered.map(item=>{ const cat=catById(item.categoryId); return `<tr class="${item.isComplete?'done':''}" style="${item.skipped?'opacity:.6':''}"><td class="c-item"><div style="display:flex;gap:10px;align-items:center"><span class="cat-ico">${item.isComplete?'✓':''}<i data-lucide="${cat?cat.icon:'shopping-bag'}"></i></span><div><strong style="${item.isComplete?'text-decoration:line-through;color:var(--muted)':''}">${esc(item.name)}</strong><div style="font-size:10px;color:var(--muted)">${cat?cat.name:''}</div><div class="ess-meta" style="font-size:12px;color:var(--muted);margin-top:2px">${fmt(item.unitPrice)} × ${ess.paused?item.defaultQty:`<button class="qty-btn" onclick="openEssQty('${item.id}')">${qtyLabel(item)}</button>`}${item.skipped?'':` = <strong style="color:var(--text)">${fmt(item.totalPlanned)}</strong>`}</div></div></div></td><td class="num c-price">${fmt(item.unitPrice)}</td><td class="center c-qty">${ess.paused?`<span style="color:var(--muted)">${item.defaultQty}x</span>`:`<button class="qty-btn" title="Ubah jumlah untuk periode ini" onclick="openEssQty('${item.id}')">${qtyLabel(item)}</button>`}</td><td class="num c-total"><strong>${fmt(item.totalPlanned)}</strong></td><td class="center c-bought">${item.skipped?'<span style="color:var(--muted)">—</span>':`<span class="badge ${item.boughtQty>0?'ok':''}" style="${item.boughtQty===0?'background:var(--surface2);color:var(--muted);border-color:var(--border)':''}">${item.boughtQty} / ${item.targetQty}</span>`}</td><td class="num c-left">${item.skipped?`<span style="color:var(--muted);font-weight:700">Dilewati</span>${item.spentAmount?`<div style="font-size:11px;color:var(--muted)">dibeli ${fmt(item.spentAmount)}</div>`:''}`:item.isComplete?'<span style="color:var(--emerald);font-weight:800">✓ Terpenuhi</span>':`<strong style="color:var(--amber-text)">${fmt(item.remainingAmount)}</strong><div style="font-size:11px;color:var(--muted)">kurang ${item.remainingQty}x lagi</div>`}</td><td class="num c-act"><button class="btn ${item.isComplete?'':'btn-dark'} btn-sm" onclick="openLoggerWithEssential('${item.id}')">${item.isComplete?'+ Beli lagi':'+ Catat beli'}</button></td></tr>`;}).join('')}</tbody></table></div>
     ${filtered.length===0?'<p style="text-align:center;color:var(--muted);font-size:13px;padding:20px">Tidak ada item di filter ini.</p>':''}
   </div>
 
   <div class="card" style="margin-top:16px">
-    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-bottom:14px;border-bottom:1px solid var(--border)"><div><h3>Tagihan &amp; Langganan Rutin</h3><p class="sub">Perbandingan Expected vs Actual — selisihnya terlihat jelas, tidak tersembunyi</p></div><button class="btn btn-dark" onclick="openBillForm()">+ Tambah Tagihan Rutin</button></div>
+    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-bottom:14px;border-bottom:1px solid var(--border)"><div><h3>Tagihan &amp; Langganan Rutin</h3><p class="sub">Perkiraan vs yang benar-benar dibayar — selisihnya langsung terlihat</p></div><button class="btn btn-dark" onclick="openBillForm()">+ Tambah Tagihan Rutin</button></div>
     <div>${recurringItems.map(item=>{ const cat=catById(item.categoryId); const isPaid=item.status==='paid', isSkip=item.status==='skipped'; const variance=isPaid? item.expectedAmount-(item.actualAmount??item.expectedAmount):0; return `<div class="rec-row" style="${isSkip?'opacity:.55':''}">
       <div style="display:flex;gap:12px;align-items:flex-start;min-width:min(260px,100%);flex:1"><div class="date-box ${isPaid?'paid':isSkip?'skipped':''}"><small>${billCycleDue(item).toLocaleDateString('id-ID',{month:'short'}).replace('.','').toUpperCase()}</small><span>${billCycleDue(item).getDate()}</span></div>
-      <div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><strong style="font-size:14px">${esc(item.name)}</strong><span class="tag">${cat?cat.name:'Recurring'}</span>${isPaid?'<span class="badge ok">✓ Paid</span>':''}${isSkip?'<span class="badge" style="background:var(--surface2);color:var(--muted);border-color:var(--border)">Skipped</span>':''}</div><p style="font-size:12px;color:var(--muted);margin:3px 0 0">${esc(item.note||'')}</p></div></div>
+      <div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><strong style="font-size:14px">${esc(item.name)}</strong><span class="tag">${cat?cat.name:'Rutin'}</span>${isPaid?'<span class="badge ok">✓ Lunas</span>':''}${isSkip?'<span class="badge" style="background:var(--surface2);color:var(--muted);border-color:var(--border)">Skipped</span>':''}</div><p style="font-size:12px;color:var(--muted);margin:3px 0 0">${esc(item.note||'')}</p></div></div>
       <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center">
-        <div><div style="font-size:10px;color:var(--muted)">Expected</div><strong style="font-size:13px">${fmt(item.expectedAmount)}</strong></div>
-        <div><div style="font-size:10px;color:var(--muted)">Actual Paid</div><strong style="font-size:13px">${isPaid?fmt(item.actualAmount):'—'}</strong></div>
-        <div style="min-width:120px">${isPaid? (variance>0?`<span class="badge ok">+${fmt(variance)} Hemat</span>`: variance<0?`<span class="badge warn">${fmt(variance)} Over</span>`:'<span class="badge" style="background:var(--surface2);border-color:var(--border);color:var(--muted)">Pas</span>') : isSkip? `<span style="font-size:12px;color:var(--muted)">+${fmt(item.expectedAmount)} bebas</span>` : '<span class="badge warn">◷ Dicadangkan</span>'}</div>
+        <div><div style="font-size:10px;color:var(--muted)">Perkiraan</div><strong style="font-size:13px">${fmt(item.expectedAmount)}</strong></div>
+        <div><div style="font-size:10px;color:var(--muted)">Dibayar</div><strong style="font-size:13px">${isPaid?fmt(item.actualAmount):'—'}</strong></div>
+        <div style="min-width:120px">${isPaid? (variance>0?`<span class="badge ok">+${fmt(variance)} Hemat</span>`: variance<0?`<span class="badge warn">${fmt(variance)} Lebih</span>`:'<span class="badge" style="background:var(--surface2);border-color:var(--border);color:var(--muted)">Pas</span>') : isSkip? `<span style="font-size:12px;color:var(--muted)">+${fmt(item.expectedAmount)} bebas</span>` : '<span class="badge warn">◷ Dicadangkan</span>'}</div>
         <div style="display:flex;gap:6px">${item.status==='upcoming'?`<button class="btn btn-dark btn-sm" onclick="openPayModal('${item.id}')">Tandai Lunas</button><button class="btn btn-sm" onclick="toggleRecurring('${item.id}','skipped')">Lewati bulan ini</button>`:''}${item.status==='paid'?`<button class="btn btn-sm" onclick="openPayModal('${item.id}')">Ubah nominal</button><button class="btn btn-sm" onclick="toggleRecurring('${item.id}','upcoming')">Urungkan</button>`:''}${item.status==='skipped'?`<button class="btn btn-sm" onclick="toggleRecurring('${item.id}','upcoming')">Pulihkan</button>`:''}</div>
       </div></div>`;}).join('')}</div>
   </div>`;
@@ -1006,11 +1029,11 @@ function renderPockets(fin){
   document.getElementById('view-pockets').innerHTML=`
   ${pockets.length?'':`<div class="card" style="text-align:center;padding:28px;margin-bottom:16px"><p style="font-weight:700;margin:0">Belum ada saving pocket</p><p class="sub" style="margin:6px 0 12px">Buat pocket untuk tabungan seperti dana darurat atau liburan.</p><button class="btn btn-dark" onclick="openPocketForm()">+ Buat pocket</button></div>`}
 
-  <h3 style="margin:22px 0 4px">Virtual Saving Pockets</h3><p style="font-size:12px;color:var(--muted);margin:0 0 14px"> Tabungan terpisah dari uang belanja. Saldo pocket tidak mengurangi Safe-to-Spend; hanya menabung ke pocket (atau mengambil darinya) yang mengubahnya.</p>
+  <h3 style="margin:22px 0 4px">Pocket Tabungan</h3><p style="font-size:12px;color:var(--muted);margin:0 0 14px"> Tabungan terpisah dari uang belanja. Saldo pocket tidak mengurangi Safe-to-Spend; hanya menabung ke pocket (atau mengambil darinya) yang mengubahnya.</p>
   <div class="grid" style="grid-template-columns:1fr 1fr">${pockets.map(p=>{ const pct=Math.min(100,Math.round(p.currentAmount/p.targetAmount*100)); return `<div class="card"><div style="display:flex;justify-content:space-between;gap:10px"><div style="display:flex;gap:10px;align-items:center"><span class="cat-ico" style="width:42px;height:42px;border-radius:12px;background:var(--emerald-bg);color:var(--emerald-text)"><i data-lucide="${p.icon}"></i></span><div><h3>${esc(p.name)}</h3><p class="sub">${esc(p.description)}</p></div></div><span class="badge ok">${pct}%</span></div>
   <div style="display:flex;justify-content:space-between;margin-top:16px;align-items:flex-end"><div><div style="font-size:11px;color:var(--muted)">Terkumpul</div><div style="font-size:22px;font-weight:800">${fmt(p.currentAmount)}</div></div><div style="text-align:right"><div style="font-size:11px;color:var(--muted)">Target (${esc(p.targetDate)})</div><strong style="font-size:13px">${fmt(p.targetAmount)}</strong><div style="font-size:11px;color:var(--muted)">kurang ${fmt(Math.max(0,p.targetAmount-p.currentAmount))}</div></div></div>
   <div class="bar" style="margin-top:10px"><i style="width:${pct}%"></i></div>
-  ${p.monthlyHint?`<p class="sub" style="margin:10px 0 0">Saran top up ${fmt(p.monthlyHint)} / bulan</p>`:''}<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)"><button class="btn btn-dark" style="flex:1 1 120px" onclick="openPocketAction('${p.id}','topup')">+ Top Up</button><button class="btn" style="flex:1 1 120px" onclick="openPocketAction('${p.id}','spend')">Pakai dari Pocket</button></div></div>`;}).join('')}</div>
+  ${p.monthlyHint?`<p class="sub" style="margin:10px 0 0">Saran top up ${fmt(p.monthlyHint)} / bulan</p>`:''}<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)"><button class="btn btn-dark" style="flex:1 1 120px" onclick="openPocketAction('${p.id}','topup')">+ Isi pocket</button><button class="btn" style="flex:1 1 120px" onclick="openPocketAction('${p.id}','spend')">Pakai dari Pocket</button></div></div>`;}).join('')}</div>
 
   ${accountsCard(fin)}`;
 }
@@ -1049,7 +1072,7 @@ function renderActivity(){
   document.getElementById('view-activity').innerHTML=`
   <div class="card" style="padding:14px"><div class="searchbar">
     <div class="search-wrap"><i data-lucide="search"></i><input id="searchInput" type="text" placeholder="Cari transaksi atau tag (#essential, #recurring)…" value="${esc(searchQuery)}" oninput="onSearch(this.value)"></div>
-    <select onchange="filterType=this.value;render()" aria-label="Filter tipe"><option value="all" ${filterType==='all'?'selected':''}>Semua Tipe</option><option value="expense" ${filterType==='expense'?'selected':''}>Expenses</option><option value="income" ${filterType==='income'?'selected':''}>Income</option><option value="transfer" ${filterType==='transfer'?'selected':''}>Transfers</option><option value="refund" ${filterType==='refund'?'selected':''}>Refunds</option></select>
+    <select onchange="filterType=this.value;render()" aria-label="Filter tipe"><option value="all" ${filterType==='all'?'selected':''}>Semua Tipe</option><option value="expense" ${filterType==='expense'?'selected':''}>Pengeluaran</option><option value="income" ${filterType==='income'?'selected':''}>Income</option><option value="transfer" ${filterType==='transfer'?'selected':''}>Transfer</option><option value="refund" ${filterType==='refund'?'selected':''}>Refund</option></select>
     <select onchange="filterCategory=this.value;render()" aria-label="Filter kategori"><option value="all">Semua Kategori</option>${categories.map(c=>`<option value="${c.id}" ${filterCategory===c.id?'selected':''}>${c.name}</option>`).join('')}</select>
     ${(searchQuery||filterType!=='all'||filterCategory!=='all'||txPeriod.kind!=='all')?`<button class="btn" onclick="clearFilters()">✕ Reset filter</button>`:''}
   </div><div style="margin-top:10px">${periodPicker('txPeriod',txPeriod,true)}</div>
@@ -1063,9 +1086,20 @@ function onSearch(v){ searchQuery=v; clearTimeout(searchDeb); searchDeb=setTimeo
 function clearFilters(){ searchQuery=''; filterType='all'; filterCategory='all'; txPeriod={kind:'all',offset:0}; render(); }
 
 /* ===== MODALS ===== */
-function closeModal(){ document.getElementById('modalRoot').innerHTML=''; rcpt=null; stmt=null; }
+// Keyboard focus: remember what opened the modal, keep Tab inside it, and go back there on close.
+let modalOpener=null;
+function closeModal(){ const root=document.getElementById('modalRoot'), wasOpen=!!root.firstChild; root.innerHTML=''; rcpt=null; stmt=null;
+  if(wasOpen&&modalOpener&&document.contains(modalOpener)) modalOpener.focus(); modalOpener=null; }
+function trapModalTab(e){ const m=document.querySelector('#modalRoot .modal'); if(!m||e.key!=='Tab') return;
+  const f=[...m.querySelectorAll('button,input,select,textarea,label.btn,[tabindex]:not([tabindex="-1"])')].filter(x=>!x.disabled&&x.offsetParent!==null); if(!f.length) return;
+  const first=f[0], last=f[f.length-1];
+  if(!m.contains(document.activeElement)){ e.preventDefault(); first.focus(); }
+  else if(e.shiftKey&&document.activeElement===first){ e.preventDefault(); last.focus(); }
+  else if(!e.shiftKey&&document.activeElement===last){ e.preventDefault(); first.focus(); } }
 function modalShell(title, body, foot){
-  document.getElementById('modalRoot').innerHTML=`<div class="modal-back" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="modal-head"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)">${esc(title)}</span><button class="modal-close" onclick="closeModal()" aria-label="Tutup"><i data-lucide="x"></i></button></div></div><div class="modal-body">${body}</div>${foot?`<div style="padding:0 18px 18px">${foot}</div>`:''}</div></div>`; refreshIcons();
+  const root=document.getElementById('modalRoot'); if(!root.firstChild) modalOpener=document.activeElement;
+  document.getElementById('modalRoot').innerHTML=`<div class="modal-back" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true" tabindex="-1" aria-label="${esc(title)}"><div class="modal-head"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)">${esc(title)}</span><button class="modal-close" onclick="closeModal()" aria-label="Tutup"><i data-lucide="x"></i></button></div></div><div class="modal-body">${body}</div>${foot?`<div style="padding:0 18px 18px">${foot}</div>`:''}</div></div>`; refreshIcons();
+  const m=root.querySelector('.modal'); if(!m.contains(document.activeElement)) m.focus({preventScroll:true});
 }
 function openLoggerWithEssential(id){
   const item=essentialsSummary().items.find(e=>e.id===id); if(!item) return;
@@ -1126,7 +1160,7 @@ function updateLoggerPreview(){
 function openLogger(){
   if(!accounts.length){ toast('Tambahkan rekening dulu di Pengaturan.'); goTab('settings'); return; }
   const body=`
-    <div class="type-grid" style="margin-bottom:12px">${[['expense','Expense'],['income','Income'],['transfer','Transfer']].map(([id,l])=>`<button class="${logState.type===id?'active':''}" onclick="setLogType('${id}')">${l}</button>`).join('')}</div>
+    <div class="type-grid" style="margin-bottom:12px">${[['expense','Pengeluaran'],['income','Pemasukan'],['transfer','Transfer']].map(([id,l])=>`<button class="${logState.type===id?'active':''}" onclick="setLogType('${id}')">${l}</button>`).join('')}</div>
     ${logState.type==='expense'?`<div class="ql-imports"><button class="btn" onclick="openReceipt()"><i data-lucide="receipt"></i>Scan struk</button><button class="btn" onclick="openStatement()"><i data-lucide="file-text"></i>Impor tagihan kartu</button></div>`:''}
     <div class="field"><label for="qlAmt">Nominal (Rp)</label>${amtInput('qlAmt',parseAmt(logState.amount),'0','logState.amount=String(amtOf(this));updateLoggerPreview()').replace('<input','<input class="big"')}<div id="qlAmtHint" style="font-size:11px;color:var(--muted);margin-top:4px">= ${fmt(parseAmt(logState.amount))}</div></div>
     <div id="qlMatch">${logState.type==='transfer'?'':loggerPreviewHTML()}</div>
@@ -1137,7 +1171,7 @@ function openLogger(){
     ${logState.type==='transfer'?'':`<div class="field"><label for="qlTag">Tag (opsional)</label><input id="qlTag" type="text" value="${esc(logState.tag)}" oninput="logState.tag=this.value" placeholder="#weekend, #essential…"></div>`}
     <p style="font-size:11px;color:var(--muted);line-height:1.5;margin:0">Saldo, pocket, tagihan, dan progres Essentials langsung diperbarui begitu disimpan, lalu tersinkron ke akunmu.</p>
   `;
-  modalShell('Quick Log — catat dalam 10 detik', body, `<button id="qlSave" class="btn btn-emerald" style="width:100%;padding:13px;font-size:14px" onclick="saveQuickLog()">Simpan • ${fmt(parseAmt(logState.amount))}</button>`);
+  modalShell('Catat transaksi', body, `<button id="qlSave" class="btn btn-emerald" style="width:100%;padding:13px;font-size:14px" onclick="saveQuickLog()">Simpan • ${fmt(parseAmt(logState.amount))}</button>`);
   const amtEl=document.getElementById('qlAmt'); if(amtEl&&!logState.amount) amtEl.focus();
 }
 function setLogType(t){ logState.type=t; if(t==='transfer'&&!logState.transferTo) logState.transferTo=defaultTransferTo(); if(t==='income') logState.categoryId='cat_salary'; if(t==='expense'||t==='refund') { if(!categories.find(c=>c.id===logState.categoryId&&c.type==='expense')) logState.categoryId='cat_coffee'; } openLogger(true); }
@@ -1146,7 +1180,7 @@ function saveQuickLog(){
   if(amt<=0){ toast('Masukkan nominal lebih dari nol dulu ya.'); return; }
   if(logState.type==='transfer'){ saveTransfer(amt); return; }
   const cat=catById(logState.categoryId), pock=pockById(logState.pocketId), m=matchedEssential();
-  const defTitle= logState.type==='transfer'? `Transfer ke ${pock?pock.name:'Pocket'}` : logState.type==='refund'? `Reimbursement (${cat?cat.name:'General'})` : m? m.name : (cat?cat.name:'Quick Entry');
+  const defTitle= logState.type==='transfer'? `Transfer ke ${pock?pock.name:'Pocket'}` : logState.type==='refund'? `Penggantian (${cat?cat.name:'Umum'})` : m? m.name : (cat?cat.name:'Quick Entry');
   const qlDate= /^\d{4}-\d{2}-\d{2}$/.test(logState.date||'')? logState.date : todayISO();
   if(qlDate>todayISO()){ toast('Tanggal tidak boleh di masa depan.'); return; }
   const snap=snapshot();
@@ -1176,14 +1210,14 @@ function setTransferFrom(v){ if(v.startsWith('pock:')){ logState.fromPocket=v.sl
 function transferFieldsHTML(){
   const fromPock=logState.fromPocket? pockById(logState.fromPocket) : null, from=fromPock? 'pock:'+fromPock.id : logState.accountId, to=logState.transferTo||'';
   const fromOpts=accounts.map(a=>`<option value="${a.id}" ${from===a.id?'selected':''}>${esc(a.name)} — ${fmt(a.balance)}</option>`).join('')
-    + (pockets.length? `<optgroup label="Saving Pockets (ambil tabungan)">${pockets.map(p=>`<option value="pock:${p.id}" ${from==='pock:'+p.id?'selected':''}>${esc(p.name)} — ${fmt(p.currentAmount)}</option>`).join('')}</optgroup>` : '');
+    + (pockets.length? `<optgroup label="Ambil dari pocket tabungan">${pockets.map(p=>`<option value="pock:${p.id}" ${from==='pock:'+p.id?'selected':''}>${esc(p.name)} — ${fmt(p.currentAmount)}</option>`).join('')}</optgroup>` : '');
   const accOpts=accounts.filter(a=>a.id!==from&&!(fromPock&&a.type==='credit')).map(a=>`<option value="acc:${a.id}" ${to==='acc:'+a.id?'selected':''}>${esc(a.name)}${a.type==='credit'?' (bayar kartu)':''}</option>`).join('');
   const pockOpts=fromPock? '' : pockets.map(p=>`<option value="pock:${p.id}" ${to==='pock:'+p.id?'selected':''}>${esc(p.name)} — ${fmt(p.currentAmount)}</option>`).join('');
   const note= fromPock? 'Mengambil dari tabungan: saldo pocket berkurang, rekening bertambah, dan Safe-to-Spend naik.'
     : to.startsWith('pock:')? 'Menabung: saldo rekening berkurang, pocket bertambah, dan Safe-to-Spend turun.'
     : to.startsWith('acc:')&&(accById(to.slice(4))||{}).type==='credit'? 'Membayar tagihan kartu kredit — hutang kartu berkurang.' : 'Uang pindah antar rekening sendiri — tidak dihitung sebagai pengeluaran.';
   return `<div class="field"><label for="qlFrom">Dari</label><select id="qlFrom" onchange="setTransferFrom(this.value)">${fromOpts}</select></div>
-  <div class="field"><label for="qlTo">Ke</label><select id="qlTo" onchange="logState.transferTo=this.value;openLogger()"><option value="" ${to?'':'selected'}>Pilih tujuan…</option>${accOpts?`<optgroup label="Rekening & kartu">${accOpts}</optgroup>`:''}${pockOpts?`<optgroup label="Saving Pockets">${pockOpts}</optgroup>`:''}</select>
+  <div class="field"><label for="qlTo">Ke</label><select id="qlTo" onchange="logState.transferTo=this.value;openLogger()"><option value="" ${to?'':'selected'}>Pilih tujuan…</option>${accOpts?`<optgroup label="Rekening & kartu">${accOpts}</optgroup>`:''}${pockOpts?`<optgroup label="Pocket tabungan">${pockOpts}</optgroup>`:''}</select>
   <p class="rc-help" style="margin:6px 0 0">${note}</p></div>`;
 }
 function saveTransfer(amt){
@@ -1596,11 +1630,11 @@ let payingId=null;
 function openPayModal(id){
   if(!accounts.length){ toast('Tambahkan rekening dulu di Pengaturan.'); goTab('settings'); return; }
   const item=recurringItems.find(r=>r.id===id); if(!item) return; payingId=id;
-  const body=`<p style="font-size:13px;margin:0 0 12px"><strong>${esc(item.name)}</strong><br><span style="color:var(--muted);font-size:12px">Jatuh tempo ${billCycleDue(item).toLocaleDateString('id-ID',{day:'numeric',month:'short'})} • Expected ${fmt(item.expectedAmount)} • ${esc(item.note||'')}</span></p>
+  const body=`<p style="font-size:13px;margin:0 0 12px"><strong>${esc(item.name)}</strong><br><span style="color:var(--muted);font-size:12px">Jatuh tempo ${billCycleDue(item).toLocaleDateString('id-ID',{day:'numeric',month:'short'})} • Perkiraan ${fmt(item.expectedAmount)} • ${esc(item.note||'')}</span></p>
   <div class="field"><label for="payAmt">Nominal yang dibayar (Rp)</label>${amtInput('payAmt',item.actualAmount??item.expectedAmount).replace('<input','<input class="big"')}</div>
   <div class="field"><label for="payDate">Tanggal bayar</label><input id="payDate" type="date" value="${esc((transactions.find(t=>t.id===item.txId)||{}).date||todayISO())}" max="${todayISO()}"></div>
   <div class="field"><label for="payAcc">Bayar dari rekening</label><select id="payAcc">${accounts.map(a=>`<option value="${a.id}" ${(item.accountId||mainAccountId())===a.id?'selected':''}>${esc(a.name)} — ${fmt(a.balance)}</option>`).join('')}</select></div>
-  <p style="font-size:11px;color:var(--muted);margin:0">Selisih dari expected akan langsung terlihat sebagai “Hemat” atau “Over” di daftar tagihan.</p>`;
+  <p style="font-size:11px;color:var(--muted);margin:0">Selisih dari perkiraan langsung terlihat sebagai “Hemat” atau “Lebih” di daftar tagihan.</p>`;
   modalShell('Tandai Tagihan Lunas', body, `<button class="btn btn-emerald" style="width:100%;padding:12px" onclick="confirmPay()">Konfirmasi Lunas</button>`);
 }
 function confirmPay(){
@@ -1805,7 +1839,7 @@ function renderSettings(){
   ${settingsList('Rekening & Kartu','Semua rekening, e-wallet dan kartu kredit yang kamu punya.','+ Rekening','openAccountForm()',
     accounts.map(a=>setRow(esc(a.name),`${esc((ACC_TYPES[a.type]||ACC_TYPES.bank).label)} · ${fmt(a.balance)}`,`openAccountForm('${a.id}')`,`deleteAccount('${a.id}')`)),
     'Belum ada rekening. Tambahkan rekening tempat gaji masuk terlebih dulu.')}
-  ${settingsList('Saving Pockets','Tabungan dengan target, dipisahkan dari uang belanja.','+ Pocket','openPocketForm()',
+  ${settingsList('Pocket Tabungan','Tabungan dengan target, dipisahkan dari uang belanja.','+ Pocket','openPocketForm()',
     pockets.map(p=>setRow(esc(p.name),`${fmt(p.currentAmount)} dari ${fmt(p.targetAmount)}${p.targetDate?' · target '+esc(p.targetDate):''}`,`openPocketForm('${p.id}')`,`deletePocket('${p.id}')`)),
     'Belum ada pocket.')}
   ${settingsList('Tagihan Rutin','Tagihan bulanan dengan tanggal jatuh tempo.','+ Tagihan','openBillForm()',
@@ -1852,7 +1886,7 @@ function openPocketAction(pid,mode){
   <div class="field"><label for="pockAmt">Nominal (Rp)</label>${amtInput('pockAmt',mode==='topup'?p.monthlyHint:0,'250.000').replace('<input','<input class="big"')}</div>
   ${mode==='topup'?`<div class="field"><label for="pockAcc">Dari rekening</label>${accSelect('pockAcc')}</div>`:''}
   <div class="field"><label>Catatan (opsional)</label><input id="pockNote" type="text" placeholder="${mode==='topup'?'Top up '+esc(p.name):'Belanja dari '+esc(p.name)}"></div>`;
-  modalShell(mode==='topup'?'Top Up Pocket':'Pakai Dana Pocket', body, `<button class="btn btn-emerald" style="width:100%;padding:12px" onclick="confirmPocketAction()">${mode==='topup'?'Pindahkan ke Pocket':'Catat Pengeluaran dari Pocket'}</button>`);
+  modalShell(mode==='topup'?'Isi Pocket':'Pakai Dana Pocket', body, `<button class="btn btn-emerald" style="width:100%;padding:12px" onclick="confirmPocketAction()">${mode==='topup'?'Pindahkan ke Pocket':'Catat Pengeluaran dari Pocket'}</button>`);
 }
 function confirmPocketAction(){
   if(!pocketCtx) return; const amt=amtVal('pockAmt'); const note=document.getElementById('pockNote').value.trim(); const {pocket,mode}=pocketCtx;
@@ -1893,7 +1927,7 @@ function deleteTx(id){
 document.querySelectorAll('[data-tab]').forEach(b=> b.addEventListener('click',()=>goTab(b.dataset.tab)));
 document.getElementById('fabBtn').addEventListener('click',()=>{ logState=freshLogState(); openLogger(); });
 document.getElementById('quickLogTop').addEventListener('click',()=>{ logState=freshLogState(); openLogger(); });
-document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); else trapModalTab(e); });
 render();
 initCloud();
 </script>

@@ -47,13 +47,26 @@ header{position:sticky;top:0;z-index:30;background:color-mix(in srgb, var(--surf
 .brand-icon{width:40px;height:40px;border-radius:12px;background:var(--dark);color:#fff;display:flex;align-items:center;justify-content:center}
 .brand-icon svg{width:20px;height:20px;color:#34d399}
 .brand h1{font-size:17px;margin:0;letter-spacing:-.02em;line-height:1}
-.brand p{margin:2px 0 0;font-size:11px;color:var(--muted);font-weight:600}
 .chip{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;background:var(--surface2);border:1px solid var(--border);color:var(--muted)}
 nav.tabs{display:flex;gap:4px;background:var(--surface2);border:1px solid var(--border);padding:4px;border-radius:14px;flex-wrap:wrap}
 nav.tabs button{border:0;background:transparent;padding:8px 12px;border-radius:10px;font-size:12px;font-weight:700;color:var(--muted);display:flex;align-items:center;gap:6px}
 nav.tabs button.active{background:var(--dark);color:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}
 nav.tabs button svg{width:15px;height:15px}
-.safe-pill{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:14px;background:var(--surface2);border:1px solid var(--border);font-size:12px}
+.safe-pill{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);font-size:13px;color:var(--text)}
+.safe-label{color:var(--muted);font-weight:600;font-size:12px}
+#safePill.neg{color:var(--amber-text)}
+/* Desktop & tablet header: one 60px row — brand, flat tabs with an underline, then status and account. */
+@media(min-width:561px){
+  .header-in{height:60px;padding:0 24px;flex-wrap:nowrap;gap:28px}
+  .brand-icon{width:34px;height:34px;border-radius:10px}
+  nav.tabs{align-self:stretch;background:none;border:0;padding:0;border-radius:0;gap:2px;flex-wrap:nowrap}
+  nav.tabs button{height:100%;padding:0 12px;border-radius:0;font-size:13px;font-weight:600;white-space:nowrap}
+  nav.tabs button:hover{color:var(--text)}
+  nav.tabs button.active{background:none;color:var(--text);box-shadow:inset 0 -2px 0 var(--emerald)}
+  nav.tabs button.active svg{color:var(--emerald)}
+}
+@media(min-width:561px) and (max-width:1099px){ nav.tabs .tl{display:none}nav.tabs .ts{display:inline} .header-in{gap:16px;padding:0 16px} nav.tabs button{padding:0 9px} }
+@media(min-width:561px) and (max-width:860px){ .safe-label,.brand h1{display:none} }
 .dot{width:8px;height:8px;border-radius:50%;background:#10b981;animation:pulse 1.6s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 main{max-width:1440px;margin:0 auto;padding:20px 24px 8px}
@@ -214,7 +227,7 @@ select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);backg
 .acct-email{font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:4px}
 .sync{font-size:11px;font-weight:700}
 .head-right{display:flex;align-items:center;gap:10px;margin-left:auto}
-@media(max-width:560px){.hide-sm,#monthChip{display:none}.head-right{gap:8px}.safe-pill{padding:7px 10px}}
+@media(max-width:560px){.hide-sm,.safe-label{display:none}.head-right{gap:8px}.safe-pill{padding:7px 10px}}
 .setup{margin-bottom:16px}
 .setup-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--border);font-size:13px}
 .setup-row.next strong{color:var(--emerald)}
@@ -261,7 +274,6 @@ body{overflow-x:clip;overflow-wrap:anywhere}
   .fab{bottom:calc(76px + env(safe-area-inset-bottom));right:14px}
   #quickLogTop{display:none}
   .header-in{padding:10px 16px;flex-wrap:nowrap}
-  .brand p,.safe-pill .dot{display:none}
   .brand-icon{width:34px;height:34px;border-radius:10px}
   .brand{min-width:0}
   .safe-pill strong,.brand h1{white-space:nowrap}
@@ -302,19 +314,16 @@ input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-an
   <div class="header-in">
     <div class="brand">
       <div class="brand-icon"><i data-lucide="wallet"></i></div>
-      <div>
-        <div style="display:flex;gap:8px;align-items:center"><h1>FlowPocket</h1><span class="chip" id="monthChip"></span></div>
-        <p>Clarity-First Finance</p>
-      </div>
+      <h1>FlowPocket</h1>
     </div>
     <nav class="tabs" aria-label="Navigasi utama">
-      <button data-tab="dashboard" class="active"><i data-lucide="layers"></i><span class="tl">Dashboard</span><span class="ts">Ringkasan</span></button>
-      <button data-tab="essentials"><i data-lucide="shopping-cart"></i><span class="tl">Essentials &amp; Bills</span><span class="ts">Belanja</span></button>
-      <button data-tab="pockets"><i data-lucide="shield-check"></i><span class="tl">Pockets &amp; Float</span><span class="ts">Tabungan</span></button>
-      <button data-tab="activity"><i data-lucide="calendar"></i><span class="tl">Activity Log</span><span class="ts">Riwayat</span></button>
+      <button data-tab="dashboard" class="active"><i data-lucide="layers"></i><span class="tl">Ringkasan</span><span class="ts">Ringkasan</span></button>
+      <button data-tab="essentials"><i data-lucide="shopping-cart"></i><span class="tl">Belanja &amp; Tagihan</span><span class="ts">Belanja</span></button>
+      <button data-tab="pockets"><i data-lucide="shield-check"></i><span class="tl">Tabungan</span><span class="ts">Tabungan</span></button>
+      <button data-tab="activity"><i data-lucide="calendar"></i><span class="tl">Riwayat</span><span class="ts">Riwayat</span></button>
       <button data-tab="settings"><i data-lucide="settings"></i><span class="tl">Pengaturan</span><span class="ts">Atur</span></button>
     </nav>
-    <div class="head-right"><div class="safe-pill"><span class="dot"></span><span style="color:var(--muted);font-weight:600" class="hide-sm">Safe-to-Spend:</span><strong id="safePill">Rp 0</strong></div>
+    <div class="head-right"><button class="safe-pill" onclick="goTab('dashboard')" title="Uang yang aman dibelanjakan sampai gajian"><span class="safe-label">Safe-to-Spend</span><strong id="safePill">Rp 0</strong></button>
     <div class="acct" id="acctMenu">
       <button class="acct-btn" onclick="toggleAcctMenu(event)" aria-haspopup="true" aria-expanded="false" aria-label="Akun"><span id="acctInitial">?</span><i id="syncDot" class="sync-dot"></i></button>
       <div class="acct-pop hidden" role="menu">
@@ -755,11 +764,10 @@ function essentialSuggestion(){
 function render(){
   rolloverBills();
   const fin=financialSummary(), ess=essentialsSummary();
-  document.getElementById('safePill').textContent=fmt(fin.safeToSpend);
+  const sp=document.getElementById('safePill'); sp.textContent=fmt(fin.safeToSpend); sp.classList.toggle('neg',fin.safeToSpend<0);
   const titles={dashboard:'Dashboard Overview',essentials:'Essentials & Recurring Bills',pockets:'Saving Pockets & Accounts',activity:'Activity Log & Reimbursements',settings:'Pengaturan'};
   document.getElementById('pageTitle').textContent=titles[activeTab];
   const mi=monthInfo(), now=today();
-  document.getElementById('monthChip').textContent=now.toLocaleDateString('id-ID',{month:'short',year:'numeric'}).replace('.','');
   document.getElementById('pageSub').textContent=`${now.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'short',year:'numeric'})} • Hari ke-${mi.day} dari ${mi.dim} (${fin.monthElapsedPercent}% berjalan)`;
   ['dashboard','essentials','pockets','activity','settings'].forEach(t=>{
     document.getElementById('view-'+t).classList.toggle('hidden', t!==activeTab);

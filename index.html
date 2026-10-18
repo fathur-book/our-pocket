@@ -711,7 +711,6 @@ function essentialsSummary(){
   });
   return {items,paused,activeCount:items.filter(i=>!i.skipped).length,totalEssentialsBudget:items.reduce((s,i)=>s+i.totalPlanned,0),totalEssentialsSpent:items.reduce((s,i)=>s+i.spentAmount,0),totalEssentialsRemaining:items.reduce((s,i)=>s+i.remainingAmount,0),completedCount:items.filter(i=>i.isComplete).length};
 }
-function budgetOf(catId){ const v=(settings.budgets||{})[catId]; return typeof v==='number'&&v>0? v : 0; }
 function financialSummary(){
   const totalLiquidCash=accounts.filter(a=>a.type!=='credit').reduce((s,a)=>s+a.balance,0);
   const creditFloatHolding=accounts.filter(a=>a.type==='credit').reduce((s,a)=>s+Math.abs(Math.min(0,a.balance)),0);
@@ -739,8 +738,7 @@ function financialSummary(){
   const {elapsedPct:monthElapsedPercent}=monthInfo();
   const {next:nextPayday,daysUntil:daysToPayday}=payCycle();
   const perDay= safeToSpend>0? Math.floor(safeToSpend/daysToPayday) : 0;
-  // Budgets cover free spending only: bills and Essentials are planned (and reserved) separately.
-  const totalFlexibleBudget=categories.filter(c=>c.type==='expense').reduce((s,c)=>s+budgetOf(c.id),0);
+  // Category spending this month: free spending, plus bills & Essentials kept apart as 'planned'.
   const map={}, planned={}; categories.forEach(c=>{ map[c.id]=0; planned[c.id]=0; });
   let monthlyIncome=0, monthlyNetExpense=0; const paused=ess.paused; // skipped period: Essentials buys are ordinary spending
   transactions.filter(inCurrentMonth).forEach(tx=>{
@@ -750,9 +748,7 @@ function financialSummary(){
     else if(tx.type==='income'&&!tx.opening){ monthlyIncome+=tx.amount; }
   });
   monthlyNetExpense=Object.values(map).reduce((a,b)=>a+b,0); // free spending after refunds, never negative
-  const budgetedSpend=categories.filter(c=>budgetOf(c.id)>0).reduce((s,c)=>s+(map[c.id]||0),0);
-  const budgetSpentPercent= totalFlexibleBudget>0? Math.round(budgetedSpend/totalFlexibleBudget*100):0;
-  return {carryOver,cycleIncome,cycleSpending,cycleSaved,cycleStart:cyc.prev,totalLiquidCash,creditFloatHolding,totalPocketsSaved,unpaidExpectedRecurring,essentialsRemaining,billsReserved,essentialsReserved,nextPayday,daysToPayday,perDay,recurringNetVariance,safeToSpend,totalFlexibleBudget,monthlyNetExpense,monthlyIncome,monthElapsedPercent,budgetSpentPercent,budgetedSpend,categorySpendMap:map,plannedSpendMap:planned};
+  return {carryOver,cycleIncome,cycleSpending,cycleSaved,cycleStart:cyc.prev,totalLiquidCash,creditFloatHolding,totalPocketsSaved,unpaidExpectedRecurring,essentialsRemaining,billsReserved,essentialsReserved,nextPayday,daysToPayday,perDay,recurringNetVariance,safeToSpend,monthlyNetExpense,monthlyIncome,monthElapsedPercent,categorySpendMap:map,plannedSpendMap:planned};
 }
 
 /* The linked essential — set only by an explicit tap, never inferred on save. */
@@ -787,7 +783,6 @@ function render(){
 }
 
 function renderDashboard(fin,ess){
-  const onTrack=fin.budgetSpentPercent<=fin.monthElapsedPercent;
   const pctEss= ess.totalEssentialsBudget? Math.round(ess.totalEssentialsSpent/ess.totalEssentialsBudget*100):0;
   document.getElementById('view-dashboard').innerHTML=`
   <div class="grid" style="grid-template-columns:repeat(12,1fr)">
@@ -811,22 +806,13 @@ function renderDashboard(fin,ess){
       ${showFormula?`<div class="formula"><strong style="color:#fff">Cara menghitungnya (periode ${fin.cycleStart.toLocaleDateString('id-ID',{day:'numeric',month:'short'})} – ${fin.nextPayday.toLocaleDateString('id-ID',{day:'numeric',month:'short'})}):</strong><br>${fin.carryOver?`Sisa periode sebelumnya ${fmt(fin.carryOver)} + `:''}pemasukan ${fmt(fin.cycleIncome)} − pengeluaran ${fmt(fin.cycleSpending)}${fin.cycleSaved>0?` − ditabung ke pocket ${fmt(fin.cycleSaved)}`:fin.cycleSaved<0?` + diambil dari tabungan ${fmt(-fin.cycleSaved)}`:''} − tagihan yang belum dibayar ${fmt(fin.billsReserved)} − Essentials yang belum dibeli ${fmt(fin.essentialsReserved)}. Essentials dan tagihan yang sudah dibayar dihitung dengan nominal aslinya (masuk ke pengeluaran). Saving Pockets adalah tabungan terpisah (total ${fmt(fin.totalPocketsSaved)}) dan tidak mengurangi angka ini.</div>`:''}
     </div>
     <div class="card" style="grid-column:span 5;display:flex;flex-direction:column;justify-content:space-between">
-      ${fin.totalFlexibleBudget>0?`<div>
-        <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)">Laju belanja bebas</span><span class="badge ${onTrack?'ok':'warn'}">${onTrack?'✓ Aman':'! Terlalu cepat'}</span></div>
-        <h3 style="font-size:17px;margin-top:10px">${fin.budgetSpentPercent}% budget bulan ini terpakai</h3>
-        <p class="sub">${fmt(fin.budgetedSpend)} dari ${fmt(fin.totalFlexibleBudget)} · kategori yang punya budget${fin.monthlyNetExpense>fin.budgetedSpend?` · +${fmt(fin.monthlyNetExpense-fin.budgetedSpend)} di kategori tanpa budget`:''}</p>
-        <div style="margin-top:18px">
-          <div class="progress-row"><span>Budget terpakai</span><span>${fin.budgetSpentPercent}%</span></div>
-          <div class="bar ${onTrack?'':'amber'}"><i style="width:${Math.min(100,fin.budgetSpentPercent)}%"></i></div>
-          <div class="progress-row" style="margin-top:14px"><span style="color:var(--muted)">Waktu berjalan (Hari ${monthInfo().day}/${monthInfo().dim})</span><span style="color:var(--muted)">${fin.monthElapsedPercent}%</span></div>
-          <div class="bar sm"><i style="width:${fin.monthElapsedPercent}%;background:#94a3b8"></i></div>
-        </div>
-      </div>`:`<div>
-        <span style="font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)">Laju belanja bebas</span>
-        <h3 style="font-size:16px;margin-top:10px">Belum ada budget</h3>
-        <p class="sub" style="margin-bottom:14px">Atur budget per kategori untuk belanja di luar tagihan & Essentials (makan di luar, transport, hiburan…). Bulan ini sudah terpakai ${fmt(fin.monthlyNetExpense)}.</p>
-        <button class="btn btn-dark btn-sm" onclick="openBudgetModal()">Atur budget kategori</button>
-      </div>`}
+      ${(()=>{ const rows=categories.filter(c=>c.type==='expense').map(c=>({cat:c,amt:(fin.categorySpendMap[c.id]||0)+(fin.plannedSpendMap[c.id]||0)})).filter(r=>r.amt>0).sort((a,b)=>b.amt-a.amt), total=rows.reduce((t,r)=>t+r.amt,0), planned=Object.values(fin.plannedSpendMap).reduce((a,b)=>a+b,0), month=today().toLocaleDateString('id-ID',{month:'long',year:'numeric'});
+        return `<div>
+        <span style="font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)">Pengeluaran ${month}</span>
+        <h3 style="font-size:24px;margin-top:8px;letter-spacing:-.02em">${fmt(total)}</h3>
+        ${planned?`<p class="sub">termasuk ${fmt(planned)} tagihan &amp; Essentials</p>`:''}
+        <div style="margin-top:14px">${rows.length? rows.map(r=>{ const pct=Math.round(r.amt/total*100); return `<div class="cat-row"><div class="cat-head"><span class="cat-name"><span class="cat-ico"><i data-lucide="${r.cat.icon}"></i></span>${esc(r.cat.name)}</span><span><strong>${fmt(r.amt)}</strong> <span style="color:var(--muted)">${pct}%</span></span></div><div class="bar sm dark" style="margin-top:6px"><i style="width:${pct}%"></i></div></div>`; }).join('') : '<p class="sub">Belum ada pengeluaran bulan ini.</p>'}</div>
+      </div>`; })()}
       <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--muted)">Pemasukan bulan ini:</span><strong style="color:var(--emerald)">+${fmt(fin.monthlyIncome)}</strong></div>
     </div>
   </div>
@@ -846,11 +832,7 @@ function renderDashboard(fin,ess){
       </button>`).join('') || (ess.paused? '<p style="font-size:13px;color:var(--muted)">Essentials dilewati periode ini — semua belanja dihitung sebagai pengeluaran biasa.</p>' : essentials.length? '<p style="font-size:13px;color:var(--muted)">Semua essentials bulan ini sudah terpenuhi 🎉</p>' : '<p style="font-size:13px;color:var(--muted)">Belum ada daftar Essentials. <button class="link-btn" onclick="goTab(&quot;settings&quot;)">Tambahkan di Pengaturan →</button></p>')}</div>
   </div>
 
-  <div class="grid" style="grid-template-columns:1fr 1fr;margin-top:16px">
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;gap:8px"><div><h3>Pengeluaran per Kategori</h3><p class="sub">Belanja bebas bulan ini vs budget</p></div><button class="link-btn" onclick="openBudgetModal()">Atur budget</button></div>
-      <div style="margin-top:16px">${(()=>{ const rows=categories.filter(c=>c.type==='expense').filter(c=>budgetOf(c.id)||fin.categorySpendMap[c.id]||fin.plannedSpendMap[c.id]); return rows.length? rows.map(cat=>{ const spent=fin.categorySpendMap[cat.id]||0, plan=fin.plannedSpendMap[cat.id]||0, lim=budgetOf(cat.id), pct=lim?Math.round(spent/lim*100):0, over=lim&&spent>lim; return `<div class="cat-row"><div class="cat-head"><span class="cat-name"><span class="cat-ico"><i data-lucide="${cat.icon}"></i></span>${cat.name}</span><span><strong style="color:${over?'var(--amber)':'inherit'}">${fmt(spent)}</strong> <span style="color:var(--muted)">${lim?`/ ${fmt(lim)} • ${pct}%`:'· tanpa budget'}</span></span></div>${lim?`<div class="bar sm ${over?'amber':'dark'}" style="margin-top:6px"><i style="width:${Math.min(100,pct)}%"></i></div>`:''}${plan?`<div style="font-size:11px;color:var(--muted);margin-top:4px">+ ${fmt(plan)} tagihan & Essentials (sudah direncanakan)</div>`:''}</div>`; }).join('') : '<p class="sub">Belum ada pengeluaran bulan ini.</p>'; })()}</div>
-    </div>
+  <div style="margin-top:16px">
     <div class="card">
       <div style="display:flex;justify-content:space-between"><div><h3>Saving Pockets</h3><p class="sub">Total tabungan: <strong style="color:var(--emerald)">${fmt(fin.totalPocketsSaved)}</strong></p></div><button class="link-btn" onclick="goTab('pockets')">Kelola Pockets →</button></div>
       <div class="pocket-grid" style="margin-top:14px">${pockets.map(p=>{ const pct=Math.min(100,Math.round(p.currentAmount/p.targetAmount*100)); return `<div class="pocket-mini"><div style="display:flex;justify-content:space-between"><span class="cat-ico" style="background:var(--emerald-bg);color:var(--emerald-text)"><i data-lucide="${p.icon}"></i></span><span class="badge ok">${pct}%</span></div><h4>${esc(p.name)}</h4><p>${fmt(p.currentAmount)} dari ${fmt(p.targetAmount)}</p><div class="bar sm" style="margin-top:8px"><i style="width:${pct}%"></i></div><div style="display:flex;gap:6px;margin-top:10px"><button class="btn btn-sm" style="flex:1" onclick="openPocketAction('${p.id}','topup')">+ Top Up ${fmt(p.monthlyHint)}</button><button class="btn btn-sm" onclick="openPocketAction('${p.id}','spend')">Pakai</button></div></div>`;}).join('')}</div>
@@ -895,16 +877,6 @@ function saveOpeningBalance(){
   transactions=transactions.filter(t=>!t.opening); // one starting point only
   transactions=[{id:'tx_open_'+Date.now(),date,title:'Saldo awal',amount:amt,type:'income',categoryId:'cat_opening',accountId:mainAccountId()||accounts[0].id,tag:'#saldo-awal',pocketId:null,opening:true},...transactions].sort((a,b)=>b.date.localeCompare(a.date));
   closeModal(); render(); toastUndo(`Saldo awal ${fmt(amt)} dicatat.`,snap);
-}
-function openBudgetModal(){
-  const rows=categories.filter(c=>c.type==='expense').map(c=>`<div class="field" style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><label for="bud_${c.id}" style="flex:1;margin:0;font-size:13px;color:var(--text)">${esc(c.name)}</label><div style="flex:0 0 150px">${amtInput('bud_'+c.id,budgetOf(c.id),'0')}</div></div>`).join('');
-  modalShell('Budget Kategori', `<p class="rc-help" style="margin:0 0 14px">Budget per bulan untuk belanja <b>bebas</b> — di luar tagihan rutin dan Essentials, yang sudah direncanakan terpisah. Isi 0 untuk kategori tanpa budget.</p>${rows}`,
-    `<button class="btn btn-emerald" style="width:100%;padding:12px" onclick="saveBudgets()">Simpan budget</button>`);
-}
-function saveBudgets(){
-  const budgets={}; categories.filter(c=>c.type==='expense').forEach(c=>{ const v=amtVal('bud_'+c.id); if(v>0) budgets[c.id]=v; });
-  const snap=snapshot(); settings={...settings,budgets};
-  closeModal(); render(); toastUndo(`Budget disimpan: ${fmt(Object.values(budgets).reduce((a,b)=>a+b,0))} per bulan.`,snap);
 }
 function openPaydayModal(){
   const body=`<div class="field"><label for="paydayInput">Gaji masuk setiap tanggal (1–31)</label><input id="paydayInput" class="big" type="number" min="1" max="31" value="${settings.payday}"></div>
@@ -1767,7 +1739,6 @@ function renderSettings(){
   ${settingsList('Daftar Essentials','Belanja kebutuhan rutin per bulan.','+ Item','openEssentialForm()',
     essentials.map(e=>setRow(esc(e.name),`${fmt(e.unitPrice)} × ${e.targetQty}/bulan = ${fmt(e.unitPrice*e.targetQty)}`,`openEssentialForm('${e.id}')`,`deleteEssential('${e.id}')`)),
     'Belum ada item Essentials.')}
-  <div class="card"><div class="set-head"><div><h3>Budget Kategori</h3><p class="sub">Batas belanja bebas per bulan (di luar tagihan & Essentials).</p></div><button class="btn btn-sm" onclick="openBudgetModal()">Ubah</button></div>${categories.filter(c=>c.type==='expense'&&budgetOf(c.id)).map(c=>`<div class="set-row"><span>${esc(c.name)}</span><strong>${fmt(budgetOf(c.id))}</strong></div>`).join('')||'<p class="set-empty">Belum ada budget.</p>'}</div>
   <div class="card"><div class="set-head"><div><h3>Gajian</h3><p class="sub">Safe-to-Spend menyisihkan kebutuhan sampai tanggal ini.</p></div><button class="btn btn-sm" onclick="openPaydayModal()">Ubah</button></div><p style="margin:0;font-size:13px">Setiap tanggal <strong>${settings.payday}</strong></p></div>
   </div>`;
 }
@@ -1778,7 +1749,6 @@ const SETUP_STEPS=[
   {id:'bills',title:'Tambah tagihan rutin', sub:'Kos, internet, listrik, langganan…', done:()=>recurringItems.length>0, act:'openBillForm()', optional:true},
   {id:'ess',  title:'Buat daftar Essentials', sub:'Belanja kebutuhan bulanan (beras, telur…).', done:()=>essentials.length>0, act:'openEssentialForm()', optional:true},
   {id:'pock', title:'Buat saving pocket', sub:'Dana darurat, liburan, atau target lain.', done:()=>pockets.length>0, act:'openPocketForm()', optional:true},
-  {id:'budget',title:'Atur budget kategori', sub:'Batas belanja bebas per bulan.', done:()=>Object.keys(settings.budgets||{}).length>0, act:'openBudgetModal()', optional:true},
 ];
 function setupState(){ const skip=settings.setupSkip||[]; return SETUP_STEPS.map(st=>({...st,isDone:st.done(),skipped:skip.includes(st.id)})); }
 function setupComplete(){ return setupState().every(st=>st.isDone||st.skipped); }
@@ -1803,7 +1773,7 @@ let pocketCtx=null;
 function openPocketAction(pid,mode){
   if(needMainAccount()) return;
   const p=pockById(pid); if(!p) return; pocketCtx={pocket:p,mode};
-  const body=`<p style="font-size:13px;margin:0 0 12px"><strong>${esc(p.name)}</strong> — terkumpul ${fmt(p.currentAmount)} dari target ${fmt(p.targetAmount)}<br><span style="color:var(--muted);font-size:12px">${mode==='topup'?'Dana dipindahkan dari rekening ke pocket ini — saldo rekening berkurang dan Safe-to-Spend turun.':'Pengeluaran dari pocket dicatat terpisah dan tidak mengacaukan budget fleksibel bulanan.'}</span></p>
+  const body=`<p style="font-size:13px;margin:0 0 12px"><strong>${esc(p.name)}</strong> — terkumpul ${fmt(p.currentAmount)} dari target ${fmt(p.targetAmount)}<br><span style="color:var(--muted);font-size:12px">${mode==='topup'?'Dana dipindahkan dari rekening ke pocket ini — saldo rekening berkurang dan Safe-to-Spend turun.':'Pengeluaran dari pocket dipakai dari tabungan, jadi tidak mengurangi Safe-to-Spend.'}</span></p>
   <div class="field"><label for="pockAmt">Nominal (Rp)</label>${amtInput('pockAmt',mode==='topup'?p.monthlyHint:0,'250.000').replace('<input','<input class="big"')}</div>
   ${mode==='topup'?`<div class="field"><label for="pockAcc">Dari rekening</label>${accSelect('pockAcc')}</div>`:''}
   <div class="field"><label>Catatan (opsional)</label><input id="pockNote" type="text" placeholder="${mode==='topup'?'Top up '+esc(p.name):'Belanja dari '+esc(p.name)}"></div>`;

@@ -58,6 +58,9 @@ const results = await page.evaluate(async () => {
     'bill paid from bills list': () => { openPayModal('r1'); setAmt(document.getElementById('payAmt'), 95000); confirmPay(); },
     'card payoff': () => { payoffCredit(); document.getElementById('payoffAcc').value = 'a2'; confirmPayoff(); },
     'receipt with two items': () => { rcpt = { date: today, accountId: 'a1', items: [{ name: 'Telur', amount: 30000, include: true, qty: 1, categoryId: 'cat_food' }, { name: 'Beras', amount: 50000, include: true, qty: 1, essentialId: 'e1', categoryId: 'cat_food' }] }; rcSave(); },
+    'balance adjustment': () => { openAdjust('a1'); setAmt(document.getElementById('adjBal'), 940000); saveAdjust('a1'); },
+    'card balance adjustment': () => { openAdjust('c1'); setAmt(document.getElementById('adjBal'), 350000); saveAdjust('c1'); },
+    'balance changed in Settings': () => { openAccountForm('a2'); setAmt(document.getElementById('faBal'), 520000); saveAccount('a2'); },
     'card statement import': () => { stmt = { accountId: 'c1', items: [{ name: 'Resto', amount: 45000, date: today, include: true, link: '', categoryId: 'cat_food' }, { name: 'Top up', amount: 50000, date: today, include: true, link: 'acc:a2', categoryId: 'cat_food' }, { name: 'Internet', amount: 100000, date: today, include: true, link: 'bill:r1', categoryId: 'cat_utilities' }] }; stSave(); },
   };
 
@@ -92,6 +95,19 @@ const results = await page.evaluate(async () => {
     check('edit ' + name + ': same as logging it directly', edited === noIds(state()), `${edited} vs ${noIds(state())}`);
     if (name.startsWith('expense')) check('edit ' + name + ': title saved', title === 'Edited', title);
   }
+  // Adjustments land exactly on the real balance, move Safe-to-Spend by the difference, and are not spending.
+  reset(); const fin0 = financialSummary();
+  openAdjust('a1'); setAmt(document.getElementById('adjBal'), 940000); saveAdjust('a1'); closeModal();
+  const fin1 = financialSummary();
+  check('adjustment sets the real balance', accById('a1').balance === 940000, accById('a1').balance);
+  check('adjustment lowers Safe-to-Spend by the difference', fin1.safeToSpend === fin0.safeToSpend - 60000, `${fin0.safeToSpend} -> ${fin1.safeToSpend}`);
+  check('adjustment is not spending or saving', fin1.cycleSpending === fin0.cycleSpending && fin1.cycleSaved === fin0.cycleSaved, JSON.stringify(fin1));
+  editTx(70000);
+  check('edited adjustment keeps its direction', accById('a1').balance === 930000, accById('a1').balance);
+  openAdjust('c1'); setAmt(document.getElementById('adjBal'), 350000); saveAdjust('c1'); closeModal();
+  check('card adjustment raises what is owed', accById('c1').balance === -350000, accById('c1').balance);
+  reset(); openAdjust('a1'); setAmt(document.getElementById('adjBal'), 1000000); saveAdjust('a1'); closeModal();
+  check('no adjustment when the balance already matches', transactions.length === 0, transactions.length);
   reset(); log({ type: 'transfer', amount: '30000', accountId: 'a1', transferTo: 'pock:p1' });
   pocketAction('spend', 220000); const spent = state();
   const saveId = transactions.find(t => t.tag === '#pocket-save').id;

@@ -10,8 +10,10 @@
 <title>FlowPocket — Clarity-First Finance</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
-<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<!-- Third-party code is pinned and hash-checked: if a CDN ever serves a modified file, the browser refuses to run it. -->
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js" integrity="sha384-hJnF5AwidE18GSWTAGHv3ByzzvfNZ1Tcx5y1UUV3WkauuMCEzBJBMSwSt/PUPXnM" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
+<script type="importmap">{"integrity":{"https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs":"sha384-+0ti2moQlmLN7WZHE2RHIf5lV8hHxhxEalN0il3YZceG26fUPyOkR0hp9daxk1i7"}}</script>
 <style>
 :root{
   --bg:#f6f7f9; --surface:#ffffff; --surface2:#f8fafc; --border:#e2e8f0; --border2:#cbd5e1;
@@ -1247,7 +1249,7 @@ function rcReadPasted(){ const t=document.getElementById('rcText').value; if(!t.
 let tessLoading=null;
 function loadTesseract(){
   if(window.Tesseract) return Promise.resolve();
-  if(!tessLoading) tessLoading=new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js'; s.onload=res; s.onerror=()=>{ tessLoading=null; rej(new Error('load')); }; document.head.appendChild(s); });
+  if(!tessLoading) tessLoading=new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js'; s.integrity='sha384-GJqSu7vueQ9qN0E9yLPb3Wtpd7OrgK8KmYzC8T1IysG1bcvxvIO4qtYR/D3A991F'; s.crossOrigin='anonymous'; s.onload=res; s.onerror=()=>{ tessLoading=null; rej(new Error('load')); }; document.head.appendChild(s); });
   return tessLoading;
 }
 /* Scale to OCR-friendly width, grayscale and stretch contrast — helps faded thermal paper. */

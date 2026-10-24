@@ -151,9 +151,15 @@ main>section>*+*{margin-top:var(--gap)}
 .runway{margin-top:20px}
 .runway-row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:#94a3b8}
 .runway-row strong{color:#e2e8f0}
-.runway-track{position:relative;height:6px;margin:10px 7px 8px;border-radius:999px;background:#ffffff14}
-.runway-track>i{position:absolute;left:0;top:0;bottom:0;border-radius:inherit;background:#ffffff3d}
-.runway-track>b{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:#fff;border:3px solid var(--dark)}
+.days{display:flex;align-items:flex-end;gap:2px;height:30px;margin:10px 0 8px}
+.days>i{position:relative;flex:1;min-width:0;height:10px;border-radius:2px;background:rgba(255,255,255,.14)}
+.days>i.past{background:rgba(255,255,255,.4)}
+.days>i.today{height:22px;background:#fff}
+.days>i.bill::after{content:"";position:absolute;left:50%;bottom:calc(100% + 3px);width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:#fcd34d}
+/* A paid bill gets the rubber stamp from a kost or invoice receipt; it lands once, right after Konfirmasi Lunas. */
+.lunas{display:inline-block;padding:1px 6px;border:1.5px solid currentColor;border-radius:4px;outline:1px solid currentColor;outline-offset:1.5px;color:var(--emerald-text);font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;line-height:1.4;transform:rotate(-6deg);opacity:.9}
+.lunas.hit{animation:stamp .34s cubic-bezier(.2,.9,.3,1.15)}
+@keyframes stamp{from{transform:rotate(-6deg) scale(1.9);opacity:0}60%{transform:rotate(-6deg) scale(.93);opacity:1}to{transform:rotate(-6deg) scale(1)}}
 /* margin-top:auto pins the allocation to the bottom when the card stretches to the spending column. */
 .alloc{margin-top:auto;padding-top:26px}
 .alloc-cap{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:13px;color:#94a3b8}
@@ -573,9 +579,6 @@ nav.tabs button.active>*{transform:scale(1.08)}
 
 /* bars: a thin see-through track, a solid fill and a plain white thumb (iOS-style); the glass stays on the surfaces */
 .bar{height:8px;background:color-mix(in srgb,var(--fill) 75%,transparent);border-color:transparent}
-.runway-track{background:rgba(255,255,255,.14)}
-.runway-track>i{background:rgba(255,255,255,.34)}
-.runway-track>b{width:18px;height:18px;margin:-9px 0 0 -9px;border:0;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.35),0 0 0 .5px rgba(0,0,0,.08)}
 
 /* press and spring */
 .btn{transition:background-color .2s var(--ease),color .2s var(--ease),transform .45s var(--spring)}
@@ -1272,10 +1275,28 @@ function render(){
     if(!accounts.length) document.getElementById('view-dashboard').innerHTML=renderWelcome()+renderSetupChecklist();
     else if(!settings.setupDismissed&&!setupComplete()) document.getElementById('view-dashboard').insertAdjacentHTML('afterbegin',renderSetupChecklist());
   }
+  if(activeTab==='dashboard'&&safeDelta) rollSafe(lastSafe-safeDelta,lastSafe);
   refreshIcons();
   saveState();
 }
 
+/* The pay period as one tick per day: past days filled, today tall, a dot over each day an unpaid bill is due. */
+function dayStrip(start,total,day){
+  const {prev,next}=cycleBounds(), due=new Set();
+  recurringItems.forEach(r=> billOccurrences(r,prev,next).forEach(d=>{ const mon=isoDate(d).slice(0,7); if(!(billSettled(r,mon,d)||((r.status==='paid'||r.status==='skipped')&&(r.statusMonth||'')===mon))) due.add(isoDate(d)); }));
+  const ticks=Array.from({length:total},(_,k)=>{ const d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+k), iso=isoDate(d);
+    return `<i class="${k<day-1?'past':k===day-1?'today':''}${due.has(iso)?' bill':''}" title="${d.toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short'})}${due.has(iso)?' · tagihan jatuh tempo':''}"></i>`; }).join('');
+  return `<div class="days" role="progressbar" aria-label="Periode gajian berjalan${due.size?`, ${due.size} tanggal tagihan belum dibayar`:''}" aria-valuemin="1" aria-valuemax="${total}" aria-valuenow="${day}">${ticks}</div>`;
+}
+/* After a save, the hero figure counts from the old Safe-to-Spend to the new one, so the change is seen landing. */
+function rollSafe(from,to){
+  const el=document.querySelector('.hero .big'); if(!el||matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const cur=el.querySelector('.cur').outerHTML, dur=450; let t0=null; // the clock starts on the first painted frame: a save's re-render can delay it
+  const show=v=>{ el.innerHTML=`${cur}${v<0?'−':''}${fmt(Math.abs(v)).replace(/Rp\s/,'')}`; };
+  const step=now=>{ if(!el.isConnected) return; if(t0===null) t0=now; const p=Math.min(1,(now-t0)/dur), e=1-Math.pow(1-p,3);
+    show(p<1? Math.round((from+(to-from)*e)/1000)*1000 : to); if(p<1) requestAnimationFrame(step); };
+  show(from); requestAnimationFrame(step);
+}
 /* Money this pay period can draw on: leftover from before, income, money taken out of pockets, upward balance fixes. */
 function periodFunds(fin){ return Math.max(0,fin.carryOver)+fin.cycleIncome+Math.max(0,-fin.cycleSaved)+Math.max(0,fin.cycleAdjust); }
 /* Why a negative Safe-to-Spend would mislead: 'none' = nothing to count from yet (no opening balance, no money in);
@@ -1348,9 +1369,9 @@ function renderDashboard(fin,ess){
         <button class="btn-ghost-light" onclick="toggleFormula()">${showFormula?'Sembunyikan rumus':'Cara menghitungnya?'}</button>
       </div>
       ${fundsState(fin)? heroNoFunds(fin) : `<div class="big${fin.safeToSpend<0?' neg':''}"><span class="cur">Rp</span>${fin.safeToSpend<0?'−':''}${fmt(Math.abs(fin.safeToSpend)).replace(/Rp\s/,'')}</div>
-      <p class="pace">${fin.safeToSpend>0?`≈ <strong>${fmt(fin.perDay)}</strong> per hari selama ${fin.daysToPayday} hari ke depan`: (fin.cycleIncome+fin.carryOver<=0&&!openingTx()? `Belum ada pemasukan tercatat. <button class="btn-ghost-light" onclick="openOpeningBalance()">Catat saldo awal</button>` : 'Rencana belanja melebihi dana periode ini.')}</p>`}
-      ${(()=>{ const t=today(), t0=new Date(t.getFullYear(),t.getMonth(),t.getDate()), total=Math.max(1,Math.round((fin.nextPayday-fin.cycleStart)/86400000)), day=Math.min(total,Math.max(1,Math.round((t0-fin.cycleStart)/86400000)+1)), pct=((day-.5)/total*100).toFixed(1), short=d=>d.toLocaleDateString('id-ID',{day:'numeric',month:'short'});
-        return `<div class="runway"><div class="runway-row"><span>Hari ke-<strong>${day}</strong> dari ${total}</span><button class="btn-ghost-light" onclick="openPaydayModal()">Ubah tanggal gajian</button></div><div class="runway-track" role="progressbar" aria-label="Periode gajian berjalan" aria-valuemin="1" aria-valuemax="${total}" aria-valuenow="${day}"><i style="width:${pct}%"></i><b style="left:${pct}%"></b></div><div class="runway-row"><span>${short(fin.cycleStart)}</span><span>Gajian <strong>${fin.nextPayday.toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short'})}</strong></span></div></div>`; })()}
+      <p class="pace">${fin.safeToSpend>0?fin.daysToPayday<=5? `≈ <strong>${fmt(fin.perDay)}</strong> per hari · tanggal tua, ${fin.daysToPayday===1?'besok gajian':`${fin.daysToPayday} hari lagi gajian`}` : `≈ <strong>${fmt(fin.perDay)}</strong> per hari selama ${fin.daysToPayday} hari ke depan`: (fin.cycleIncome+fin.carryOver<=0&&!openingTx()? `Belum ada pemasukan tercatat. <button class="btn-ghost-light" onclick="openOpeningBalance()">Catat saldo awal</button>` : 'Rencana belanja melebihi dana periode ini.')}</p>`}
+      ${(()=>{ const t=today(), t0=new Date(t.getFullYear(),t.getMonth(),t.getDate()), total=Math.max(1,Math.round((fin.nextPayday-fin.cycleStart)/86400000)), day=Math.min(total,Math.max(1,Math.round((t0-fin.cycleStart)/86400000)+1)), short=d=>d.toLocaleDateString('id-ID',{day:'numeric',month:'short'});
+        return `<div class="runway"><div class="runway-row"><span>Hari ke-<strong>${day}</strong> dari ${total}</span><button class="btn-ghost-light" onclick="openPaydayModal()">Ubah tanggal gajian</button></div>${dayStrip(fin.cycleStart,total,day)}<div class="runway-row"><span>${short(fin.cycleStart)}</span><span>Gajian <strong>${fin.nextPayday.toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short'})}</strong></span></div></div>`; })()}
       ${safeAlloc(fin)}
       ${showFormula?`<div class="formula"><strong style="color:#fff">Cara menghitungnya (periode ${fin.cycleStart.toLocaleDateString('id-ID',{day:'numeric',month:'short'})} – ${fin.nextPayday.toLocaleDateString('id-ID',{day:'numeric',month:'short'})}):</strong><br>${fin.carryOver?`Sisa periode sebelumnya ${fmt(fin.carryOver)} + `:''}pemasukan ${fmt(fin.cycleIncome)}${fin.cycleAdjust>0?` + penyesuaian saldo ${fmt(fin.cycleAdjust)}`:fin.cycleAdjust<0?` − penyesuaian saldo ${fmt(-fin.cycleAdjust)}`:''} − pengeluaran ${fmt(fin.cycleSpending)}${fin.cycleSaved>0?` − ditabung ke pocket ${fmt(fin.cycleSaved)}`:fin.cycleSaved<0?` + diambil dari tabungan ${fmt(-fin.cycleSaved)}`:''} − tagihan yang belum dibayar ${fmt(fin.billsReserved)} − Essentials yang belum dibeli ${fmt(fin.essentialsReserved)}. Essentials dan tagihan yang sudah dibayar dihitung dengan nominal aslinya (masuk ke pengeluaran). Pocket tabungan disimpan terpisah (total ${fmt(fin.totalPocketsSaved)}) dan tidak mengurangi angka ini.</div>`:''}
     </div>
@@ -1463,7 +1484,7 @@ function renderEssentials(fin,ess){
     <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-bottom:14px;border-bottom:1px solid var(--border)"><div><h3>Tagihan &amp; Langganan Rutin</h3><p class="sub">Perkiraan vs yang benar-benar dibayar — selisihnya langsung terlihat</p></div><button class="btn btn-dark" onclick="openBillForm()">+ Tambah Tagihan Rutin</button></div>
     <div>${recurringItems.map(item=>{ const cat=catById(item.categoryId); const isPaid=item.status==='paid', isSkip=item.status==='skipped'; const t=today(), due=Math.round((billCycleDue(item)-new Date(t.getFullYear(),t.getMonth(),t.getDate()))/86400000), dueCls=isPaid||isSkip?'':due<0?'late':due<=3?'soon':''; const variance=isPaid? item.expectedAmount-(item.actualAmount??item.expectedAmount):0; return `<div class="rec-row" style="${isSkip?'opacity:.55':''}">
       <div style="display:flex;gap:12px;align-items:flex-start;min-width:min(260px,100%);flex:1"><div class="date-box ${isPaid?'paid':isSkip?'skipped':dueCls}"><small>${billCycleDue(item).toLocaleDateString('id-ID',{month:'short'}).replace('.','').toUpperCase()}</small><span>${billCycleDue(item).getDate()}</span></div>
-      <div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><strong style="font-size:15px">${esc(item.name)}</strong><span class="tag">${cat?cat.name:'Rutin'}</span>${isPaid?'<span class="badge ok">✓ Lunas</span>':''}${isSkip?'<span class="badge muted">Dilewati</span>':''}</div><p style="font-size:13px;color:var(--muted);margin:3px 0 0">${esc(item.note||'')}</p></div></div>
+      <div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><strong style="font-size:15px">${esc(item.name)}</strong><span class="tag">${cat?cat.name:'Rutin'}</span>${isPaid?`<span class="lunas${item.id===justPaidBill?' hit':''}">Lunas</span>`:''}${isSkip?'<span class="badge muted">Dilewati</span>':''}</div><p style="font-size:13px;color:var(--muted);margin:3px 0 0">${esc(item.note||'')}</p></div></div>
       <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center">
         <div><div style="font-size:12px;color:var(--muted)">Perkiraan</div><strong style="font-size:14px">${fmt(item.expectedAmount)}</strong></div>
         <div><div style="font-size:12px;color:var(--muted)">Dibayar</div><strong style="font-size:14px">${isPaid?fmt(item.actualAmount):'—'}</strong></div>
@@ -2086,6 +2107,7 @@ function openPayModal(id){
   <p style="font-size:12px;color:var(--muted);margin:0">Selisih dari perkiraan langsung terlihat sebagai “Hemat” atau “Lebih” di daftar tagihan.</p>`;
   modalShell('Tandai Tagihan Lunas', body, `<button class="btn btn-emerald" style="width:100%;padding:12px" onclick="confirmPay()">Konfirmasi Lunas</button>`);
 }
+let justPaidBill=null; // the bill confirmed a moment ago: its LUNAS stamp lands once
 function confirmPay(){
   if(!accById(document.getElementById('payAcc').value)){ toast('Pilih rekening pembayaran.'); return; }
   const item=recurringItems.find(r=>r.id===payingId); if(!item) return;
@@ -2109,7 +2131,7 @@ function confirmPay(){
   } else if(!recordBillPayment(item,amt,accId,date)){
     closeModal(); render(); toastUndo(`Pembayaran "${item.name}" dicatat untuk bulan lalu — tagihan bulan ini tetap disisihkan.`,snap); return;
   }
-  closeModal(); render(); toastUndo(`"${item.name}" ditandai lunas: ${fmt(amt)}.`,snap,true);
+  justPaidBill=item.id; closeModal(); render(); justPaidBill=null; toastUndo(`"${item.name}" ditandai lunas: ${fmt(amt)}.`,snap,true);
 }
 function toggleRecurring(id,next){
   const item=recurringItems.find(r=>r.id===id); if(!item) return;

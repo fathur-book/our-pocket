@@ -110,6 +110,7 @@ p{text-wrap:pretty}
 .modal-title{margin:0;font-size:16px;font-weight:700;line-height:1.3}
 .page-head h2{margin:0;font-size:24px;line-height:1.2;letter-spacing:-.025em}
 .page-head p{margin:4px 0 0;font-size:13px;color:var(--muted)}
+@media(min-width:561px){.page-head{display:none}} /* desktop: the highlighted tab already names the page */
 .grid{display:grid;gap:var(--gap)}
 /* Every view is a vertical stack of sections with one consistent gap. */
 main>section>*+*{margin-top:var(--gap)}
@@ -351,7 +352,9 @@ select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);backg
 .period{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
 .period-step{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700}
 .period-step span{min-width:0;text-align:center}
-.period-step .icon-btn{width:30px;height:30px;font-size:17px;line-height:1;border:1px solid var(--border);color:var(--text)}
+.period-step{flex-shrink:0}.period-step span{white-space:nowrap}
+.period-step .icon-btn{position:relative;width:30px;height:30px;padding:0;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--text)}
+.period-step .icon-btn svg{width:16px;height:16px;stroke-width:2.5}
 .period-step .icon-btn:disabled{opacity:.35;cursor:default}
 .amt-wrap{position:relative;display:block}
 .amt-wrap input{width:100%;padding-right:64px!important}
@@ -463,20 +466,20 @@ body::before{content:none}
 @keyframes lg-drift3{to{transform:translate(10%,-14%) scale(1.08)}}
 
 /* --- the material --- */
-.card,.tx-group,.hero,nav.tabs .drop,.fab,.seg button.active,.type-grid button.active{isolation:isolate;box-shadow:var(--lg-shadow)}
+.card,.tx-group,.hero,nav.tabs .drop,.fab,.seg button.active,.type-grid button.active,.period-step .icon-btn{isolation:isolate;box-shadow:var(--lg-shadow)}
 .card,.tx-group{position:relative;background:var(--lg-tint);border-color:transparent}
 .hero{background:var(--lg-hero);border-color:transparent}
 /* backdrop layer: frost, and a soft highlight that follows the pointer (under the content, so text stays crisp) */
-.card::before,.tx-group::before,.hero::before,nav.tabs .drop::before,.fab::before,.seg button.active::before,.type-grid button.active::before{
+.card::before,.tx-group::before,.hero::before,nav.tabs .drop::before,.fab::before,.seg button.active::before,.type-grid button.active::before,.period-step .icon-btn::before{
   content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;pointer-events:none;-webkit-backdrop-filter:var(--lg-frost);backdrop-filter:var(--lg-frost);
   background:radial-gradient(220px 150px at var(--mx,22%) var(--my,0%),var(--lg-glow),transparent 70%)}
 .hero::before{background:radial-gradient(280px 170px at var(--mx,20%) var(--my,0%),rgba(255,255,255,.07),transparent 70%)}
 /* rim: a hairline that is brightest at the top-left corner, fades out along the sides and comes back faintly at the bottom-right */
-.card::after,.tx-group::after,.hero::after,nav.tabs .drop::after,.fab::after,.seg button.active::after,.type-grid button.active::after,.toast::after{
+.card::after,.tx-group::after,.hero::after,nav.tabs .drop::after,.fab::after,.seg button.active::after,.type-grid button.active::after,.period-step .icon-btn::after,.toast::after{
   content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:2;padding:1px;background:linear-gradient(155deg,var(--lg-rim-hi),transparent 34%,transparent 66%,var(--lg-rim-lo));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
 /* Edge bending (Chromium): lens first, then a light frost. Cards bend gently; small controls bend more. */
 .lens .card[data-lgk]::before,.lens .tx-group[data-lgk]::before,.lens .hero[data-lgk]::before{-webkit-backdrop-filter:var(--lg-url) blur(3px) saturate(185%) brightness(1.04);backdrop-filter:var(--lg-url) blur(3px) saturate(185%) brightness(1.04)}
-.lens .fab[data-lgk]::before,.lens .seg button.active[data-lgk]::before,.lens .type-grid button.active[data-lgk]::before{-webkit-backdrop-filter:var(--lg-url) blur(1.5px) saturate(190%) brightness(1.06);backdrop-filter:var(--lg-url) blur(1.5px) saturate(190%) brightness(1.06)}
+.lens .fab[data-lgk]::before,.lens .period-step .icon-btn[data-lgk]::before,.lens .seg button.active[data-lgk]::before,.lens .type-grid button.active[data-lgk]::before{-webkit-backdrop-filter:var(--lg-url) blur(1.5px) saturate(190%) brightness(1.06);backdrop-filter:var(--lg-url) blur(1.5px) saturate(190%) brightness(1.06)}
 /* while the droplet slides it uses plain frost: re-running the lens every frame would stutter */
 .lens nav.tabs .drop[data-lgk]::before{-webkit-backdrop-filter:var(--lg-url) saturate(170%);backdrop-filter:var(--lg-url) saturate(170%)}
 .lens nav.tabs .drop.moving[data-lgk]::before{-webkit-backdrop-filter:saturate(170%);backdrop-filter:saturate(170%)}
@@ -516,6 +519,12 @@ nav.tabs button.active>*{transform:scale(1.08)}
   nav.tabs button{color:var(--text)}
   nav.tabs button.active{color:var(--lg-ink-accent)}
 }
+
+/* month arrows: small clear-glass buttons */
+.period-step .icon-btn{background:var(--lg-tint-clear);transition:transform .45s var(--spring)}
+.period-step .icon-btn:hover:not(:disabled){background:var(--lg-tint-bead);color:var(--text)}
+.period-step .icon-btn:active:not(:disabled){transform:scale(1.1)}
+.period-step .icon-btn:disabled{box-shadow:none;opacity:.35}
 
 /* Catat: clear glass with an emerald label instead of a solid green pill */
 .fab{background:var(--lg-tint-clear);color:var(--lg-ink-accent);box-shadow:var(--lg-shadow);transition:transform .45s var(--spring)}
@@ -980,7 +989,7 @@ function pockById(id){ return pockets.find(p=>p.id===id); }
    (Chrome on iPhone is WebKit and keeps the frost). Filters are keyed by size, so the cards render()
    rebuilds on every tap reuse them, and only glass near the screen gets one. */
 const LG_RGB=['1 0 0 0 0 0 0 0 0 0 0 0 0 0 0','0 0 0 0 0 0 1 0 0 0 0 0 0 0 0','0 0 0 0 0 0 0 0 0 0 0 0 1 0 0']; // keep one channel each
-const LG_SEL='.card,.tx-group,.hero,nav.tabs .drop,.fab,.seg button.active,.type-grid button.active';
+const LG_SEL='.card,.tx-group,.hero,nav.tabs .drop,.fab,.seg button.active,.type-grid button.active,.period-step .icon-btn';
 var LG={ on:navigator.vendor==='Google Inc.'&&!!window.CSS&&CSS.supports('backdrop-filter','url(#x) blur(1px)')&&!matchMedia('(prefers-reduced-transparency: reduce)').matches,
   filters:new Map(), raf:0, tab:null };
 if(LG.on) document.documentElement.classList.add('lens');
@@ -1145,7 +1154,7 @@ function periodRange(p){
 function periodPicker(key,p,withAll){
   const r=periodRange(p), kinds=[...(withAll?[['all','Semua']]:[]),['month','Bulan'],['week','Minggu']];
   return `<div class="period"><div class="seg">${kinds.map(([k,l])=>`<button class="${p.kind===k?'active':''}" onclick="setPeriod('${key}','${k}')">${l}</button>`).join('')}</div>
-  ${p.kind==='all'?'':`<div class="period-step"><button class="icon-btn" aria-label="Sebelumnya" onclick="stepPeriod('${key}',-1)">‹</button><span>${r.label}</span><button class="icon-btn" aria-label="Berikutnya" onclick="stepPeriod('${key}',1)" ${p.offset>=0?'disabled':''}>›</button></div>`}</div>`;
+  ${p.kind==='all'?'':`<div class="period-step"><button class="icon-btn" aria-label="Sebelumnya" onclick="stepPeriod('${key}',-1)"><i data-lucide="chevron-left"></i></button><span>${r.label}</span><button class="icon-btn" aria-label="Berikutnya" onclick="stepPeriod('${key}',1)" ${p.offset>=0?'disabled':''}><i data-lucide="chevron-right"></i></button></div>`}</div>`;
 }
 let dashPeriod={kind:'month',offset:0}, txPeriod={kind:'all',offset:0};
 function setPeriod(key,kind){ const p={kind,offset:0}; if(key==='dashPeriod') dashPeriod=p; else txPeriod=p; render(); }

@@ -415,9 +415,135 @@ input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-an
 .modal:focus{outline:none}
 .field{min-width:0}
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}.btn:active,.fab:active,nav.tabs button:active{transform:none}}
+
+/* ================= Liquid glass =================
+   A drifting colour field sits behind the app; cards, chrome and controls are glass over it.
+   Every glass surface = tint (background) + backdrop layer (::before: frost, plus edge bending in Chromium)
+   + rim (::after: specular edges and a highlight that follows the pointer).
+   Edge bending: lgRefresh() gives on-screen glass a data-lgk attribute and an SVG lens filter in --lg-url
+   (Chromium only; the Safari engine, including Chrome on iPhone, keeps the frost). */
+:root{
+  --bg:#e9f0ed; --muted:#56565b;
+  --lg-tint:rgba(255,255,255,.34);        /* cards */
+  --lg-tint-clear:rgba(255,255,255,.16);  /* tab bar, toggles, Catat: the clearest glass */
+  --lg-tint-bead:rgba(255,255,255,.42);   /* droplets and the slider knob */
+  --lg-tint-bar:rgba(255,255,255,.55);    /* header */
+  --lg-tint-sheet:rgba(255,255,255,.66);  /* sheets and popups */
+  --lg-hero:rgba(22,27,25,.66);
+  --lg-rim-hi:rgba(255,255,255,.9); --lg-rim-lo:rgba(255,255,255,.3); --lg-glow:rgba(255,255,255,.4);
+  --lg-shadow:0 10px 30px rgba(20,40,34,.12),0 1px 2px rgba(20,40,34,.08);
+  --lg-frost:blur(16px) saturate(190%) brightness(1.04);
+  --lg-ink-accent:#04694a;
+  --blob1:rgba(16,185,129,.50); --blob2:rgba(34,211,238,.36); --blob3:rgba(129,140,248,.34); --blob4:rgba(250,204,21,.20);
+  --spring:cubic-bezier(.34,1.56,.64,1);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#040807; --muted:#a1a1a6;
+    --lg-tint:rgba(28,32,30,.40); --lg-tint-clear:rgba(40,46,44,.18); --lg-tint-bead:rgba(70,78,75,.28);
+    --lg-tint-bar:rgba(20,24,22,.58); --lg-tint-sheet:rgba(18,22,20,.76); --lg-hero:rgba(10,14,12,.62);
+    --lg-rim-hi:rgba(255,255,255,.4); --lg-rim-lo:rgba(255,255,255,.1); --lg-glow:rgba(255,255,255,.12);
+    --lg-shadow:0 12px 34px rgba(0,0,0,.5),0 1px 2px rgba(0,0,0,.4);
+    --lg-ink-accent:#6ee7b7;
+    --blob1:rgba(16,185,129,.42); --blob2:rgba(6,182,212,.30); --blob3:rgba(99,102,241,.34); --blob4:rgba(234,179,8,.12);
+  }
+}
+body::before{content:none}
+.lg-backdrop{position:fixed;inset:-15%;z-index:-1;pointer-events:none;overflow:hidden}
+.lg-backdrop i{position:absolute;border-radius:50%;filter:blur(40px)}
+.lg-backdrop i:nth-child(1){width:60vmax;height:45vmax;left:-8%;top:2%;background:radial-gradient(circle,var(--blob1),transparent 68%);animation:lg-drift1 28s ease-in-out infinite alternate}
+.lg-backdrop i:nth-child(2){width:52vmax;height:40vmax;right:-10%;top:28%;background:radial-gradient(circle,var(--blob2),transparent 68%);animation:lg-drift2 33s ease-in-out infinite alternate}
+.lg-backdrop i:nth-child(3){width:64vmax;height:46vmax;left:6%;bottom:-6%;background:radial-gradient(circle,var(--blob3),transparent 68%);animation:lg-drift3 39s ease-in-out infinite alternate}
+.lg-backdrop i:nth-child(4){width:34vmax;height:26vmax;right:4%;bottom:24%;background:radial-gradient(circle,var(--blob4),transparent 70%);animation:lg-drift1 44s ease-in-out infinite alternate-reverse}
+@keyframes lg-drift1{to{transform:translate(16%,9%) scale(1.12)}}
+@keyframes lg-drift2{to{transform:translate(-18%,12%) scale(.92)}}
+@keyframes lg-drift3{to{transform:translate(10%,-14%) scale(1.08)}}
+
+/* --- the material --- */
+.card,.tx-group,.hero,nav.tabs .drop,.fab,.seg button.active,.type-grid button.active,.runway-track>b{isolation:isolate;box-shadow:var(--lg-shadow)}
+.card,.tx-group{position:relative;background:var(--lg-tint);border-color:transparent}
+.hero{background:var(--lg-hero);border-color:transparent}
+.card::before,.tx-group::before,.hero::before,nav.tabs .drop::before,.fab::before,.seg button.active::before,.type-grid button.active::before,.runway-track>b::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;pointer-events:none;-webkit-backdrop-filter:var(--lg-frost);backdrop-filter:var(--lg-frost)}
+.card::after,.tx-group::after,.hero::after,header::after,nav.tabs .drop::after,.fab::after,.seg button.active::after,.type-grid button.active::after,.runway-track>b::after,.toast::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:2;
+  box-shadow:inset 1.5px 1.5px 0 -.5px var(--lg-rim-hi),inset -1px -1px 0 -.5px var(--lg-rim-lo),inset 0 0 18px -6px var(--lg-glow);
+  background:radial-gradient(160px 110px at var(--mx,26%) var(--my,0%),var(--lg-glow),transparent 70%)}
+.hero::after{background:radial-gradient(220px 140px at var(--mx,20%) var(--my,0%),rgba(255,255,255,.10),transparent 70%)}
+/* Edge bending (Chromium): lens first, then a light frost. Bars over moving text keep more frost so labels stay readable. */
+.lens .card[data-lgk]::before,.lens .tx-group[data-lgk]::before,.lens .hero[data-lgk]::before{-webkit-backdrop-filter:var(--lg-url) blur(2.5px) saturate(185%) brightness(1.04);backdrop-filter:var(--lg-url) blur(2.5px) saturate(185%) brightness(1.04)}
+.lens nav.tabs .drop[data-lgk]::before,.lens .fab[data-lgk]::before,.lens .seg button.active[data-lgk]::before,.lens .type-grid button.active[data-lgk]::before,.lens .runway-track>b[data-lgk]::before{-webkit-backdrop-filter:var(--lg-url) blur(1.5px) saturate(190%) brightness(1.06);backdrop-filter:var(--lg-url) blur(1.5px) saturate(190%) brightness(1.06)}
+.lens header[data-lgk]::before{-webkit-backdrop-filter:var(--lg-url) blur(10px) saturate(190%);backdrop-filter:var(--lg-url) blur(10px) saturate(190%)}
+
+/* header and sheets: glass with enough tint for text */
+header::before{background:var(--lg-tint-bar);box-shadow:none}
+header::after{border-radius:0;box-shadow:inset 0 -1px 0 var(--lg-rim-lo),inset 0 1px 0 var(--lg-rim-lo);background:none}
+.modal{background:var(--lg-tint-sheet);box-shadow:var(--lg-shadow),inset 1.5px 1.5px 0 -.5px var(--lg-rim-hi),inset -1px -1px 0 -.5px var(--lg-rim-lo)}
+.toast{background:var(--lg-tint-bar)}
+.toast::after{background:none}
+.tx-group-head{background:color-mix(in srgb,var(--surface2) 35%,transparent)}
+
+/* tab bar: the clearest glass, with a liquid droplet that slides to the active tab */
+@media(min-width:561px){nav.tabs{position:relative}} /* phone: stays fixed at the bottom */
+nav.tabs .drop{position:absolute;z-index:0;top:0;left:0;width:0;height:0;border-radius:999px;background:var(--lg-tint-bead);opacity:0;pointer-events:none;
+  transition:transform .55s var(--spring),width .55s var(--spring),height .3s,opacity .2s}
+nav.tabs .drop.on{opacity:1}
+nav.tabs .drop{box-shadow:0 2px 10px rgba(0,0,0,.10)}
+nav.tabs .drop.stretch{animation:lg-stretch .55s ease}
+@keyframes lg-stretch{40%{scale:1.28 .88}}
+nav.tabs button{position:relative;z-index:1}
+nav.tabs button.active,nav.tabs button.active:hover{background:transparent!important;box-shadow:none}
+@media(max-width:560px){
+  nav.tabs{background:var(--lg-tint-clear)!important;box-shadow:var(--lg-shadow)!important;-webkit-backdrop-filter:blur(16px) saturate(200%) brightness(1.05);backdrop-filter:blur(16px) saturate(200%) brightness(1.05)}
+  .lens nav.tabs[data-lgk]{-webkit-backdrop-filter:var(--lg-url) blur(14px) saturate(200%) brightness(1.05);backdrop-filter:var(--lg-url) blur(14px) saturate(200%) brightness(1.05)}
+  /* the bar is the droplet's backdrop root, so there is nothing for its lens to bend: plain frost */
+  .lens nav.tabs .drop[data-lgk]::before{-webkit-backdrop-filter:blur(2px) saturate(160%) brightness(1.08);backdrop-filter:blur(2px) saturate(160%) brightness(1.08)}
+  nav.tabs::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:2;box-shadow:inset 1.5px 1.5px 0 -.5px var(--lg-rim-hi),inset -1px -1px 0 -.5px var(--lg-rim-lo),inset 0 0 18px -6px var(--lg-glow)}
+  nav.tabs button{color:var(--text)}
+  nav.tabs button.active{color:var(--lg-ink-accent)}
+}
+
+/* Catat: clear glass with an emerald label instead of a solid green pill */
+.fab{background:var(--lg-tint-clear);color:var(--lg-ink-accent);box-shadow:var(--lg-shadow);transition:transform .45s var(--spring)}
+.fab:hover{background:var(--lg-tint-bead)}
+.fab:active{transform:scale(1.06)}
+.lens .fab[data-lgk]::before{-webkit-backdrop-filter:var(--lg-url) blur(5px) saturate(190%) brightness(1.06);backdrop-filter:var(--lg-url) blur(5px) saturate(190%) brightness(1.06)}
+.head-log,.head-log:hover{background:var(--lg-tint-clear);color:var(--lg-ink-accent);-webkit-backdrop-filter:blur(8px) saturate(190%);backdrop-filter:blur(8px) saturate(190%);box-shadow:inset 1.5px 1.5px 0 -.5px var(--lg-rim-hi),inset -1px -1px 0 -.5px var(--lg-rim-lo),0 2px 10px rgba(0,0,0,.08);transition:transform .45s var(--spring)}
+.head-log:hover{background:var(--lg-tint-bead)}
+
+/* toggles: a clear track and a glass droplet on the chosen option */
+.seg,.type-grid{background:color-mix(in srgb,var(--fill) 55%,transparent)}
+.seg button.active,.type-grid button.active{position:relative;background:var(--lg-tint-bead);color:var(--text)}
+.seg button,.type-grid button{transition:transform .45s var(--spring),color .2s}
+.seg button:active,.type-grid button:active{transform:scale(1.05)}
+
+/* liquid bars: a glass groove, a glossy fill, and a glass bead on the payday slider */
+.bar,.runway-track,.alloc-bar{position:relative;border-color:transparent;box-shadow:inset 0 1px 2px rgba(0,0,0,.14),inset 0 -1px 0 var(--lg-rim-lo)}
+.bar{background:color-mix(in srgb,var(--fill) 70%,transparent)}
+.bar::after,.alloc-bar::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.45),rgba(255,255,255,.08) 48%,rgba(0,0,0,.06))}
+.bar>i,.runway-track>i,.alloc-bar>i{box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -1px 1px rgba(0,0,0,.18)}
+.runway-track{height:8px}
+.runway-track>b{width:22px;height:22px;margin:-11px 0 0 -11px;border:0;background:var(--lg-tint-bead)}
+
+/* press and spring */
+.btn{transition:background-color .2s var(--ease),color .2s var(--ease),transform .45s var(--spring)}
+
+/* fallbacks: no backdrop support or "reduce transparency" -> solid surfaces, no glass */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .card,.tx-group,.modal,.toast{background:var(--surface)} .hero{background:var(--dark)} .fab,nav.tabs .drop,.seg button.active,.type-grid button.active{background:var(--surface)} header::before{background:var(--surface)}
+}
+@media (prefers-reduced-transparency: reduce){
+  .lg-backdrop{display:none}
+  .card,.tx-group,.modal,.toast{background:var(--surface)} .hero{background:var(--dark)} header::before{background:var(--surface)}
+  .fab,nav.tabs .drop,.seg button.active,.type-grid button.active,.runway-track>b{background:var(--surface)}
+  .card::before,.tx-group::before,.hero::before,nav.tabs .drop::before,.fab::before,.seg button.active::before,.type-grid button.active::before,.runway-track>b::before{display:none}
+  @media(max-width:560px){ nav.tabs{background:var(--surface)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important} }
+}
 </style>
 </head>
 <body>
+<div class="lg-backdrop" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs id="lgDefs"></defs></svg>
 <div id="toast" class="toast hidden" role="status"></div>
 <div id="authGate" class="auth-gate" data-mode="signin">
   <form class="auth-card" onsubmit="return handleAuthForm(event)">
@@ -439,6 +565,7 @@ input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-an
       <h1>FlowPocket</h1>
     </div>
     <nav class="tabs" aria-label="Navigasi utama">
+      <span class="drop" aria-hidden="true"></span>
       <button data-tab="dashboard" class="active"><i data-lucide="layers"></i><span class="tl">Ringkasan</span><span class="ts">Ringkasan</span></button>
       <button data-tab="essentials"><i data-lucide="shopping-cart"></i><span class="tl">Belanja &amp; Tagihan</span><span class="ts">Belanja</span></button>
       <button data-tab="pockets"><i data-lucide="shield-check"></i><span class="tl">Tabungan</span><span class="ts">Tabungan</span></button>
@@ -835,7 +962,81 @@ function esc(s){ return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&
 function catById(id){ return categories.find(c=>c.id===id); }
 function accById(id){ return accounts.find(a=>a.id===id); }
 function pockById(id){ return pockets.find(p=>p.id===id); }
-function refreshIcons(){ if(window.lucide) lucide.createIcons(); }
+/* ---- Liquid glass: edge bending, the tab droplet and the pointer highlight ----
+   Edge bending is an SVG displacement filter used in backdrop-filter, which only Chromium renders
+   (Chrome on iPhone is WebKit and keeps the frost). Filters are keyed by size, so the cards render()
+   rebuilds on every tap reuse them, and only glass near the screen gets one. */
+const LG_RGB=['1 0 0 0 0 0 0 0 0 0 0 0 0 0 0','0 0 0 0 0 0 1 0 0 0 0 0 0 0 0','0 0 0 0 0 0 0 0 0 0 0 0 1 0 0']; // keep one channel each
+const LG_SEL='.card,.tx-group,.hero,nav.tabs .drop,.fab,.seg button.active,.type-grid button.active,.runway-track>b';
+var LG={ on:navigator.vendor==='Google Inc.'&&!!window.CSS&&CSS.supports('backdrop-filter','url(#x) blur(1px)')&&!matchMedia('(prefers-reduced-transparency: reduce)').matches,
+  filters:new Map(), raf:0, tab:null };
+if(LG.on) document.documentElement.classList.add('lens');
+/* Displacement map for a rounded rectangle: near the rim, sample inward (a convex lens edge); flat inside. */
+function lgMap(w,h,r,bezel){
+  const c=document.createElement('canvas'); c.width=w; c.height=h;
+  const ctx=c.getContext('2d'), img=ctx.createImageData(w,h); new Uint32Array(img.data.buffer).fill(0xff808080);
+  const d=img.data, hw=w/2, hh=h/2, band=Math.ceil(bezel+r*.3)+1;
+  const sdf=(x,y)=>{ const qx=Math.abs(x-hw)-(hw-r), qy=Math.abs(y-hh)-(hh-r); return Math.hypot(Math.max(qx,0),Math.max(qy,0))+Math.min(Math.max(qx,qy),0)-r; };
+  for(let y=0;y<h;y++){
+    const edgeRow=y<band||y>=h-band;
+    for(let x=0;x<w;x++){
+      if(!edgeRow&&x===band&&w-band>band){ x=w-band-1; continue; } // skip the flat middle
+      const depth=-sdf(x+.5,y+.5); if(depth<=0||depth>=bezel) continue;
+      const nx=sdf(x+1.5,y+.5)-sdf(x-.5,y+.5), ny=sdf(x+.5,y+1.5)-sdf(x+.5,y-.5), len=Math.hypot(nx,ny)||1, mag=Math.pow(1-depth/bezel,2.2), i=(y*w+x)*4;
+      d[i]=128-nx/len*mag*127; d[i+1]=128-ny/len*mag*127;
+    }
+  }
+  ctx.putImageData(img,0,0); return c.toDataURL();
+}
+function lgFilter(w,h,r,bezel,scale){
+  const id=`lgk${w}-${h}-${r}`, f=LG.filters.get(id);
+  if(f){ LG.filters.delete(id); LG.filters.set(id,f); return id; } // most recently used last
+  const el=document.createElementNS('http://www.w3.org/2000/svg','filter');
+  el.id=id; el.setAttribute('x',0); el.setAttribute('y',0); el.setAttribute('width',w); el.setAttribute('height',h);
+  el.setAttribute('filterUnits','userSpaceOnUse'); el.setAttribute('color-interpolation-filters','sRGB');
+  // each colour channel bends a touch more than the last: a faint chromatic fringe at the rim
+  el.innerHTML=`<feImage href="${lgMap(w,h,r,bezel)}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="none" result="m"/>`
+    +[1,1.03,1.06].map((k,j)=>`<feDisplacementMap in="SourceGraphic" in2="m" scale="${(scale*k).toFixed(1)}" xChannelSelector="R" yChannelSelector="G" result="d${j}"/>`
+      +`<feColorMatrix in="d${j}" type="matrix" values="${LG_RGB[j]} 0 0 0 1 0" result="c${j}"/>`).join('')
+    +'<feBlend in="c0" in2="c1" mode="screen" result="c01"/><feBlend in="c01" in2="c2" mode="screen"/>';
+  document.getElementById('lgDefs').appendChild(el); LG.filters.set(id,el);
+  if(LG.filters.size>80){ const [old,oe]=LG.filters.entries().next().value; oe.remove(); LG.filters.delete(old); }
+  return id;
+}
+function lgLens(el,soft){
+  const w=Math.round(el.offsetWidth), h=Math.round(el.offsetHeight); if(!w||!h) return;
+  if(h>1400||w*h>1.5e6){ delete el.dataset.lgk; return; } // a long list group keeps the frost: its map would be huge
+  const r=Math.round(Math.min(parseFloat(getComputedStyle(el).borderTopLeftRadius)||0,h/2,w/2));
+  const bezel=Math.max(8,Math.min(soft?14:26,Math.min(w,h)*.35)), id=lgFilter(w,h,r,bezel,Math.min(56,bezel*2.2));
+  if(el.dataset.lgk!==id||!el.style.getPropertyValue('--lg-url')){ el.dataset.lgk=id; el.style.setProperty('--lg-url',`url(#${id})`); }
+}
+function lgDrop(){
+  const nav=document.querySelector('nav.tabs'), drop=nav&&nav.querySelector('.drop'), b=nav&&nav.querySelector('button.active');
+  if(!drop||!b||!b.offsetWidth){ if(drop) drop.classList.remove('on'); return; }
+  const first=!drop.classList.contains('on');
+  if(first) drop.style.transition='none';
+  drop.style.width=b.offsetWidth+'px'; drop.style.height=b.offsetHeight+'px';
+  drop.style.transform=`translate(${b.offsetLeft}px,${b.offsetTop}px)`;
+  if(first){ void drop.offsetWidth; drop.style.transition=''; drop.classList.add('on'); }
+  else if(LG.tab&&LG.tab!==b.dataset.tab){ drop.classList.remove('stretch'); void drop.offsetWidth; drop.classList.add('stretch'); }
+  LG.tab=b.dataset.tab;
+}
+function lgRefresh(){
+  LG.raf=0; lgDrop(); if(!LG.on) return;
+  const vh=innerHeight, near=el=>{ const r=el.getBoundingClientRect(); return r.bottom>-200&&r.top<vh+200&&r.width>0; };
+  document.querySelectorAll(LG_SEL).forEach(el=>{ if(near(el)) lgLens(el, el.matches('.card,.tx-group,.hero')&&el.offsetHeight>240); });
+  const hd=document.querySelector('header'); if(hd&&hd.offsetWidth) lgLens(hd,true);
+  const nav=document.querySelector('nav.tabs'); if(nav&&innerWidth<=560) lgLens(nav);
+}
+function lgSchedule(){ if(LG&&!LG.raf) LG.raf=requestAnimationFrame(lgRefresh); }
+addEventListener('resize',lgSchedule); addEventListener('scroll',lgSchedule,{capture:true,passive:true});
+document.addEventListener('click',lgSchedule,true); // toggles that change without a re-render
+document.addEventListener('pointermove',e=>{
+  if(e.pointerType!=='mouse') return; const g=e.target.closest&&e.target.closest(LG_SEL); if(!g) return;
+  const r=g.getBoundingClientRect();
+  g.style.setProperty('--mx',((e.clientX-r.left)/r.width*100).toFixed(1)+'%'); g.style.setProperty('--my',((e.clientY-r.top)/r.height*100).toFixed(1)+'%');
+},{passive:true});
+function refreshIcons(){ if(window.lucide) lucide.createIcons(); lgSchedule(); }
 
 let toastTimer=null, toastUndoFn=null;
 function toast(msg,onUndo,win){ const t=document.getElementById('toast'); toastUndoFn=onUndo||null; t.classList.toggle('win',!!win); t.innerHTML=(win?'<i data-lucide="badge-check"></i>':'')+'<span>'+esc(msg)+'</span>'+(onUndo?' <button class="toast-undo" onclick="runToastUndo()">Urungkan</button>':''); if(win) refreshIcons(); t.classList.remove('hidden'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>{ t.classList.add('hidden'); toastUndoFn=null; }, onUndo?6000:3400); }

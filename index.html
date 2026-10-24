@@ -10,20 +10,28 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#0f172a" />
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
 <title>FlowPocket — Clarity-First Finance</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+
 <!-- Third-party code is pinned and hash-checked: if a CDN ever serves a modified file, the browser refuses to run it. -->
 <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js" integrity="sha384-hJnF5AwidE18GSWTAGHv3ByzzvfNZ1Tcx5y1UUV3WkauuMCEzBJBMSwSt/PUPXnM" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
 <script type="importmap">{"integrity":{"https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs":"sha384-+0ti2moQlmLN7WZHE2RHIf5lV8hHxhxEalN0il3YZceG26fUPyOkR0hp9daxk1i7"}}</script>
 <style>
 :root{
-  --bg:#f6f7f9; --surface:#ffffff; --surface2:#f8fafc; --border:#e2e8f0; --border2:#cbd5e1;
-  --text:#0f172a; --muted:#64748b; --muted2:#64748b;
-  --dark:#0f172a; --dark2:#1e293b; --dark-border:#334155;
-  --emerald:#059669; --emerald-bg:#ecfdf5; --emerald-border:#a7f3d0; --emerald-text:#065f46;
+  --bg:#f2f2f7; --surface:#ffffff; --surface2:#f7f7fa; --border:#e5e5ea; --border2:#d1d1d6;
+  --text:#1c1c1e; --muted:#6e6e73; --muted2:#6e6e73;
+  --dark:#1c1c1e; --dark2:#2c2c2e; --dark-border:#3a3a3c;
+  /* Glass: translucent chrome (header, tab bar, sheets, toast). Falls back to opaque --surface below. */
+  --fill:rgba(120,120,128,.12);
+  --glass-bg:rgba(255,255,255,.85); --glass-blur:saturate(180%) blur(20px);
+  --chrome-muted:#5c5c61; /* grey text on glass: darker than --muted so it holds AA when the dark hero scrolls underneath */
+  --glass-edge:inset 0 .5px 0 rgba(255,255,255,.6), 0 0 0 .5px rgba(0,0,0,.06);
+  --glass-shadow:0 8px 32px rgba(0,0,0,.08);
+  --ease:cubic-bezier(.2,.8,.2,1);
+  --seg-thumb:var(--surface); /* active segment; dark mode lifts it above the track */
+  --emerald:#1f9d55; --emerald-bg:#ecfdf5; --emerald-border:#a7f3d0; --emerald-text:#065f46;
   --amber:#d97706; --amber-bg:#fffbeb; --amber-border:#fde68a; --amber-text:#92400e;
   --indigo:#4f46e5; --indigo-bg:#eef2ff;
   --rose:#e11d48; --rose-bg:#fff1f2; --rose-border:#fecdd3; --rose-text:#be123c;
@@ -35,10 +43,17 @@
 }
 @media (prefers-color-scheme: dark){
   :root{
-    --bg:#0b1220; --surface:#111827; --surface2:#0f172a; --border:#1f2937; --border2:#374151;
-    --text:#f1f5f9; --muted:#94a3b8; --muted2:#8391a7;
-    /* --dark is the "ink" fill (hero, date boxes, toasts). Its light value (#0f172a) is the same as the dark-mode page, so raise it here. */
-    --dark:#1e293b; --dark2:#273449;
+    --bg:#000000; --surface:#1c1c1e; --surface2:#2c2c2e; --border:#38383a; --border2:#48484a;
+    --text:#f5f5f7; --muted:#98989d; --muted2:#98989d;
+    /* --dark is the "ink" fill (hero, date boxes). Its light value is near the dark-mode page, so raise it here. */
+    --dark:#2c2c2e; --dark2:#3a3a3c; --dark-border:#48484a;
+    --emerald:#34c759;
+    --fill:rgba(120,120,128,.24);
+    --glass-bg:rgba(28,28,30,.58);
+    --chrome-muted:var(--muted);
+    --glass-edge:inset 0 .5px 0 rgba(255,255,255,.12), 0 0 0 .5px rgba(255,255,255,.08);
+    --glass-shadow:0 8px 32px rgba(0,0,0,.4);
+    --seg-thumb:#636366;
     --emerald-bg:#064e3b33; --emerald-border:#065f46; --emerald-text:#6ee7b7;
     --amber-bg:#78350f33; --amber-border:#92400e; --amber-text:#fcd34d;
     --indigo:#a5b4fc; --indigo-bg:#312e8133;
@@ -47,37 +62,43 @@
     color-scheme: dark;
   }
 }
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){ :root{--glass-bg:var(--surface);--glass-blur:none} }
+@media (prefers-reduced-transparency: reduce){ :root{--glass-bg:var(--surface);--glass-blur:none} }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{margin:0;font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-size:15px;line-height:1.5;font-variant-numeric:tabular-nums;background:var(--bg);color:var(--text);padding-bottom:96px;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(60vmax 50vmax at 0% 0%,rgba(52,199,89,.07),transparent 70%),radial-gradient(60vmax 50vmax at 100% 100%,rgba(10,132,255,.07),transparent 70%)}
+@media (prefers-color-scheme: dark){ body::before{background:radial-gradient(60vmax 50vmax at 0% 0%,rgba(52,199,89,.10),transparent 70%),radial-gradient(60vmax 50vmax at 100% 100%,rgba(10,132,255,.10),transparent 70%)} }
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;font-size:15px;line-height:1.5;font-variant-numeric:tabular-nums;background:var(--bg);color:var(--text);padding-bottom:96px;-webkit-font-smoothing:antialiased}
 button{font-family:inherit;cursor:pointer}
 input,select,textarea{font-family:inherit}
 a{color:inherit}
-header{position:sticky;top:0;z-index:30;background:color-mix(in srgb, var(--surface) 92%, transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+/* The blur lives on ::before, not on header itself: a filtered header would become the containing block for the fixed phone tab bar inside it. */
+header{position:sticky;top:0;z-index:30;background:transparent;isolation:isolate}
+header::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--glass-bg);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:0 .5px 0 var(--border)}
 .header-in{max-width:1440px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:10px}
-.brand-icon{width:40px;height:40px;border-radius:12px;background:var(--dark);color:#fff;display:flex;align-items:center;justify-content:center}
-.brand-icon svg{width:20px;height:20px;color:#34d399}
+.brand-icon{width:36px;height:36px;border-radius:10px;background:var(--fill);color:var(--text);display:flex;align-items:center;justify-content:center}
+.brand-icon svg{width:19px;height:19px;color:var(--emerald)}
 .brand h1{font-size:17px;margin:0;letter-spacing:-.02em;line-height:1}
 nav.tabs{display:flex;gap:4px;background:var(--surface2);border:1px solid var(--border);padding:4px;border-radius:14px;flex-wrap:wrap}
-nav.tabs button{border:0;background:transparent;padding:8px 12px;border-radius:10px;font-size:13px;font-weight:700;color:var(--muted);display:flex;align-items:center;gap:6px}
+nav.tabs button{border:0;background:transparent;padding:8px 12px;border-radius:10px;font-size:13px;font-weight:700;color:var(--chrome-muted);display:flex;align-items:center;gap:6px}
 nav.tabs button.active{background:var(--dark);color:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}
 nav.tabs button svg{width:15px;height:15px}
-.safe-pill{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);font-size:14px;color:var(--text)}
-.safe-label{color:var(--muted);font-weight:600;font-size:13px}
+.safe-pill{display:flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;background:var(--fill);border:0;font-size:14px;color:var(--text)}
+.safe-label{color:var(--chrome-muted);font-weight:600;font-size:13px}
 #safePill.neg{color:var(--amber-text)}
 #safePill.up{animation:pill-up .9s cubic-bezier(.16,1,.3,1)}
 #safePill.down{animation:pill-down .9s cubic-bezier(.16,1,.3,1)}
 @keyframes pill-up{from{color:var(--emerald)}}
 @keyframes pill-down{from{color:var(--amber)}}
-/* Desktop & tablet header: one 60px row — brand, flat tabs with an underline, then status and account. */
+/* Desktop & tablet header: one 60px row — brand, tabs with a soft capsule on the active one, then status and account. */
 @media(min-width:561px){
   .header-in{height:60px;padding:0 24px;flex-wrap:nowrap;gap:28px}
-  .brand-icon{width:34px;height:34px;border-radius:10px}
-  nav.tabs{align-self:stretch;background:none;border:0;padding:0;border-radius:0;gap:2px;flex-wrap:nowrap}
-  nav.tabs button{height:100%;padding:0 12px;border-radius:0;font-size:14px;font-weight:600;white-space:nowrap}
-  nav.tabs button:hover{color:var(--text)}
-  nav.tabs button.active{background:none;color:var(--text);box-shadow:inset 0 -2px 0 var(--emerald)}
+  .brand-icon{width:32px;height:32px;border-radius:9px}
+  nav.tabs{align-self:center;background:none;border:0;padding:0;border-radius:0;gap:2px;flex-wrap:nowrap}
+  nav.tabs button{height:34px;padding:0 14px;border-radius:999px;font-size:14px;font-weight:600;white-space:nowrap;transition:background-color .2s var(--ease),color .2s var(--ease)}
+  nav.tabs button:hover{color:var(--text);background:color-mix(in srgb, var(--fill) 50%, transparent)}
+  nav.tabs button.active{background:var(--fill);color:var(--text);box-shadow:none}
   nav.tabs button.active svg{color:var(--emerald)}
 }
 @media(min-width:561px) and (max-width:1099px){ nav.tabs .tl{display:none}nav.tabs .ts{display:inline} .header-in{gap:16px;padding:0 16px} nav.tabs button{padding:0 9px} }
@@ -100,7 +121,7 @@ main>section>*+*{margin-top:var(--gap)}
 .hero-head .btn-ghost-light{white-space:nowrap}
 @media(prefers-color-scheme:dark){.hero{border-color:var(--dark-border)}}
 .hero .label{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8;font-weight:700}
-.hero .big{font-size:clamp(40px,7vw,76px);font-weight:800;letter-spacing:-.04em;margin:12px 0 0;line-height:.95;font-variant-numeric:tabular-nums}
+.hero .big{font-size:clamp(40px,7vw,76px);font-weight:700;letter-spacing:-.04em;margin:12px 0 0;line-height:.95;font-variant-numeric:tabular-nums}
 .hero .big .cur{font-size:.4em;font-weight:700;letter-spacing:0;color:#94a3b8;margin-right:.2em;vertical-align:.7em}
 .btn-ghost-light{background:#ffffff1a;color:#e2e8f0;border:1px solid #ffffff22;padding:6px 10px;border-radius:9px;font-size:12px;font-weight:600}
 .hero{container-type:inline-size}
@@ -149,7 +170,7 @@ main>section>*+*{margin-top:var(--gap)}
 /* Essentials on Ringkasan: a shopping list; dots = units bought / planned this pay period. */
 .shop-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px 24px;flex-wrap:wrap}
 .shop-left{text-align:right}
-.shop-left .amt{font-size:32px;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--amber-text);font-variant-numeric:tabular-nums}
+.shop-left .amt{font-size:32px;font-weight:700;letter-spacing:-.03em;line-height:1;color:var(--amber-text);font-variant-numeric:tabular-nums}
 .shop-left .amt.done{display:inline-flex;align-items:center;gap:8px;color:var(--emerald-text)}
 .shop-left .amt.done svg{width:28px;height:28px}
 .shop-left .sub{margin-top:4px}
@@ -182,17 +203,15 @@ main>section>*+*{margin-top:var(--gap)}
 .pock-row .acts{display:flex;gap:6px;flex-shrink:0}
 @media(max-width:760px){.pock-list{grid-template-columns:1fr}}
 @media(max-width:560px){.pock-row{flex-wrap:wrap}.pock-row .acts{width:100%;padding-left:40px}.pock-row .acts .btn{flex:1}}
-.btn{border:1px solid var(--border);background:var(--surface);padding:8px 12px;border-radius:10px;font-size:13px;font-weight:600;color:var(--text)}
-.btn:hover{border-color:var(--border2)}
-.btn-dark{background:var(--dark);color:#fff;border-color:var(--dark)}
-.btn-dark:hover{background:var(--emerald);border-color:var(--emerald)}
-.btn-emerald{background:#059669;color:#fff;border-color:#059669}
-.btn-emerald:hover{background:#047857;border-color:#047857}
-/* Dark mode: the primary button inverts to a light fill so it reads as a button, not as text on the card. */
-@media(prefers-color-scheme:dark){
-  .btn-dark{background:#e2e8f0;color:#0f172a;border-color:#e2e8f0}
-  .btn-dark:hover{background:#34d399;border-color:#34d399;color:#022c22}
-}
+.btn{border:0;background:var(--fill);padding:8px 13px;border-radius:10px;font-size:13px;font-weight:600;color:var(--text);transition:background-color .2s var(--ease),color .2s var(--ease),transform .2s var(--ease)}
+.btn:hover{background:color-mix(in srgb, var(--fill), var(--text) 7%)}
+.btn:active,.fab:active,nav.tabs button:active{transform:scale(.97)}
+/* Primary: solid ink that inverts with the theme (dark text-on-light in dark mode). */
+.btn-dark{background:var(--text);color:var(--bg)}
+.btn-dark:hover{background:color-mix(in srgb, var(--text) 85%, var(--bg))}
+.btn-emerald{background:#059669;color:#fff}
+.btn-emerald:hover{background:#047857}
+
 .btn-sm{padding:6px 10px;font-size:12px;border-radius:9px}
 .link-btn{background:none;border:0;font-size:13px;font-weight:600;color:var(--muted);display:inline-flex;align-items:center;gap:4px;padding:0}
 .link-btn:hover{color:var(--text)}
@@ -201,9 +220,10 @@ th{font-size:11px;letter-spacing:.06em;font-weight:700;text-transform:uppercase;
 td{padding:12px 8px;border-bottom:1px solid var(--border);vertical-align:middle}
 tr.done{background:color-mix(in srgb, var(--emerald-bg) 45%, transparent)}
 .num{text-align:right}.center{text-align:center}
-.seg{display:inline-flex;gap:3px;background:var(--surface2);border:1px solid var(--border);padding:3px;border-radius:11px;flex-wrap:wrap}
-.seg button{border:0;background:transparent;padding:6px 11px;border-radius:8px;font-size:12px;font-weight:600;color:var(--muted)}
-.seg button.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+/* iOS segmented control: grey track, raised thumb on the active segment. */
+.seg{display:inline-flex;gap:2px;background:var(--fill);border:0;padding:2px;border-radius:9px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;padding:6px 12px;border-radius:7px;font-size:12px;font-weight:600;color:var(--muted);transition:background-color .2s var(--ease),color .2s var(--ease)}
+.seg button.active{background:var(--seg-thumb);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.04)}
 .rec-row{display:flex;justify-content:space-between;gap:14px;padding:16px 0;border-bottom:1px solid var(--border);flex-wrap:wrap}
 .rec-row:last-child{border-bottom:0}
 .date-box{width:42px;height:46px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;border:1px solid var(--border);background:var(--dark);color:#fff;flex-shrink:0}
@@ -217,7 +237,7 @@ tr.done{background:color-mix(in srgb, var(--emerald-bg) 45%, transparent)}
 .acc-ico{width:36px;height:36px;border-radius:10px;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .acc-sum{display:flex;flex-wrap:wrap;gap:10px 28px;padding:14px 0;border-bottom:1px solid var(--border)}
 .acc-sum span{display:block;font-size:12px;color:var(--muted);font-weight:600}
-.acc-sum strong{font-size:20px;font-weight:800;letter-spacing:-.02em}
+.acc-sum strong{font-size:20px;font-weight:700;letter-spacing:-.02em}
 .acc-list{display:grid;grid-template-columns:1fr 1fr;column-gap:28px}
 .acc-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
 .acc-name{display:block;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -239,12 +259,12 @@ select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);backg
 .tx-ico.green{background:var(--emerald-bg);color:var(--emerald-text);border-color:var(--emerald-border)}
 .tx-ico.indigo{background:var(--indigo-bg);color:var(--indigo)}
 .tag{font-size:12px;font-weight:600;padding:2px 7px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--muted)}
-.icon-btn{border:0;background:transparent;color:var(--muted2);padding:6px;border-radius:8px}
+.icon-btn{border:0;background:transparent;color:var(--muted2);padding:6px;border-radius:50%;transition:background-color .2s var(--ease),color .2s var(--ease)}
 .icon-btn:hover{color:var(--rose);background:color-mix(in srgb, var(--rose) 12%, transparent)}
 .icon-btn.edit:hover{color:var(--indigo);background:color-mix(in srgb, var(--indigo) 12%, transparent)}
 .head-log{display:flex;align-items:center;gap:4px;white-space:nowrap}
 .head-log svg{width:16px;height:16px;stroke-width:2.5}
-.fab{position:fixed;right:18px;bottom:20px;z-index:40;display:flex;align-items:center;gap:6px;background:#059669;color:#fff;border:0;padding:12px 20px 12px 16px;border-radius:999px;font-weight:700;font-size:15px;line-height:1;box-shadow:0 8px 20px rgba(5,150,105,.3)}
+.fab{position:fixed;right:18px;bottom:20px;z-index:40;display:flex;align-items:center;justify-content:center;gap:6px;background:#059669;color:#fff;border:0;padding:12px 20px 12px 16px;border-radius:999px;font-weight:700;font-size:15px;line-height:1;box-shadow:var(--glass-shadow),inset 0 1px 0 rgba(255,255,255,.35)}
 .fab:hover{background:#047857}
 .fab svg{width:18px;height:18px;stroke-width:2.5}
 /* Desktop & tablet: "+ Catat" lives in the sticky header, so no floating button covers row actions. */
@@ -252,26 +272,29 @@ select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);backg
 .ql-imports{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
 .ql-imports .btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 8px;text-align:center}
 .ql-imports svg{width:16px;height:16px;flex-shrink:0}
-.modal-back{position:fixed;inset:0;z-index:50;background:rgba(2,6,23,.6);backdrop-filter:blur(3px);display:flex;align-items:flex-end;justify-content:center}
+.modal-back{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.35);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center}
 @media(min-width:640px){.modal-back{align-items:center;padding:16px}}
-.modal{background:var(--surface);width:100%;max-width:460px;max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;border:1px solid var(--border)}
-@media(min-width:640px){.modal{border-radius:22px}}
-.modal-head{padding:10px 10px 10px 16px;border-bottom:1px solid var(--border);background:var(--surface2)}
-.modal-close{width:40px;height:40px;flex-shrink:0;border-radius:12px;border:1px solid var(--border);background:var(--surface);color:var(--text);display:flex;align-items:center;justify-content:center;padding:0}
-.modal-close:hover{border-color:var(--border2)}
-.modal-close svg{width:20px;height:20px;stroke-width:2.4}
+.modal{background:color-mix(in srgb, var(--surface) 92%, transparent);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);width:100%;max-width:460px;max-height:92vh;overflow:auto;border-radius:28px 28px 0 0;border:0;box-shadow:var(--glass-edge),var(--glass-shadow)}
+@media(min-width:640px){.modal{border-radius:28px}}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){ .modal{background:var(--surface)} }
+@media (prefers-reduced-transparency: reduce){ .modal{background:var(--surface)} .modal-back{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(0,0,0,.5)} }
+.modal-head{padding:12px 12px 4px 20px;border-bottom:0;background:transparent}
+/* Bottom sheet on phones: an iOS grab handle above the title (decorative). */
+@media(max-width:639px){ .modal-head::before{content:"";display:block;width:36px;height:5px;border-radius:3px;background:var(--border2);margin:-4px auto 8px} }
+.modal-close{width:32px;height:32px;flex-shrink:0;border-radius:50%;border:0;background:var(--fill);color:var(--muted);display:flex;align-items:center;justify-content:center;padding:0;transition:background-color .2s var(--ease),color .2s var(--ease)}
+.modal-close:hover{color:var(--text)}
+.modal-close svg{width:17px;height:17px;stroke-width:2.6}
 .modal-body{padding:18px}
 .field{margin-bottom:14px}
 .field label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px}
 .field input,.field select,.field textarea{width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:15px}
-.field input.big{font-size:20px;font-weight:800;padding:13px 14px}
-.type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;background:var(--surface2);border:1px solid var(--border);padding:3px;border-radius:11px}
-.type-grid button{border:0;background:transparent;padding:8px 4px;border-radius:8px;font-size:12px;font-weight:700;color:var(--muted)}
-.type-grid button.active{background:var(--dark);color:#fff}
-@media(prefers-color-scheme:dark){.type-grid button.active{background:#e2e8f0;color:#0f172a}}
-.toast.win{border-color:#34d399}
-.toast.win svg{width:18px;height:18px;flex-shrink:0;color:#34d399}
-.toast-undo{white-space:nowrap;flex-shrink:0;margin-left:6px;background:#ffffff1f;color:#6ee7b7;border:1px solid #ffffff33;padding:4px 10px;border-radius:8px;font-size:13px;font-weight:700}
+.field input.big{font-size:20px;font-weight:700;padding:13px 14px}
+.type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:var(--fill);border:0;padding:2px;border-radius:9px}
+.type-grid button{border:0;background:transparent;padding:8px 4px;border-radius:7px;font-size:12px;font-weight:700;color:var(--muted);transition:background-color .2s var(--ease),color .2s var(--ease)}
+.type-grid button.active{background:var(--seg-thumb);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.04)}
+.toast.win{box-shadow:var(--glass-shadow),inset 0 0 0 1px color-mix(in srgb, var(--emerald) 40%, transparent)}
+.toast.win svg{width:18px;height:18px;flex-shrink:0;color:var(--emerald)}
+.toast-undo{white-space:nowrap;flex-shrink:0;margin-left:6px;background:var(--fill);color:var(--emerald-text);border:0;padding:5px 12px;border-radius:999px;font-size:13px;font-weight:700}
 .rc-opt{border:1px solid var(--border);background:var(--surface2);border-radius:14px;padding:14px;margin-bottom:12px}
 .rc-opt textarea{width:100%;margin-top:6px;padding:10px 12px;border-radius:12px;border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:14px;font-family:inherit;resize:vertical}
 .rc-help{font-size:13px;color:var(--muted);margin:4px 0 0;line-height:1.5}
@@ -319,7 +342,7 @@ select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);backg
 .ts{display:none}
 .rc-sum{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:13px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
 .ess-suggest{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;background:var(--surface2);border:1px dashed var(--border2);border-radius:14px;padding:10px 12px;margin-bottom:14px;font-size:13px}
-.toast{position:fixed;top:14px;right:14px;z-index:60;background:var(--dark);color:#fff;padding:12px 16px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.3);font-size:14px;font-weight:600;display:flex;gap:8px;align-items:center;max-width:min(92vw,460px);border:1px solid var(--dark-border)}
+.toast{position:fixed;top:14px;right:14px;z-index:60;background:var(--glass-bg);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);color:var(--text);padding:12px 18px;border-radius:22px;box-shadow:var(--glass-edge),var(--glass-shadow);font-size:14px;font-weight:600;display:flex;gap:8px;align-items:center;max-width:min(92vw,460px);border:0}
 .hidden{display:none!important}
 @media(max-width:900px){.grid{grid-template-columns:1fr !important}.grid>*{grid-column:auto !important}}
 @media(max-width:560px){nav.tabs{order:3;width:100%}nav.tabs button{flex:1;justify-content:center}}
@@ -352,14 +375,15 @@ body{overflow-x:clip;overflow-wrap:anywhere}
 .modal{max-width:min(460px,100vw)}.modal-body{max-width:100vw} /* keep the 460px cap: a bare 100vw stretched dialogs across desktop screens */
 @media(max-width:768px){input,select,textarea{font-size:16px!important}}
 @media(max-width:560px){
-  body{padding-bottom:calc(150px + env(safe-area-inset-bottom))}
-  header{backdrop-filter:none;-webkit-backdrop-filter:none;background:var(--surface)} /* a blurred header would trap the fixed tab bar inside it */
-  nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:45;order:0;width:auto;margin:0;display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-radius:0;border:0;border-top:1px solid var(--border);background:var(--surface);padding:6px 4px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -6px 20px rgba(0,0,0,.18)}
-  nav.tabs button{flex-direction:column;gap:3px;padding:6px 2px;font-size:11px;border-radius:10px;min-width:0}
+  :root{--bar-h:calc(64px + 12px + env(safe-area-inset-bottom))} /* floating tab bar height plus its gap to the screen edge */
+  body{padding-bottom:calc(var(--bar-h) + 76px)}
+
+  nav.tabs{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:45;order:0;width:auto;margin:0;display:grid;grid-template-columns:repeat(5,1fr);gap:2px;border-radius:999px;border:0;background:var(--glass-bg);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);padding:6px;box-shadow:var(--glass-edge),var(--glass-shadow)}
+  nav.tabs button{flex-direction:column;justify-content:center;gap:3px;padding:6px 2px;font-size:11px;border-radius:999px;min-width:0;white-space:nowrap;transition:background-color .2s var(--ease),color .2s var(--ease)}
   nav.tabs button svg{width:19px;height:19px}
-  nav.tabs button.active{background:var(--surface2);color:var(--emerald);box-shadow:none}
+  nav.tabs button.active{background:var(--fill);color:var(--emerald-text);box-shadow:none}
   .tl{display:none}.ts{display:inline}
-  .fab{bottom:calc(76px + env(safe-area-inset-bottom));right:14px}
+  .fab{bottom:calc(var(--bar-h) + 10px);right:16px}
   #quickLogTop{display:none}
   .header-in{padding:10px 16px;flex-wrap:nowrap}
   .brand-icon{width:34px;height:34px;border-radius:10px}
@@ -368,6 +392,12 @@ body{overflow-x:clip;overflow-wrap:anywhere}
   main{padding:16px 16px 8px}
   :root{--gap:16px;--pad:16px}
   .toast{left:12px;right:12px;max-width:none}
+}
+/* Small phones: the FAB becomes a round "+" so it doesn't crowd the floating bar; the label stays for screen readers. */
+@media(max-width:375px){
+  .fab{width:52px;height:52px;padding:0}
+  .fab svg{width:22px;height:22px}
+  .fab-l{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 }
 @media(max-width:359px){
   .brand h1{display:none} /* very small phones: logo icon only, so the header stays one row */
@@ -384,7 +414,7 @@ input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-an
 .modal{overflow-x:hidden}
 .modal:focus{outline:none}
 .field{min-width:0}
-@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}.btn:active,.fab:active,nav.tabs button:active{transform:none}}
 </style>
 </head>
 <body>
@@ -439,7 +469,7 @@ input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-an
   <section id="view-settings" class="hidden"></section>
 </main>
 
-<button class="fab" id="fabBtn"><i data-lucide="plus"></i>Catat</button>
+<button class="fab" id="fabBtn"><i data-lucide="plus"></i><span class="fab-l">Catat</span></button>
 
 <div id="modalRoot"></div>
 
@@ -1120,7 +1150,7 @@ function renderPockets(fin){
 
   ${pockets.length?`<div><h3 style="margin:0 0 4px">Pocket Tabungan</h3><p class="sub" style="font-size:13px;color:var(--muted);margin:0 0 16px;max-width:70ch"> Tabungan terpisah dari uang belanja. Saldo pocket tidak mengurangi Safe-to-Spend; hanya menabung ke pocket (atau mengambil darinya) yang mengubahnya.</p>
   <div class="grid" style="grid-template-columns:1fr 1fr">${pockets.map(p=>{ const pct=Math.min(100,Math.round(p.currentAmount/p.targetAmount*100)); return `<div class="card"><div style="display:flex;justify-content:space-between;gap:10px"><div style="display:flex;gap:10px;align-items:center"><span class="cat-ico" style="width:42px;height:42px;border-radius:12px;background:var(--emerald-bg);color:var(--emerald-text)"><i data-lucide="${p.icon}"></i></span><div><h3>${esc(p.name)}</h3><p class="sub">${esc(p.description)}</p></div></div><span class="badge ok" style="align-self:flex-start">${pct>=100?'<i data-lucide="badge-check"></i>Tercapai':pct+'%'}</span></div>
-  <div style="display:flex;justify-content:space-between;margin-top:16px;align-items:flex-end"><div><div style="font-size:12px;color:var(--muted)">Terkumpul</div><div style="font-size:22px;font-weight:800">${fmt(p.currentAmount)}</div></div><div style="text-align:right"><div style="font-size:12px;color:var(--muted)">Target${p.targetDate?` (${esc(p.targetDate)})`:''}</div><strong style="font-size:14px">${fmt(p.targetAmount)}</strong><div style="font-size:12px;color:var(--muted)">kurang ${fmt(Math.max(0,p.targetAmount-p.currentAmount))}</div></div></div>
+  <div style="display:flex;justify-content:space-between;margin-top:16px;align-items:flex-end"><div><div style="font-size:12px;color:var(--muted)">Terkumpul</div><div style="font-size:22px;font-weight:700">${fmt(p.currentAmount)}</div></div><div style="text-align:right"><div style="font-size:12px;color:var(--muted)">Target${p.targetDate?` (${esc(p.targetDate)})`:''}</div><strong style="font-size:14px">${fmt(p.targetAmount)}</strong><div style="font-size:12px;color:var(--muted)">kurang ${fmt(Math.max(0,p.targetAmount-p.currentAmount))}</div></div></div>
   <div class="bar" style="margin-top:10px"><i style="width:${pct}%"></i></div>
   ${p.monthlyHint?`<p class="sub" style="margin:10px 0 0">Saran top up ${fmt(p.monthlyHint)} / bulan</p>`:''}<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)"><button class="btn btn-dark" style="flex:1 1 120px" onclick="openPocketAction('${p.id}','topup')">+ Isi pocket</button><button class="btn" style="flex:1 1 120px" onclick="openPocketAction('${p.id}','spend')">Pakai dari Pocket</button></div></div>`;}).join('')}</div></div>`:''}
 

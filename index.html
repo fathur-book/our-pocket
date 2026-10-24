@@ -438,7 +438,7 @@ input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-an
    (Chromium only; the Safari engine, including Chrome on iPhone, keeps the frost). */
 :root{
   --bg:#e9f0ed; --muted:#56565b;
-  --lg-tint:rgba(255,255,255,.34);        /* cards */
+  --lg-tint:rgba(255,255,255,.30);        /* cards */
   --lg-tint-clear:rgba(255,255,255,.16);  /* tab bar, toggles, Catat: the clearest glass */
   --lg-tint-bead:rgba(255,255,255,.42);   /* toggle droplets */
   --lg-tint-drop:rgba(255,255,255,.05); --lg-drop-glint:rgba(255,255,255,.6); --lg-drop-glint2:rgba(255,255,255,.3); --lg-drop-edge:rgba(255,255,255,.85); --lg-drop-depth:rgba(0,40,28,.12); /* tab droplet */
@@ -450,7 +450,7 @@ input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-an
   --lg-shadow:0 10px 30px rgba(20,40,34,.12),0 1px 2px rgba(20,40,34,.08);
   --lg-frost:blur(16px) saturate(190%) brightness(1.04);
   --lg-ink-accent:#04694a;
-  --blob1:rgba(16,185,129,.50); --blob2:rgba(34,211,238,.36); --blob3:rgba(129,140,248,.34); --blob4:rgba(250,204,21,.20);
+  --blob1:rgba(16,185,129,.62); --blob2:rgba(34,211,238,.48); --blob3:rgba(129,140,248,.46); --blob4:rgba(250,204,21,.30);
   --spring:cubic-bezier(.34,1.56,.64,1);
 }
 :root[data-theme="dark"]{
@@ -464,30 +464,30 @@ input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-an
     --blob1:rgba(16,185,129,.42); --blob2:rgba(6,182,212,.30); --blob3:rgba(99,102,241,.34); --blob4:rgba(234,179,8,.12);
 }
 body::before{content:none}
+/* The colour field stays still: every glass layer re-blurs whatever moves behind it, so a drifting field cost a redraw of all of them every frame. */
 .lg-backdrop{position:fixed;inset:-15%;z-index:-1;pointer-events:none;overflow:hidden}
 .lg-backdrop i{position:absolute;border-radius:50%;filter:blur(40px)}
-.lg-backdrop i:nth-child(1){width:60vmax;height:45vmax;left:-8%;top:2%;background:radial-gradient(circle,var(--blob1),transparent 68%);animation:lg-drift1 28s ease-in-out infinite alternate}
-.lg-backdrop i:nth-child(2){width:52vmax;height:40vmax;right:-10%;top:28%;background:radial-gradient(circle,var(--blob2),transparent 68%);animation:lg-drift2 33s ease-in-out infinite alternate}
-.lg-backdrop i:nth-child(3){width:64vmax;height:46vmax;left:6%;bottom:-6%;background:radial-gradient(circle,var(--blob3),transparent 68%);animation:lg-drift3 39s ease-in-out infinite alternate}
-.lg-backdrop i:nth-child(4){width:34vmax;height:26vmax;right:4%;bottom:24%;background:radial-gradient(circle,var(--blob4),transparent 70%);animation:lg-drift1 44s ease-in-out infinite alternate-reverse}
-@keyframes lg-drift1{to{transform:translate(16%,9%) scale(1.12)}}
-@keyframes lg-drift2{to{transform:translate(-18%,12%) scale(.92)}}
-@keyframes lg-drift3{to{transform:translate(10%,-14%) scale(1.08)}}
+.lg-backdrop i:nth-child(1){width:60vmax;height:45vmax;left:-8%;top:2%;background:radial-gradient(circle,var(--blob1),transparent 68%)}
+.lg-backdrop i:nth-child(2){width:52vmax;height:40vmax;right:-10%;top:28%;background:radial-gradient(circle,var(--blob2),transparent 68%)}
+.lg-backdrop i:nth-child(3){width:64vmax;height:46vmax;left:6%;bottom:-6%;background:radial-gradient(circle,var(--blob3),transparent 68%)}
+.lg-backdrop i:nth-child(4){width:34vmax;height:26vmax;right:4%;bottom:24%;background:radial-gradient(circle,var(--blob4),transparent 70%)}
 
 /* --- the material --- */
 .card,.tx-group,.hero,nav.tabs .drop,.fab,.seg button.active,.type-grid button.active,.period-step .icon-btn{isolation:isolate;box-shadow:var(--lg-shadow)}
 .card,.tx-group{position:relative;background:var(--lg-tint);border-color:transparent}
 .hero{background:var(--lg-hero);border-color:transparent}
-/* backdrop layer: frost, and a soft highlight that follows the pointer (under the content, so text stays crisp) */
-.card::before,.tx-group::before,.hero::before,nav.tabs .drop::before,.fab::before,.seg button.active::before,.type-grid button.active::before,.period-step .icon-btn::before{
+/* backdrop layer: a soft highlight that follows the pointer (under the content, so text stays crisp), plus frost on the
+   floating pieces. Cards get no live blur: only the soft colour field is behind them, so a tint looks the same and scrolls far cheaper. */
+.card::before,.tx-group::before,.hero::before{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;pointer-events:none;
+  background:radial-gradient(220px 150px at var(--mx,22%) var(--my,0%),var(--lg-glow),transparent 70%)}
+nav.tabs .drop::before,.fab::before,.seg button.active::before,.type-grid button.active::before,.period-step .icon-btn::before{
   content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;pointer-events:none;-webkit-backdrop-filter:var(--lg-frost);backdrop-filter:var(--lg-frost);
   background:radial-gradient(220px 150px at var(--mx,22%) var(--my,0%),var(--lg-glow),transparent 70%)}
 .hero::before{background:radial-gradient(280px 170px at var(--mx,20%) var(--my,0%),rgba(255,255,255,.07),transparent 70%)}
 /* rim: a hairline that is brightest at the top-left corner, fades out along the sides and comes back faintly at the bottom-right */
 .card::after,.tx-group::after,.hero::after,nav.tabs .drop::after,.fab::after,.seg button.active::after,.type-grid button.active::after,.period-step .icon-btn::after,.toast::after{
   content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:2;padding:1px;background:linear-gradient(155deg,var(--lg-rim-hi),transparent 34%,transparent 66%,var(--lg-rim-lo));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
-/* Edge bending (Chromium): lens first, then a light frost. Cards bend gently; small controls bend more. */
-.lens .card[data-lgk]::before,.lens .tx-group[data-lgk]::before,.lens .hero[data-lgk]::before{-webkit-backdrop-filter:var(--lg-url) blur(3px) saturate(185%) brightness(1.04);backdrop-filter:var(--lg-url) blur(3px) saturate(185%) brightness(1.04)}
+/* Edge bending (Chromium): lens first, then a light frost, on the small floating controls. */
 .lens .fab[data-lgk]::before,.lens .period-step .icon-btn[data-lgk]::before,.lens .seg button.active[data-lgk]::before,.lens .type-grid button.active[data-lgk]::before{-webkit-backdrop-filter:var(--lg-url) blur(1.5px) saturate(190%) brightness(1.06);backdrop-filter:var(--lg-url) blur(1.5px) saturate(190%) brightness(1.06)}
 /* while the droplet slides it uses plain frost: re-running the lens every frame would stutter */
 .lens nav.tabs .drop[data-lgk]::before{-webkit-backdrop-filter:var(--lg-url) saturate(170%);backdrop-filter:var(--lg-url) saturate(170%)}
@@ -998,7 +998,7 @@ function pockById(id){ return pockets.find(p=>p.id===id); }
    (Chrome on iPhone is WebKit and keeps the frost). Filters are keyed by size, so the cards render()
    rebuilds on every tap reuse them, and only glass near the screen gets one. */
 const LG_RGB=['1 0 0 0 0 0 0 0 0 0 0 0 0 0 0','0 0 0 0 0 0 1 0 0 0 0 0 0 0 0','0 0 0 0 0 0 0 0 0 0 0 0 1 0 0']; // keep one channel each
-const LG_SEL='.card,.tx-group,.hero,nav.tabs .drop,.fab,.seg button.active,.type-grid button.active,.period-step .icon-btn';
+const LG_SEL='nav.tabs .drop,.fab,.seg button.active,.type-grid button.active,.period-step .icon-btn';
 var LG={ on:navigator.vendor==='Google Inc.'&&!!window.CSS&&CSS.supports('backdrop-filter','url(#x) blur(1px)')&&!matchMedia('(prefers-reduced-transparency: reduce)').matches,
   filters:new Map(), raf:0, tab:null };
 if(LG.on) document.documentElement.classList.add('lens');
@@ -1034,12 +1034,11 @@ function lgFilter(w,h,r,bezel,scale){
   if(LG.filters.size>80){ const [old,oe]=LG.filters.entries().next().value; oe.remove(); LG.filters.delete(old); }
   return id;
 }
-function lgLens(el,soft,gentle){
+function lgLens(el,soft){
   const w=Math.round(el.offsetWidth), h=Math.round(el.offsetHeight); if(!w||!h) return;
-  if(h>1400||w*h>1.5e6){ delete el.dataset.lgk; return; } // a long list group keeps the frost: its map would be huge
+  if(h>1400||w*h>1.5e6){ delete el.dataset.lgk; return; } // safety: a huge element would need a huge map
   const r=Math.round(Math.min(parseFloat(getComputedStyle(el).borderTopLeftRadius)||0,h/2,w/2));
-  // cards: a narrow, shallow bevel so the edge reads as a soft curve, not a smear; small controls bend like a droplet
-  const bezel=Math.max(8,Math.min(gentle?12:soft?14:26,Math.min(w,h)*.35)), id=lgFilter(w,h,r,bezel,Math.min(56,bezel*(gentle?1.2:2.2)));
+  const bezel=Math.max(8,Math.min(soft?14:26,Math.min(w,h)*.35)), id=lgFilter(w,h,r,bezel,Math.min(56,bezel*2.2));
   if(el.dataset.lgk!==id||!el.style.getPropertyValue('--lg-url')){ el.dataset.lgk=id; el.style.setProperty('--lg-url',`url(#${id})`); }
 }
 /* The droplet moves like liquid: its leading edge springs ahead and its trailing edge follows on a softer
@@ -1091,12 +1090,14 @@ function lgRefresh(){
   // new lens maps wait until the droplet has landed, so building them never stalls its first frames
   const wait=(LG.busy||0)-performance.now(); if(wait>0){ clearTimeout(LG.later); LG.later=setTimeout(lgSchedule,wait+20); return; }
   const vh=innerHeight, near=el=>{ const r=el.getBoundingClientRect(); return r.bottom>-200&&r.top<vh+200&&r.width>0; };
-  document.querySelectorAll(LG_SEL).forEach(el=>{ if(near(el)) lgLens(el,false,el.matches('.card,.tx-group,.hero')); });
+  document.querySelectorAll(LG_SEL).forEach(el=>{ if(near(el)) lgLens(el); });
   const hd=document.querySelector('header'); if(hd&&hd.offsetWidth) lgLens(hd,true);
   const nav=document.querySelector('nav.tabs'); if(nav&&innerWidth<=560) lgLens(nav);
 }
 function lgSchedule(){ if(LG&&!LG.raf) LG.raf=requestAnimationFrame(lgRefresh); }
-addEventListener('resize',lgSchedule); addEventListener('scroll',lgSchedule,{capture:true,passive:true});
+addEventListener('resize',lgSchedule);
+// while scrolling nothing needs re-measuring; refresh once it settles
+addEventListener('scroll',()=>{ clearTimeout(LG.scrollT); LG.scrollT=setTimeout(lgSchedule,140); },{capture:true,passive:true});
 document.addEventListener('click',lgSchedule,true); // toggles that change without a re-render
 document.addEventListener('pointermove',e=>{
   if(e.pointerType!=='mouse') return; const g=e.target.closest&&e.target.closest(LG_SEL); if(!g) return;

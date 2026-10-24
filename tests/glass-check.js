@@ -89,6 +89,29 @@ window.__glassCheck = async (only) => {
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const dur = Math.max(...cs(btn, 'transition-duration').split(',').map(px));
   check(5, 'reducedMotion', reduced ? dur === 0 : dur >= 0.18);
-  tmp.remove(); probe.remove();
+  tmp.remove();
+
+  // Group 6: contrast and fallbacks found in review
+  const rgb = c => (c.match(/[\d.]+/g) || []).map(Number);
+  const over = (fg, bg) => { const [r, g, b, a = 1] = rgb(fg), [R, G, B] = rgb(bg); return `rgb(${r * a + R * (1 - a)}, ${g * a + G * (1 - a)}, ${b * a + B * (1 - a)})`; };
+  const lum = c => { const v = rgb(c).slice(0, 3).map(x => { x /= 255; return x <= .03928 ? x / 12.92 : ((x + .055) / 1.055) ** 2.4; }); return .2126 * v[0] + .7152 * v[1] + .0722 * v[2]; };
+  const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + .05) / (y + .05); };
+  // Worst case for chrome: glass over the dark hero (--dark), as when it scrolls under the bar.
+  const glassOnInk = over(resolve('var(--glass-bg)'), resolve('var(--dark)'));
+  const surface = resolve('var(--surface)');
+  if (!dark) {
+    check(6, 'chromeMutedOnInk', ratio(cs('.safe-label', 'color'), glassOnInk) >= 4.5);
+    const act = $('nav.tabs button.active');
+    check(6, 'activeTabLabel', ratio(cs(act, 'color'), over(resolve('var(--fill)'), surface)) >= 4.5);
+    const t = $('#toast'); t.classList.add('win');
+    t.innerHTML = '<svg></svg><button class="toast-undo">Urungkan</button>';
+    check(6, 'winIcon', ratio(cs(t.querySelector('svg'), 'color'), surface) >= 3);
+    check(6, 'undoLabel', ratio(cs('.toast-undo', 'color'), over(resolve('var(--fill)'), surface)) >= 4.5);
+    t.classList.remove('win'); t.innerHTML = '';
+  }
+  const rtRules = [...document.styleSheets].flatMap(s => { try { return [...s.cssRules]; } catch { return []; } })
+    .filter(r => r.media && /reduced-transparency/.test(r.media.mediaText)).flatMap(r => [...r.cssRules].map(x => x.cssText));
+  check(6, 'backdropFallback', rtRules.some(t => /\.modal-back/.test(t) && /backdrop-filter: none/.test(t)));
+  probe.remove();
   return failed;
 };

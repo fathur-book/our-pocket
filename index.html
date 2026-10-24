@@ -10,14 +10,14 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" id="themeColor" content="#f2f2f7" />
+<meta name="theme-color" id="themeColor" content="#e9f0ed" />
 <script>/* Theme before the first paint: the choice saved on this device (Pengaturan → Tampilan), else the system setting. */
 (function(){
   var t=null, root=document.documentElement, sys=matchMedia('(prefers-color-scheme: dark)');
   try{ t=localStorage.getItem('fp-theme'); }catch(e){}
   function apply(){
     var dark=t==='dark'||(t!=='light'&&sys.matches); root.dataset.theme=dark?'dark':'light';
-    var m=document.getElementById('themeColor'); if(m) m.content=dark?'#000000':'#f2f2f7';
+    var m=document.getElementById('themeColor'); if(m) m.content=dark?'#040807':'#e9f0ed'; // the page background, so the browser bar blends in
   }
   apply(); document.addEventListener('DOMContentLoaded',apply);
   if(sys.addEventListener) sys.addEventListener('change',apply);
@@ -30,6 +30,10 @@
 <!-- Third-party code is pinned and hash-checked: if a CDN ever serves a modified file, the browser refuses to run it. -->
 <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js" integrity="sha384-hJnF5AwidE18GSWTAGHv3ByzzvfNZ1Tcx5y1UUV3WkauuMCEzBJBMSwSt/PUPXnM" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
+<!-- Display font for headings and big amounts only. A stylesheet from Google Fonts can't be hash-pinned, but fonts can't run code; if it's blocked, the system font is used. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600..800&display=swap">
 <script type="importmap">{"integrity":{"https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs":"sha384-+0ti2moQlmLN7WZHE2RHIf5lV8hHxhxEalN0il3YZceG26fUPyOkR0hp9daxk1i7"}}</script>
 <style>
 :root{
@@ -50,7 +54,7 @@
   --rose:#e11d48; --rose-bg:#fff1f2; --rose-border:#fecdd3; --rose-text:#be123c;
   /* Spending categories: one hue each, used only on that category's icon and bar (never as a surface). */
   --c-food:#d9481f; --c-coffee:#9a5b25; --c-transport:#2563d8; --c-util:#0b839b; --c-subs:#7442d6; --c-shop:#c2306f; --c-income:#059669;
-  --radius:20px;
+  --r-sm:10px; --r-md:16px; --r-lg:22px; --radius:var(--r-lg); /* radius scale: controls and icon tiles / inner panels / cards and sheets; plus 999px pills */
   --gap:24px; --pad:24px; /* section gap and card padding; 16px on phones */
   color-scheme: light;
 }
@@ -82,20 +86,23 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;font-size:15px;line-height:1.5;font-variant-numeric:tabular-nums;background:var(--bg);color:var(--text);padding-bottom:96px;-webkit-font-smoothing:antialiased}
 button{font-family:inherit;cursor:pointer}
 input,select,textarea{font-family:inherit}
+/* Display font: headings and the big amounts only; body text stays on the system font. */
+:root{--font-display:"Plus Jakarta Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif}
+.brand h1,.page-head h2,.card h3,.modal-title,.hero .big,.hero-empty .he-t,.shop-left .amt,.acc-sum strong,.safe-pill strong{font-family:var(--font-display);word-spacing:.08em} /* its space is narrow: "Rp 7.350.000" read as one word */
 a{color:inherit}
 /* The blur lives on ::before, not on header itself: a filtered header would become the containing block for the fixed phone tab bar inside it. */
 header{position:sticky;top:0;z-index:30;background:transparent;isolation:isolate}
 header::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--glass-bg);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:0 .5px 0 var(--border)}
 .header-in{max-width:1440px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:10px}
-.brand-icon{width:36px;height:36px;border-radius:10px;background:var(--fill);color:var(--text);display:flex;align-items:center;justify-content:center}
+.brand-icon{width:36px;height:36px;border-radius:var(--r-sm);background:var(--fill);color:var(--text);display:flex;align-items:center;justify-content:center}
 .brand-icon svg{width:19px;height:19px;color:var(--emerald)}
 .brand h1{font-size:17px;margin:0;letter-spacing:-.02em;line-height:1}
-nav.tabs{display:flex;gap:4px;background:var(--surface2);border:1px solid var(--border);padding:4px;border-radius:14px;flex-wrap:wrap}
-nav.tabs button{border:0;background:transparent;padding:8px 12px;border-radius:10px;font-size:13px;font-weight:700;color:var(--chrome-muted);display:flex;align-items:center;gap:6px}
+nav.tabs{display:flex;gap:4px;background:var(--surface2);border:1px solid var(--border);padding:4px;border-radius:var(--r-md);flex-wrap:wrap}
+nav.tabs button{border:0;background:transparent;padding:8px 12px;border-radius:calc(var(--r-md) - 4px);font-size:13px;font-weight:700;color:var(--chrome-muted);display:flex;align-items:center;gap:6px}
 nav.tabs button.active{background:var(--dark);color:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}
 nav.tabs button svg{width:15px;height:15px}
-.safe-pill{display:flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;background:var(--fill);border:0;font-size:14px;color:var(--text)}
+.safe-pill{display:flex;align-items:center;gap:8px;flex-shrink:0;white-space:nowrap;padding:7px 14px;border-radius:999px;background:var(--fill);border:0;font-size:14px;color:var(--text)}
 .safe-label{color:var(--chrome-muted);font-weight:600;font-size:13px}
 #safePill.neg{color:var(--rose-text)}
 #safePill.unset{color:var(--chrome-muted);font-weight:600}
@@ -106,15 +113,18 @@ nav.tabs button svg{width:15px;height:15px}
 /* Desktop & tablet header: one 60px row — brand, tabs with a soft capsule on the active one, then status and account. */
 @media(min-width:561px){
   .header-in{height:60px;padding:0 24px;flex-wrap:nowrap;gap:28px}
-  .brand-icon{width:32px;height:32px;border-radius:9px}
+  .brand-icon{width:32px;height:32px;border-radius:var(--r-sm)}
   nav.tabs{align-self:center;background:none;border:0;padding:0;border-radius:0;gap:2px;flex-wrap:nowrap}
   nav.tabs button{height:34px;padding:0 14px;border-radius:999px;font-size:14px;font-weight:600;white-space:nowrap;transition:background-color .2s var(--ease),color .2s var(--ease)}
   nav.tabs button:hover{color:var(--text);background:color-mix(in srgb, var(--fill) 50%, transparent)}
   nav.tabs button.active{background:var(--fill);color:var(--text);box-shadow:none}
   nav.tabs button.active svg{color:var(--emerald)}
 }
-@media(min-width:561px) and (max-width:1099px){ nav.tabs .tl{display:none}nav.tabs .ts{display:inline} .header-in{gap:16px;padding:0 16px} nav.tabs button{padding:0 9px} }
-@media(min-width:561px) and (max-width:860px){ .safe-label,.brand h1{display:none} }
+@media(min-width:561px) and (max-width:1139px){ nav.tabs .tl{display:none}nav.tabs .ts{display:inline} .header-in{gap:16px;padding:0 16px} nav.tabs button{padding:0 9px} }
+@media(min-width:561px) and (max-width:940px){ .safe-label,.brand h1{display:none} }
+/* Narrow tablets: the header row doesn't fit, so Catat shows only its "+" and the tabs only their icons (labels stay for screen readers and as tooltips). */
+@media(min-width:561px) and (max-width:860px){ header .head-log{font-size:0;gap:0;padding-left:10px;padding-right:10px} }
+@media(min-width:561px) and (max-width:800px){ nav.tabs .ts{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap} nav.tabs button{padding:0 11px} }
 main{max-width:1440px;margin:0 auto;padding:20px 24px 8px}
 .page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:var(--gap);flex-wrap:wrap}
 h1,h2,h3,h4{text-wrap:balance}
@@ -129,22 +139,22 @@ main>section>*+*{margin-top:var(--gap)}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:var(--pad)}
 .card h3{margin:0;font-size:17px;line-height:1.3;letter-spacing:-.01em}
 .card .sub{max-width:70ch;line-height:1.45;font-size:13px;color:var(--muted);margin-top:2px}
-.hero{background:var(--dark);color:#fff;border:1px solid var(--dark);border-radius:24px;padding:22px;position:relative;overflow:hidden;display:flex;flex-direction:column}
+.hero{background:var(--dark);color:#fff;border:1px solid var(--dark);border-radius:var(--r-lg);padding:22px;position:relative;overflow:hidden;display:flex;flex-direction:column}
 .hero-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:8px}
 .hero-head .btn-ghost-light{white-space:nowrap}
 :root[data-theme="dark"] .hero{border-color:var(--dark-border)}
 .hero .label{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8;font-weight:700}
-.hero .big{font-size:clamp(40px,7vw,76px);font-weight:700;letter-spacing:-.04em;margin:12px 0 0;line-height:.95;font-variant-numeric:tabular-nums}
+.hero .big{font-size:clamp(40px,7vw,76px);font-weight:700;letter-spacing:-.045em;margin:12px 0 0;line-height:.95;font-variant-numeric:tabular-nums}
 .hero .big.neg{color:#fda4af}
 .hero .big .cur{font-size:.4em;font-weight:700;letter-spacing:0;color:#94a3b8;margin-right:.2em;vertical-align:.7em}
-.btn-ghost-light{background:#ffffff1a;color:#e2e8f0;border:1px solid #ffffff22;padding:6px 10px;border-radius:9px;font-size:12px;font-weight:600}
+.btn-ghost-light{background:#ffffff1a;color:#e2e8f0;border:1px solid #ffffff22;padding:6px 10px;border-radius:var(--r-sm);font-size:12px;font-weight:600}
 .hero{container-type:inline-size}
 /* No money counted yet this period: ask for the missing entry instead of showing a shortfall. */
 .hero-empty{margin-top:14px}
 .hero-empty .he-t{margin:0;font-size:clamp(22px,3.4vw,30px);font-weight:700;letter-spacing:-.02em;line-height:1.15;color:#fff}
 .hero-empty .he-d{margin:8px 0 0;max-width:52ch;font-size:15px;line-height:1.5;color:#cbd5e1}
 .he-acts{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:16px}
-.he-acts .btn,.he-acts .btn-ghost-light{min-height:44px;padding:0 18px;font-size:14px;border-radius:12px}
+.he-acts .btn,.he-acts .btn-ghost-light{min-height:44px;padding:0 18px;font-size:14px;border-radius:var(--r-sm)}
 /* Safe-to-Spend card: a pace line, a payday runway (time) and one allocation bar (money). */
 .pace{margin:14px 0 0;font-size:16px;color:#cbd5e1}
 .pace strong{color:#fff;font-variant-numeric:tabular-nums}
@@ -159,7 +169,7 @@ main>section>*+*{margin-top:var(--gap)}
 .alloc-cap{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:13px;color:#94a3b8}
 .alloc-cap strong{color:#fff;font-variant-numeric:tabular-nums}
 .alloc-cap .short{color:#fda4af}
-.alloc-bar{position:relative;display:flex;gap:2px;height:18px;margin:10px 0 12px;border-radius:8px;overflow:hidden;background:#ffffff0f}
+.alloc-bar{position:relative;display:flex;gap:2px;height:18px;margin:10px 0 12px;border-radius:999px;overflow:hidden;background:#ffffff0f}
 .alloc-bar>i{display:block;min-width:3px}
 .alloc-bar>u{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:#fff}
 /* Solid = money already moved; striped = set aside for bills / Essentials not paid yet. */
@@ -174,7 +184,7 @@ main>section>*+*{margin-top:var(--gap)}
 .alloc-legend .sw{width:10px;height:10px;border-radius:3px;flex-shrink:0}
 .alloc-legend .lb{flex:1;min-width:0}
 .alloc-legend strong{color:#fff;white-space:nowrap;font-variant-numeric:tabular-nums}
-.formula{margin-top:12px;background:#ffffff0f;border:1px solid var(--dark-border);border-radius:14px;padding:12px;font-size:13px;line-height:1.6;color:#cbd5e1}
+.formula{margin-top:12px;background:#ffffff0f;border:1px solid var(--dark-border);border-radius:var(--r-md);padding:12px;font-size:13px;line-height:1.6;color:#cbd5e1}
 .bar{height:10px;background:var(--surface2);border:1px solid var(--border);border-radius:999px;overflow:hidden}
 .bar>i{display:block;height:100%;border-radius:999px;background:var(--emerald);transition:width .4s}
 .bar.amber>i{background:#f59e0b}.bar.dark>i{background:var(--dark)}
@@ -210,7 +220,7 @@ main>section>*+*{margin-top:var(--gap)}
 .cat-row{margin-bottom:16px}.cat-row:last-child{margin-bottom:0}
 .cat-head{display:flex;justify-content:space-between;align-items:center;font-size:13px;gap:8px}
 .cat-name{display:flex;align-items:center;gap:8px;font-weight:700}
-.cat-ico{width:28px;height:28px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center}
+.cat-ico{width:28px;height:28px;border-radius:var(--r-sm);background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center}
 .cat-ico svg{width:14px;height:14px}
 .cat-ico.tint,.tx-ico.tint{color:var(--cat);background:color-mix(in srgb, var(--cat) 12%, var(--surface));border-color:color-mix(in srgb, var(--cat) 30%, var(--surface))}
 .bar.cat>i{background:var(--cat)}
@@ -223,7 +233,7 @@ main>section>*+*{margin-top:var(--gap)}
 .pock-row .acts{display:flex;gap:6px;flex-shrink:0}
 @media(max-width:760px){.pock-list{grid-template-columns:1fr}}
 @media(max-width:560px){.pock-row{flex-wrap:wrap}.pock-row .acts{width:100%;padding-left:40px}.pock-row .acts .btn{flex:1}}
-.btn{border:0;background:var(--fill);padding:8px 13px;border-radius:10px;font-size:13px;font-weight:600;color:var(--text);transition:background-color .2s var(--ease),color .2s var(--ease),transform .2s var(--ease)}
+.btn{border:0;background:var(--fill);padding:8px 13px;border-radius:var(--r-sm);font-size:13px;font-weight:600;color:var(--text);transition:background-color .2s var(--ease),color .2s var(--ease),transform .2s var(--ease)}
 .btn:hover{background:color-mix(in srgb, var(--fill), var(--text) 7%)}
 .btn:active,.fab:active,nav.tabs button:active{transform:scale(.97)}
 /* Primary: solid ink that inverts with the theme (dark text-on-light in dark mode). */
@@ -232,7 +242,7 @@ main>section>*+*{margin-top:var(--gap)}
 .btn-emerald{background:#059669;color:#fff}
 .btn-emerald:hover{background:#047857}
 
-.btn-sm{padding:6px 10px;font-size:12px;border-radius:9px}
+.btn-sm{padding:6px 10px;font-size:12px;border-radius:var(--r-sm)}
 .link-btn{background:none;border:0;font-size:13px;font-weight:600;color:var(--muted);display:inline-flex;align-items:center;gap:4px;padding:0}
 .link-btn:hover{color:var(--text)}
 table{width:100%;border-collapse:collapse;font-size:14px}
@@ -241,20 +251,20 @@ td{padding:12px 8px;border-bottom:1px solid var(--border);vertical-align:middle}
 tr.done{background:color-mix(in srgb, var(--emerald-bg) 45%, transparent)}
 .num{text-align:right}.center{text-align:center}
 /* iOS segmented control: grey track, raised thumb on the active segment. */
-.seg{display:inline-flex;gap:2px;background:var(--fill);border:0;padding:2px;border-radius:9px;flex-wrap:wrap}
-.seg button{border:0;background:transparent;padding:6px 12px;border-radius:7px;font-size:12px;font-weight:600;color:var(--muted);transition:background-color .2s var(--ease),color .2s var(--ease)}
+.seg{display:inline-flex;gap:2px;background:var(--fill);border:0;padding:2px;border-radius:var(--r-sm);flex-wrap:wrap}
+.seg button{border:0;background:transparent;padding:6px 12px;border-radius:calc(var(--r-sm) - 2px);font-size:12px;font-weight:600;color:var(--muted);transition:background-color .2s var(--ease),color .2s var(--ease)}
 .seg button.active{background:var(--seg-thumb);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.04)}
 .rec-row{display:flex;justify-content:space-between;gap:14px;padding:16px 0;border-bottom:1px solid var(--border);flex-wrap:wrap}
 .rec-row:last-child{border-bottom:0}
-.date-box{width:42px;height:46px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;border:1px solid var(--border);background:var(--dark);color:#fff;flex-shrink:0}
+.date-box{width:42px;height:46px;border-radius:var(--r-sm);display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;border:1px solid var(--border);background:var(--dark);color:#fff;flex-shrink:0}
 .date-box small{font-size:10px;font-weight:700;letter-spacing:.06em;opacity:.75}
 .date-box.paid{background:var(--emerald-bg);color:var(--emerald-text);border-color:var(--emerald-border)}
 .date-box.skipped{background:var(--surface2);color:var(--muted)}
 .date-box.soon{background:var(--amber-bg);color:var(--amber-text);border-color:var(--amber-border)}
 .date-box.late{background:var(--rose-bg);color:var(--rose-text);border-color:var(--rose-border)}
-.sweep{background:#064e3b;color:#fff;border-radius:22px;padding:20px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center}
+.sweep{background:#064e3b;color:#fff;border-radius:var(--r-lg);padding:20px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center}
 :root[data-theme="dark"] .sweep{background:#065f46}
-.acc-ico{width:36px;height:36px;border-radius:10px;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.acc-ico{width:36px;height:36px;border-radius:var(--r-sm);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .acc-sum{display:flex;flex-wrap:wrap;gap:10px 28px;padding:14px 0;border-bottom:1px solid var(--border)}
 .acc-sum span{display:block;font-size:12px;color:var(--muted);font-weight:600}
 .acc-sum strong{font-size:20px;font-weight:700;letter-spacing:-.02em}
@@ -268,17 +278,17 @@ tr.done{background:color-mix(in srgb, var(--emerald-bg) 45%, transparent)}
 .searchbar{display:flex;gap:10px;flex-wrap:wrap}
 .search-wrap{flex:1;min-width:200px;position:relative}
 .search-wrap svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--muted2)}
-.search-wrap input{width:100%;padding:11px 12px 11px 36px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);font-size:14px;color:var(--text)}
-select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);font-size:13px;font-weight:600;color:var(--text)}
-.tx-group{border:1px solid var(--border);border-radius:18px;overflow:hidden;background:var(--surface);margin-bottom:14px}
+.search-wrap input{width:100%;padding:11px 12px 11px 36px;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--surface2);font-size:14px;color:var(--text)}
+select{padding:10px 12px;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--surface2);font-size:13px;font-weight:600;color:var(--text)}
+.tx-group{border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;background:var(--surface);margin-bottom:14px}
 .tx-group-head{background:var(--surface2);padding:10px 16px;display:flex;flex-wrap:wrap;gap:2px 12px;justify-content:space-between;font-size:13px;border-bottom:1px solid var(--border)}
 .tx-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border)}
 .tx-row:last-child{border-bottom:0}
-.tx-ico{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--surface2);border:1px solid var(--border)}
+.tx-ico{width:36px;height:36px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--surface2);border:1px solid var(--border)}
 .tx-ico svg{width:16px;height:16px}
 .tx-ico.green{background:var(--emerald-bg);color:var(--emerald-text);border-color:var(--emerald-border)}
 .tx-ico.indigo{background:var(--indigo-bg);color:var(--indigo)}
-.tag{font-size:12px;font-weight:600;padding:2px 7px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--muted)}
+.tag{font-size:12px;font-weight:600;padding:2px 7px;border-radius:999px;background:var(--surface2);border:1px solid var(--border);color:var(--muted)}
 .icon-btn{border:0;background:transparent;color:var(--muted2);padding:6px;border-radius:50%;transition:background-color .2s var(--ease),color .2s var(--ease)}
 .icon-btn:hover{color:var(--rose);background:color-mix(in srgb, var(--rose) 12%, transparent)}
 .icon-btn.edit:hover{color:var(--indigo);background:color-mix(in srgb, var(--indigo) 12%, transparent)}
@@ -294,8 +304,8 @@ select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);backg
 .ql-imports svg{width:16px;height:16px;flex-shrink:0}
 .modal-back{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.35);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center}
 @media(min-width:640px){.modal-back{align-items:center;padding:16px}}
-.modal{background:color-mix(in srgb, var(--surface) 92%, transparent);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);width:100%;max-width:460px;max-height:92vh;overflow:auto;border-radius:28px 28px 0 0;border:0;box-shadow:var(--glass-edge),var(--glass-shadow)}
-@media(min-width:640px){.modal{border-radius:28px}}
+.modal{background:color-mix(in srgb, var(--surface) 92%, transparent);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);width:100%;max-width:460px;max-height:92vh;overflow:auto;border-radius:var(--r-lg) var(--r-lg) 0 0;border:0;box-shadow:var(--glass-edge),var(--glass-shadow)}
+@media(min-width:640px){.modal{border-radius:var(--r-lg)}}
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){ .modal{background:var(--surface)} }
 @media (prefers-reduced-transparency: reduce){ .modal{background:var(--surface)} .modal-back{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(0,0,0,.5)} }
 .modal-head{padding:12px 12px 4px 20px;border-bottom:0;background:transparent}
@@ -307,21 +317,21 @@ select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);backg
 .modal-body{padding:18px}
 .field{margin-bottom:14px}
 .field label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px}
-.field input,.field select,.field textarea{width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:15px}
+.field input,.field select,.field textarea{width:100%;padding:11px 12px;border-radius:var(--r-sm);border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:15px}
 .field input.big{font-size:20px;font-weight:700;padding:13px 14px}
-.type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:var(--fill);border:0;padding:2px;border-radius:9px}
-.type-grid button{border:0;background:transparent;padding:8px 4px;border-radius:7px;font-size:12px;font-weight:700;color:var(--muted);transition:background-color .2s var(--ease),color .2s var(--ease)}
+.type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:var(--fill);border:0;padding:2px;border-radius:var(--r-sm)}
+.type-grid button{border:0;background:transparent;padding:8px 4px;border-radius:calc(var(--r-sm) - 2px);font-size:12px;font-weight:700;color:var(--muted);transition:background-color .2s var(--ease),color .2s var(--ease)}
 .type-grid button.active{background:var(--seg-thumb);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.04)}
 .toast.win{box-shadow:var(--glass-shadow),inset 0 0 0 1px color-mix(in srgb, var(--emerald) 40%, transparent)}
 .toast.win svg{width:18px;height:18px;flex-shrink:0;color:var(--emerald)}
 .toast-undo{white-space:nowrap;flex-shrink:0;margin-left:6px;background:var(--fill);color:var(--emerald-text);border:0;padding:5px 12px;border-radius:999px;font-size:13px;font-weight:700}
-.rc-opt{border:1px solid var(--border);background:var(--surface2);border-radius:14px;padding:14px;margin-bottom:12px}
-.rc-opt textarea{width:100%;margin-top:6px;padding:10px 12px;border-radius:12px;border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:14px;font-family:inherit;resize:vertical}
+.rc-opt{border:1px solid var(--border);background:var(--surface2);border-radius:var(--r-md);padding:14px;margin-bottom:12px}
+.rc-opt textarea{width:100%;margin-top:6px;padding:10px 12px;border-radius:var(--r-sm);border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:14px;font-family:inherit;resize:vertical}
 .rc-help{font-size:13px;color:var(--muted);margin:4px 0 0;line-height:1.5}
-.rc-row{border:1px solid var(--border);border-radius:12px;padding:8px 10px;margin-bottom:8px;background:var(--surface)}
+.rc-row{border:1px solid var(--border);border-radius:var(--r-md);padding:8px 10px;margin-bottom:8px;background:var(--surface)}
 .rc-row.off{opacity:.5}
 .rc-line{display:flex;gap:8px;align-items:center}
-.rc-line input[type=text],.rc-line select{flex:1;min-width:0;padding:7px 9px;border-radius:9px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px}
+.rc-line input[type=text],.rc-line select{flex:1;min-width:0;padding:7px 9px;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px}
 .rc-line .rc-amt{flex:0 0 96px;text-align:right;font-weight:700}
 .rc-sub{margin-top:6px;padding-left:24px}
 .rc-sub select{font-size:13px}
@@ -344,12 +354,12 @@ select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);backg
 .form2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(max-width:760px){.set-grid{grid-template-columns:1fr}}
 .auth-gate{position:fixed;inset:0;z-index:70;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px}
-.auth-card{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:26px 22px}
+.auth-card{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:26px 22px}
 .acct{position:relative}
 .acct-btn{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-weight:700;font-size:15px;position:relative;display:flex;align-items:center;justify-content:center;padding:0}
 .acct-btn:hover{border-color:var(--border2)}
 .sync-dot{position:absolute;right:-1px;bottom:-1px;width:10px;height:10px;border-radius:50%;border:2px solid var(--surface);background:var(--muted2)}
-.acct-pop{position:absolute;right:0;top:calc(100% + 8px);width:240px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;box-shadow:0 12px 30px rgba(0,0,0,.25);z-index:35}
+.acct-pop{position:absolute;right:0;top:calc(100% + 8px);width:240px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:12px;box-shadow:0 12px 30px rgba(0,0,0,.25);z-index:35}
 .acct-email{font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:4px}
 .sync{font-size:12px;font-weight:700}
 .head-right{display:flex;align-items:center;gap:10px;margin-left:auto}
@@ -361,8 +371,8 @@ select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);backg
 .setup-check.ok{background:var(--emerald);border-color:var(--emerald);color:#fff}
 .ts{display:none}
 .rc-sum{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:13px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
-.ess-suggest{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;background:var(--surface2);border:1px dashed var(--border2);border-radius:14px;padding:10px 12px;margin-bottom:14px;font-size:13px}
-.toast{position:fixed;top:14px;right:14px;z-index:60;background:var(--glass-bg);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);color:var(--text);padding:12px 18px;border-radius:22px;box-shadow:var(--glass-edge),var(--glass-shadow);font-size:14px;font-weight:600;display:flex;gap:8px;align-items:center;max-width:min(92vw,460px);border:0}
+.ess-suggest{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;background:var(--surface2);border:1px dashed var(--border2);border-radius:var(--r-md);padding:10px 12px;margin-bottom:14px;font-size:13px}
+.toast{position:fixed;top:14px;right:14px;z-index:60;background:var(--glass-bg);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);color:var(--text);padding:12px 18px;border-radius:var(--r-lg);box-shadow:var(--glass-edge),var(--glass-shadow);font-size:14px;font-weight:600;display:flex;gap:8px;align-items:center;max-width:min(92vw,460px);border:0}
 .hidden{display:none!important}
 @media(max-width:900px){.grid{grid-template-columns:1fr !important}.grid>*{grid-column:auto !important}}
 @media(max-width:560px){nav.tabs{order:3;width:100%}nav.tabs button{flex:1;justify-content:center}}
@@ -377,12 +387,12 @@ select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);backg
 .period-step .icon-btn:disabled{opacity:.35;cursor:default}
 .amt-wrap{position:relative;display:block}
 .amt-wrap input{width:100%;padding-right:64px!important}
-.amt-k{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:1px solid var(--emerald-border);background:var(--emerald-bg);color:var(--emerald-text);font:inherit;font-size:14px;font-weight:700;padding:4px 8px;border-radius:8px;cursor:pointer}
+.amt-k{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:1px solid var(--emerald-border);background:var(--emerald-bg);color:var(--emerald-text);font:inherit;font-size:14px;font-weight:700;padding:4px 8px;border-radius:var(--r-sm);cursor:pointer}
 .amt-wrap.full .amt-k{border-color:var(--border);background:transparent;color:var(--muted);text-decoration:line-through}
-.qty-btn{border:1px dashed var(--border);background:transparent;color:inherit;font:inherit;font-weight:700;padding:3px 8px;border-radius:8px;cursor:pointer}
+.qty-btn{border:1px dashed var(--border);background:transparent;color:inherit;font:inherit;font-weight:700;padding:3px 8px;border-radius:var(--r-sm);cursor:pointer}
 .qty-btn:hover{border-color:var(--emerald)}
 .ess-plan{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px 12px;margin:16px 0}
-.ess-plan.paused{padding:12px 14px;border:1px solid var(--amber);border-radius:14px;background:color-mix(in srgb, var(--amber) 10%, transparent)}
+.ess-plan.paused{padding:12px 14px;border:1px solid var(--amber);border-radius:var(--r-md);background:color-mix(in srgb, var(--amber) 10%, transparent)}
 @media(max-width:560px){
   .ess-table thead,.ess-table .c-price,.ess-table .c-qty,.ess-table .c-total{display:none}
   .ess-table,.ess-table tbody{display:block}
@@ -408,7 +418,7 @@ body{overflow-x:clip;overflow-wrap:anywhere}
   .fab{bottom:calc(var(--bar-h) + 10px);right:16px}
   #quickLogTop{display:none}
   .header-in{padding:10px 16px;flex-wrap:nowrap}
-  .brand-icon{width:34px;height:34px;border-radius:10px}
+  .brand-icon{width:34px;height:34px;border-radius:var(--r-sm)}
   .brand{min-width:0}
   .safe-pill strong,.brand h1{white-space:nowrap}
   main{padding:16px 16px 8px}
@@ -619,13 +629,13 @@ nav.tabs button.active>*{transform:scale(1.08)}
     </div>
     <nav class="tabs" aria-label="Navigasi utama">
       <span class="drop" aria-hidden="true"></span>
-      <button data-tab="dashboard" class="active"><i data-lucide="layers"></i><span class="tl">Ringkasan</span><span class="ts">Ringkasan</span></button>
-      <button data-tab="essentials"><i data-lucide="shopping-cart"></i><span class="tl">Belanja &amp; Tagihan</span><span class="ts">Belanja</span></button>
-      <button data-tab="pockets"><i data-lucide="shield-check"></i><span class="tl">Tabungan</span><span class="ts">Tabungan</span></button>
-      <button data-tab="activity"><i data-lucide="calendar"></i><span class="tl">Riwayat</span><span class="ts">Riwayat</span></button>
-      <button data-tab="settings"><i data-lucide="settings"></i><span class="tl">Pengaturan</span><span class="ts">Atur</span></button>
+      <button data-tab="dashboard" title="Ringkasan" class="active"><i data-lucide="layers"></i><span class="tl">Ringkasan</span><span class="ts">Ringkasan</span></button>
+      <button data-tab="essentials" title="Belanja &amp; Tagihan"><i data-lucide="shopping-cart"></i><span class="tl">Belanja &amp; Tagihan</span><span class="ts">Belanja</span></button>
+      <button data-tab="pockets" title="Tabungan"><i data-lucide="shield-check"></i><span class="tl">Tabungan</span><span class="ts">Tabungan</span></button>
+      <button data-tab="activity" title="Riwayat"><i data-lucide="calendar"></i><span class="tl">Riwayat</span><span class="ts">Riwayat</span></button>
+      <button data-tab="settings" title="Pengaturan"><i data-lucide="settings"></i><span class="tl">Pengaturan</span><span class="ts">Atur</span></button>
     </nav>
-    <div class="head-right"><button class="btn btn-emerald head-log" id="quickLogTop" title="Catat pengeluaran, pemasukan atau transfer"><i data-lucide="plus"></i>Catat</button><button class="safe-pill" onclick="goTab('dashboard')" title="Uang yang aman dibelanjakan sampai gajian"><span class="safe-label">Safe-to-Spend</span><strong id="safePill">Rp 0</strong></button>
+    <div class="head-right"><button class="btn btn-emerald head-log" id="quickLogTop" title="Catat pengeluaran, pemasukan atau transfer" aria-label="Catat"><i data-lucide="plus"></i>Catat</button><button class="safe-pill" onclick="goTab('dashboard')" title="Uang yang aman dibelanjakan sampai gajian"><span class="safe-label">Safe-to-Spend</span><strong id="safePill">Rp 0</strong></button>
     <div class="acct" id="acctMenu">
       <button class="acct-btn" onclick="toggleAcctMenu(event)" aria-haspopup="true" aria-expanded="false" aria-label="Akun"><span id="acctInitial">?</span><i id="syncDot" class="sync-dot"></i></button>
       <div class="acct-pop hidden" role="menu">
@@ -1479,7 +1489,7 @@ function renderPockets(fin){
   ${pockets.length?'':`<div class="card" style="text-align:center;padding:28px"><p style="font-weight:700;margin:0">Belum ada saving pocket</p><p class="sub" style="margin:6px 0 12px">Buat pocket untuk tabungan seperti dana darurat atau liburan.</p><button class="btn btn-dark" onclick="openPocketForm()">+ Buat pocket</button></div>`}
 
   ${pockets.length?`<div><h3 style="margin:0 0 4px">Pocket Tabungan</h3><p class="sub" style="font-size:13px;color:var(--muted);margin:0 0 16px;max-width:70ch"> Tabungan terpisah dari uang belanja. Saldo pocket tidak mengurangi Safe-to-Spend; hanya menabung ke pocket (atau mengambil darinya) yang mengubahnya.</p>
-  <div class="grid" style="grid-template-columns:1fr 1fr">${pockets.map(p=>{ const pct=Math.min(100,Math.round(p.currentAmount/p.targetAmount*100)); return `<div class="card"><div style="display:flex;justify-content:space-between;gap:10px"><div style="display:flex;gap:10px;align-items:center"><span class="cat-ico" style="width:42px;height:42px;border-radius:12px;background:var(--emerald-bg);color:var(--emerald-text)"><i data-lucide="${p.icon}"></i></span><div><h3>${esc(p.name)}</h3><p class="sub">${esc(p.description)}</p></div></div><span class="badge ok" style="align-self:flex-start">${pct>=100?'<i data-lucide="badge-check"></i>Tercapai':pct+'%'}</span></div>
+  <div class="grid" style="grid-template-columns:1fr 1fr">${pockets.map(p=>{ const pct=Math.min(100,Math.round(p.currentAmount/p.targetAmount*100)); return `<div class="card"><div style="display:flex;justify-content:space-between;gap:10px"><div style="display:flex;gap:10px;align-items:center"><span class="cat-ico" style="width:42px;height:42px;border-radius:var(--r-sm);background:var(--emerald-bg);color:var(--emerald-text)"><i data-lucide="${p.icon}"></i></span><div><h3>${esc(p.name)}</h3><p class="sub">${esc(p.description)}</p></div></div><span class="badge ok" style="align-self:flex-start">${pct>=100?'<i data-lucide="badge-check"></i>Tercapai':pct+'%'}</span></div>
   <div style="display:flex;justify-content:space-between;margin-top:16px;align-items:flex-end"><div><div style="font-size:12px;color:var(--muted)">Terkumpul</div><div style="font-size:22px;font-weight:700">${fmt(p.currentAmount)}</div></div><div style="text-align:right"><div style="font-size:12px;color:var(--muted)">Target${p.targetDate?` (${esc(p.targetDate)})`:''}</div><strong style="font-size:14px">${fmt(p.targetAmount)}</strong><div style="font-size:12px;color:var(--muted)">kurang ${fmt(Math.max(0,p.targetAmount-p.currentAmount))}</div></div></div>
   <div class="bar" style="margin-top:10px"><i style="width:${pct}%"></i></div>
   ${p.monthlyHint?`<p class="sub" style="margin:10px 0 0">Saran top up ${fmt(p.monthlyHint)} / bulan</p>`:''}<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)"><button class="btn btn-dark" style="flex:1 1 120px" onclick="openPocketAction('${p.id}','topup')">+ Isi pocket</button><button class="btn" style="flex:1 1 120px" onclick="openPocketAction('${p.id}','spend')">Pakai dari Pocket</button></div></div>`;}).join('')}</div></div>`:''}
@@ -1593,7 +1603,7 @@ function loggerPreviewHTML(){
     const cur=parseAmt(logState.amount), iq=logState.essentialQty;
     const afterAmt=Math.max(0,m.remainingAmount-cur), afterQty=Math.max(0,m.remainingQty-iq);
     const afterTotal=Math.max(0,essentialsSummary().totalEssentialsRemaining-Math.min(m.remainingAmount,cur));
-    return `<div style="background:var(--emerald-bg);border:1px solid var(--emerald-border);border-radius:14px;padding:12px;margin-bottom:14px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap"><strong style="font-size:13px;color:var(--emerald-text)">✓ Ditautkan ke Essentials: ${esc(m.name)} (${fmt(m.unitPrice)} × ${m.targetQty})</strong><span style="display:flex;gap:6px;align-items:center">${m.targetQty>1?`<span style="display:flex;gap:4px;align-items:center;background:var(--surface);border:1px solid var(--emerald-border);border-radius:8px;padding:2px 6px"><button class="icon-btn" aria-label="Kurangi jumlah" onclick="selectEssentialInLogger('${m.id}',${Math.max(1,iq-1)})">−</button><strong style="font-size:12px">${iq}x</strong><button class="icon-btn" aria-label="Tambah jumlah" onclick="selectEssentialInLogger('${m.id}',${iq+1})">+</button></span>`:''}<button class="link-btn" style="font-size:12px" onclick="unlinkEssential()">Lepas tautan</button></span></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;margin-top:8px;padding-top:8px;border-top:1px solid var(--emerald-border)"><div><span style="color:var(--emerald)">Sisa item setelah ini:</span><br><strong>${afterQty} qty (${fmt(afterAmt)})</strong></div><div style="text-align:right"><span style="color:var(--emerald)">Total sisa Essentials:</span><br><strong>${fmt(afterTotal)}</strong></div></div></div>`;
+    return `<div style="background:var(--emerald-bg);border:1px solid var(--emerald-border);border-radius:var(--r-md);padding:12px;margin-bottom:14px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap"><strong style="font-size:13px;color:var(--emerald-text)">✓ Ditautkan ke Essentials: ${esc(m.name)} (${fmt(m.unitPrice)} × ${m.targetQty})</strong><span style="display:flex;gap:6px;align-items:center">${m.targetQty>1?`<span style="display:flex;gap:4px;align-items:center;background:var(--surface);border:1px solid var(--emerald-border);border-radius:var(--r-sm);padding:2px 6px"><button class="icon-btn" aria-label="Kurangi jumlah" onclick="selectEssentialInLogger('${m.id}',${Math.max(1,iq-1)})">−</button><strong style="font-size:12px">${iq}x</strong><button class="icon-btn" aria-label="Tambah jumlah" onclick="selectEssentialInLogger('${m.id}',${iq+1})">+</button></span>`:''}<button class="link-btn" style="font-size:12px" onclick="unlinkEssential()">Lepas tautan</button></span></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;margin-top:8px;padding-top:8px;border-top:1px solid var(--emerald-border)"><div><span style="color:var(--emerald)">Sisa item setelah ini:</span><br><strong>${afterQty} qty (${fmt(afterAmt)})</strong></div><div style="text-align:right"><span style="color:var(--emerald)">Total sisa Essentials:</span><br><strong>${fmt(afterTotal)}</strong></div></div></div>`;
   }
   const s=essentialSuggestion();
   if(s) return `<div class="ess-suggest"><span>Ini pembelian Essentials <strong>${esc(s.name)}</strong>?</span><button class="btn btn-sm" onclick="selectEssentialInLogger('${s.id}',1,true)">Ya, tautkan</button></div>`;

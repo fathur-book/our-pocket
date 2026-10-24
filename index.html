@@ -68,31 +68,33 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe 
 button{font-family:inherit;cursor:pointer}
 input,select,textarea{font-family:inherit}
 a{color:inherit}
-header{position:sticky;top:0;z-index:30;background:color-mix(in srgb, var(--surface) 92%, transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+/* The blur lives on ::before, not on header itself: a filtered header would become the containing block for the fixed phone tab bar inside it. */
+header{position:sticky;top:0;z-index:30;background:transparent;isolation:isolate}
+header::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--glass-bg);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:0 .5px 0 var(--border)}
 .header-in{max-width:1440px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:10px}
-.brand-icon{width:40px;height:40px;border-radius:12px;background:var(--dark);color:#fff;display:flex;align-items:center;justify-content:center}
-.brand-icon svg{width:20px;height:20px;color:#34d399}
+.brand-icon{width:36px;height:36px;border-radius:10px;background:var(--fill);color:var(--text);display:flex;align-items:center;justify-content:center}
+.brand-icon svg{width:19px;height:19px;color:var(--emerald)}
 .brand h1{font-size:17px;margin:0;letter-spacing:-.02em;line-height:1}
 nav.tabs{display:flex;gap:4px;background:var(--surface2);border:1px solid var(--border);padding:4px;border-radius:14px;flex-wrap:wrap}
 nav.tabs button{border:0;background:transparent;padding:8px 12px;border-radius:10px;font-size:13px;font-weight:700;color:var(--muted);display:flex;align-items:center;gap:6px}
 nav.tabs button.active{background:var(--dark);color:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}
 nav.tabs button svg{width:15px;height:15px}
-.safe-pill{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);font-size:14px;color:var(--text)}
+.safe-pill{display:flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;background:var(--fill);border:0;font-size:14px;color:var(--text)}
 .safe-label{color:var(--muted);font-weight:600;font-size:13px}
 #safePill.neg{color:var(--amber-text)}
 #safePill.up{animation:pill-up .9s cubic-bezier(.16,1,.3,1)}
 #safePill.down{animation:pill-down .9s cubic-bezier(.16,1,.3,1)}
 @keyframes pill-up{from{color:var(--emerald)}}
 @keyframes pill-down{from{color:var(--amber)}}
-/* Desktop & tablet header: one 60px row — brand, flat tabs with an underline, then status and account. */
+/* Desktop & tablet header: one 60px row — brand, tabs with a soft capsule on the active one, then status and account. */
 @media(min-width:561px){
   .header-in{height:60px;padding:0 24px;flex-wrap:nowrap;gap:28px}
-  .brand-icon{width:34px;height:34px;border-radius:10px}
-  nav.tabs{align-self:stretch;background:none;border:0;padding:0;border-radius:0;gap:2px;flex-wrap:nowrap}
-  nav.tabs button{height:100%;padding:0 12px;border-radius:0;font-size:14px;font-weight:600;white-space:nowrap}
-  nav.tabs button:hover{color:var(--text)}
-  nav.tabs button.active{background:none;color:var(--text);box-shadow:inset 0 -2px 0 var(--emerald)}
+  .brand-icon{width:32px;height:32px;border-radius:9px}
+  nav.tabs{align-self:center;background:none;border:0;padding:0;border-radius:0;gap:2px;flex-wrap:nowrap}
+  nav.tabs button{height:34px;padding:0 14px;border-radius:999px;font-size:14px;font-weight:600;white-space:nowrap;transition:background-color .2s var(--ease),color .2s var(--ease)}
+  nav.tabs button:hover{color:var(--text);background:color-mix(in srgb, var(--fill) 50%, transparent)}
+  nav.tabs button.active{background:var(--fill);color:var(--text);box-shadow:none}
   nav.tabs button.active svg{color:var(--emerald)}
 }
 @media(min-width:561px) and (max-width:1099px){ nav.tabs .tl{display:none}nav.tabs .ts{display:inline} .header-in{gap:16px;padding:0 16px} nav.tabs button{padding:0 9px} }
@@ -368,7 +370,7 @@ body{overflow-x:clip;overflow-wrap:anywhere}
 @media(max-width:768px){input,select,textarea{font-size:16px!important}}
 @media(max-width:560px){
   body{padding-bottom:calc(150px + env(safe-area-inset-bottom))}
-  header{backdrop-filter:none;-webkit-backdrop-filter:none;background:var(--surface)} /* a blurred header would trap the fixed tab bar inside it */
+
   nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:45;order:0;width:auto;margin:0;display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-radius:0;border:0;border-top:1px solid var(--border);background:var(--surface);padding:6px 4px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -6px 20px rgba(0,0,0,.18)}
   nav.tabs button{flex-direction:column;gap:3px;padding:6px 2px;font-size:11px;border-radius:10px;min-width:0}
   nav.tabs button svg{width:19px;height:19px}

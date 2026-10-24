@@ -1012,30 +1012,35 @@ function lgLens(el,soft,gentle){
   const bezel=Math.max(8,Math.min(gentle?12:soft?14:26,Math.min(w,h)*.35)), id=lgFilter(w,h,r,bezel,Math.min(56,bezel*(gentle?1.2:2.2)));
   if(el.dataset.lgk!==id||!el.style.getPropertyValue('--lg-url')){ el.dataset.lgk=id; el.style.setProperty('--lg-url',`url(#${id})`); }
 }
-/* The droplet glides on a spring: one smooth motion with a single small overshoot that never leaves
-   the bar, plus a gentle stretch. Both run on transform/scale only, so they stay smooth while a tab is built. */
-const LG_LINEAR=!!window.CSS&&CSS.supports('transition-timing-function','linear(0, 1)');
-function lgSpring(r){ // damped-spring easing that overshoots by r (a fraction of the distance) once, then settles
-  if(!LG_LINEAR) return 'cubic-bezier(.2,.9,.25,1)';
-  const ln=Math.log(r), z=-ln/Math.sqrt(Math.PI*Math.PI+ln*ln), w=6.5/z, wd=w*Math.sqrt(1-z*z), pts=[];
-  for(let i=0;i<40;i++){ const t=i/40; pts.push((1-Math.exp(-z*w*t)*(Math.cos(wd*t)+z*w/wd*Math.sin(wd*t))).toFixed(4)); }
-  return `linear(${pts.join(',')},1)`;
-}
+/* The droplet moves like liquid: its leading edge springs ahead and its trailing edge follows on a softer
+   spring, so it stretches out in flight, thins as it stretches, lifts a little, squishes against the end of
+   the bar instead of passing it, and lands with a small wobble. The edges are sampled into keyframes on
+   `translate` and `scale` only, so the motion stays smooth while a tab is built. */
+function lgSpringAt(t,z,w){ const wd=w*Math.sqrt(1-z*z); return 1-Math.exp(-z*w*t)*(Math.cos(wd*t)+z*w/wd*Math.sin(wd*t)); }
 function lgDrop(target){
   const nav=document.querySelector('nav.tabs'), drop=nav&&nav.querySelector('.drop'), b=target||(nav&&nav.querySelector('button.active'));
   if(!drop||!b||!b.offsetWidth){ if(drop) drop.classList.remove('on'); LG.box=null; return; }
-  // position with `translate` and size/stretch with `scale`: CSS applies translate first, so stretching never moves the droplet
+  // position with `translate` and size with `scale`: CSS applies translate first, so stretching never moves the droplet
   const x=b.offsetLeft, y=b.offsetTop, w=b.offsetWidth, h=b.offsetHeight, from=LG.box, at=(px,py)=>`${px}px ${py}px`;
   if(!from||from.x!==x||from.y!==y||from.w!==w||from.h!==h){ drop.style.width=w+'px'; drop.style.height=h+'px'; drop.style.translate=at(x,y); }
   if(from&&LG.tab!==b.dataset.tab&&drop.classList.contains('on')&&drop.animate&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
-    const dist=Math.abs(x-from.x), room=x>from.x? nav.clientWidth-2-(x+w) : x-2;
-    const r=Math.max(.002,Math.min(.08,Math.min(6,Math.max(0,room))/Math.max(dist,1))), st=1+Math.min(.12,dist/w*.04);
+    const W=nav.clientWidth, right=x>from.x, N=48, kf=[];
+    const soft=(v,goal,dir)=>{ const e=(v-goal)*dir; return e>0? goal+dir*8*Math.tanh(e/8) : v; }; // overshoot eases out, at most ~8px
+    for(let i=0;i<=N;i++){
+      const t=i/N, lead=lgSpringAt(t,.5,15), trail=lgSpringAt(t,.72,10);
+      let L=from.x+(x-from.x)*(right?trail:lead), R=from.x+from.w+(x+w-from.x-from.w)*(right?lead:trail);
+      L=soft(L,x,right?1:-1); R=soft(R,x+w,right?1:-1);
+      L=Math.max(2,L); R=Math.min(W-2,R); // squish against the ends of the bar
+      const ew=from.w+(w-from.w)*Math.min(1,t*1.5), eh=from.h+(h-from.h)*Math.min(1,t*1.5);
+      const maxW=Math.max(from.w,w)*1.7, minW=Math.min(from.w,w)*.8;
+      if(R-L>maxW){ if(right) L=R-maxW; else R=L+maxW; }
+      if(R-L<minW){ const m=(L+R)/2; L=m-minW/2; R=m+minW/2; }
+      const width=R-L, lift=1+.07*Math.sin(Math.PI*Math.min(1,t/.7)), sy=Math.min(1.12,Math.max(.78,Math.sqrt(ew/width)))*lift;
+      kf.push(i===N? {translate:at(x,y),scale:'1 1',offset:1} : {translate:at(L+width/2-w/2,y),scale:`${width/w} ${sy*eh/h}`,offset:t});
+    }
     (LG.anim||[]).forEach(a=>a.cancel());
-    drop.classList.add('moving'); LG.busy=performance.now()+560;
-    // scaling happens around the centre, so the start frame is shifted to keep the old box exactly where it was
-    const sx=from.w/w, sy=from.h/h, ease='cubic-bezier(.45,0,.55,1)';
-    LG.anim=[drop.animate([{translate:at(from.x+(from.w-w)/2,from.y+(from.h-h)/2)},{translate:at(x,y)}],{duration:540,easing:lgSpring(r)}),
-      drop.animate([{scale:`${sx} ${sy}`,easing:ease},{scale:`${st*(sx*.6+.4)} ${(2-st)*(sy*.6+.4)}`,offset:.3,easing:ease},{scale:'1 1'}],{duration:540})];
+    drop.classList.add('moving'); LG.busy=performance.now()+680;
+    LG.anim=[drop.animate(kf,{duration:660})];
     LG.anim[0].onfinish=LG.anim[0].oncancel=()=>drop.classList.remove('moving');
   }
   drop.classList.add('on');

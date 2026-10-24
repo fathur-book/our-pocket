@@ -162,6 +162,10 @@ main>section>*+*{margin-top:var(--gap)}
 .pay-chip:hover{background:#ffffff22;color:#fff}
 .pay-chip svg{width:15px;height:15px}
 .pay-chip svg:last-child{width:14px;height:14px;color:#94a3b8}
+/* Dashboard left column: the hero, then Pocket Tabungan. The hero takes any extra height so both columns end level. */
+.dash-left{display:flex;flex-direction:column;gap:var(--gap);min-width:0}
+.dash-left .hero{flex:1}
+@media(min-width:901px){.dash-left .pock-list{grid-template-columns:1fr}}
 /* margin-top:auto pins the allocation to the bottom when the card stretches to the spending column. */
 .alloc{margin-top:auto;padding-top:26px}
 .alloc-cap{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:13px;color:#94a3b8}
@@ -1349,7 +1353,8 @@ function closeRecap(){ try{ localStorage.setItem(cycleSeenKey(),isoDate(financia
 function renderDashboard(fin,ess){
   document.getElementById('view-dashboard').innerHTML=`${cycleRecap(fin)}
   <div class="grid" style="grid-template-columns:repeat(12,1fr)">
-    <div class="hero" style="grid-column:span 7">
+    <div class="dash-left" style="grid-column:span 7">
+    <div class="hero">
       <div class="hero-head">
         <p class="label" style="margin:6px 0 0">Safe-to-Spend sampai gajian</p>
         <button class="btn-ghost-light" onclick="toggleFormula()">${showFormula?'Sembunyikan rumus':'Cara menghitungnya?'}</button>
@@ -1359,6 +1364,8 @@ function renderDashboard(fin,ess){
       ${payChip(fin)}
       ${safeAlloc(fin)}
       ${showFormula?`<div class="formula"><strong style="color:#fff">Cara menghitungnya (periode ${fin.cycleStart.toLocaleDateString('id-ID',{day:'numeric',month:'short'})} – ${fin.nextPayday.toLocaleDateString('id-ID',{day:'numeric',month:'short'})}):</strong><br>${fin.carryOver?`Sisa periode sebelumnya ${fmt(fin.carryOver)} + `:''}pemasukan ${fmt(fin.cycleIncome)}${fin.cycleAdjust>0?` + penyesuaian saldo ${fmt(fin.cycleAdjust)}`:fin.cycleAdjust<0?` − penyesuaian saldo ${fmt(-fin.cycleAdjust)}`:''} − pengeluaran ${fmt(fin.cycleSpending)}${fin.cycleSaved>0?` − ditabung ke pocket ${fmt(fin.cycleSaved)}`:fin.cycleSaved<0?` + diambil dari tabungan ${fmt(-fin.cycleSaved)}`:''} − tagihan yang belum dibayar ${fmt(fin.billsReserved)} − Essentials yang belum dibeli ${fmt(fin.essentialsReserved)}. Essentials dan tagihan yang sudah dibayar dihitung dengan nominal aslinya (masuk ke pengeluaran). Pocket tabungan disimpan terpisah (total ${fmt(fin.totalPocketsSaved)}) dan tidak mengurangi angka ini.</div>`:''}
+    </div>
+    ${pocketsCard(fin)}
     </div>
     <div class="card" style="grid-column:span 5;display:flex;flex-direction:column;justify-content:space-between">
       ${(()=>{ const pr=periodRange(dashPeriod), sp=periodSpend(pr.start,pr.end), rows=categories.filter(c=>c.type==='expense').map(c=>({cat:c,amt:(sp.map[c.id]||0)+(sp.planned[c.id]||0)})).filter(r=>r.amt>0).sort((a,b)=>b.amt-a.amt), total=rows.reduce((t,r)=>t+r.amt,0), planned=Object.values(sp.planned).reduce((a,b)=>a+b,0);
@@ -1379,9 +1386,11 @@ function renderDashboard(fin,ess){
       ${ess.totalEssentialsRemaining>0&&!ess.paused?`<div class="shop-left"><div class="amt">${fmt(ess.totalEssentialsRemaining)}</div><p class="sub">masih perlu dibeli · dari ${fmt(ess.totalEssentialsBudget)}</p></div>` : ess.activeCount&&ess.completedCount===ess.activeCount&&!ess.paused? `<div class="shop-left"><div class="amt done"><i data-lucide="badge-check"></i>Lengkap</div><p class="sub">semua kebutuhan periode ini sudah terbeli</p></div>` : ''}
     </div>
     ${ess.activeCount&&!ess.paused? essShopList(ess) : ess.paused? '<p style="font-size:14px;color:var(--muted)">Essentials dilewati periode ini — semua belanja dihitung sebagai pengeluaran biasa.</p>' : essentials.length? '<p style="font-size:14px;color:var(--muted)">Semua item Essentials dilewati periode ini.</p>' : '<p style="font-size:14px;color:var(--muted)">Belum ada daftar Essentials. <button class="link-btn" onclick="goTab(&quot;settings&quot;)">Tambahkan di Pengaturan →</button></p>'}
-  </div>
-
-  <div class="card">
+  </div>`;
+}
+/* Pocket Tabungan sits under the hero in the dashboard's left column. */
+function pocketsCard(fin){
+  return `<div class="card">
       <div style="display:flex;justify-content:space-between"><div><h3>Pocket Tabungan</h3><p class="sub">Total tabungan: <strong style="color:var(--emerald)">${fmt(fin.totalPocketsSaved)}</strong></p></div><button class="link-btn" onclick="goTab('pockets')">Kelola pocket →</button></div>
       <div class="pock-list">${pockets.map(p=>{ const pct=Math.min(100,Math.round(p.currentAmount/p.targetAmount*100)); return `<div class="pock-row"><span class="cat-ico" style="background:var(--emerald-bg);color:var(--emerald-text)"><i data-lucide="${p.icon}"></i></span><div class="nm"><div class="pr-top"><strong>${esc(p.name)}</strong><span>${pct>=100?'Tercapai':pct+'%'}</span></div><div class="bar sm"><i style="width:${pct}%"></i></div><div class="mt">${fmt(p.currentAmount)} dari ${fmt(p.targetAmount)}</div></div><div class="acts"><button class="btn btn-sm" onclick="openPocketAction('${p.id}','topup')">+ Isi${p.monthlyHint?' '+fmt(p.monthlyHint):''}</button><button class="btn btn-sm" onclick="openPocketAction('${p.id}','spend')">Pakai</button></div></div>`;}).join('')}</div>
       <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px"><div style="display:flex;gap:10px;align-items:center"><span class="cat-ico" style="background:var(--amber-bg);color:var(--amber)"><i data-lucide="credit-card"></i></span><div><div style="font-size:13px;font-weight:700">Tagihan kartu kredit</div><div style="font-size:12px;color:var(--muted)">Belanja kartu sudah dihitung saat transaksi</div></div></div><strong style="white-space:nowrap">${fmt(fin.creditFloatHolding)}</strong></div>

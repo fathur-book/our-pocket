@@ -82,8 +82,10 @@ window.__glassCheck = async (only) => {
   check(5, 'btnFill', cs(btn, 'border-top-width') === '0px' && cs(btn, 'background-color') === resolve('var(--fill)'));
   check(5, 'btnDarkInverts', cs(btnDark, 'background-color') === resolve('var(--text)') && cs(btnDark, 'color') === resolve('var(--bg)'));
   const seg = tmp.querySelector('.seg');
-  check(5, 'segTrack', cs(seg, 'background-color') === resolve('var(--fill)') && cs(seg, 'border-top-width') === '0px' && cs(seg.firstChild, 'background-color') === resolve('var(--surface)'));
-  check(5, 'typeGridMatches', cs(tmp.querySelector('.type-grid button'), 'background-color') === resolve('var(--surface)'));
+  // Thumb: white on light; iOS systemGray3 on dark, where --surface would sit darker than the track.
+  const thumb = resolve(dark ? '#636366' : 'var(--surface)');
+  check(5, 'segTrack', cs(seg, 'background-color') === resolve('var(--fill)') && cs(seg, 'border-top-width') === '0px' && cs(seg.firstChild, 'background-color') === thumb);
+  check(5, 'typeGridMatches', cs(tmp.querySelector('.type-grid button'), 'background-color') === thumb);
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const dur = Math.max(...cs(btn, 'transition-duration').split(',').map(px));
   check(5, 'reducedMotion', reduced ? dur === 0 : dur >= 0.18);

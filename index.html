@@ -446,7 +446,7 @@ input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-an
   --lg-tint-sheet:rgba(255,255,255,.48);  /* sheets and popups */
   --lg-dim:rgba(16,28,24,.16);            /* behind a sheet */
   --lg-hero:rgba(22,27,25,.66);
-  --lg-rim-hi:rgba(255,255,255,.9); --lg-rim-lo:rgba(255,255,255,.3); --lg-glow:rgba(255,255,255,.4);
+  --lg-rim-hi:rgba(255,255,255,.9); --lg-rim-lo:rgba(255,255,255,.3); --lg-glow:rgba(255,255,255,.4); --lg-sheen:rgba(255,255,255,.22);
   --lg-shadow:0 10px 30px rgba(20,40,34,.12),0 1px 2px rgba(20,40,34,.08);
   --lg-frost:blur(16px) saturate(190%) brightness(1.04);
   --lg-ink-accent:#04694a;
@@ -458,19 +458,25 @@ input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-an
     --lg-tint:rgba(28,32,30,.40); --lg-tint-clear:rgba(40,46,44,.18); --lg-tint-bead:rgba(70,78,75,.28);
     --lg-tint-drop:rgba(255,255,255,.04); --lg-drop-glint:rgba(255,255,255,.22); --lg-drop-glint2:rgba(255,255,255,.1); --lg-drop-edge:rgba(255,255,255,.28); --lg-drop-depth:rgba(0,0,0,.35);
     --lg-tint-bar:rgba(20,24,22,.58); --lg-tint-sheet:rgba(18,22,20,.5); --lg-dim:rgba(0,0,0,.22); --lg-hero:rgba(10,14,12,.62);
-    --lg-rim-hi:rgba(255,255,255,.4); --lg-rim-lo:rgba(255,255,255,.1); --lg-glow:rgba(255,255,255,.12);
+    --lg-rim-hi:rgba(255,255,255,.4); --lg-rim-lo:rgba(255,255,255,.1); --lg-glow:rgba(255,255,255,.12); --lg-sheen:rgba(255,255,255,.05);
     --lg-shadow:0 12px 34px rgba(0,0,0,.5),0 1px 2px rgba(0,0,0,.4);
     --lg-ink-accent:#6ee7b7;
     --blob1:rgba(16,185,129,.42); --blob2:rgba(6,182,212,.30); --blob3:rgba(99,102,241,.34); --blob4:rgba(234,179,8,.12);
 }
 body::before{content:none}
-/* The colour field stays still: every glass layer re-blurs whatever moves behind it, so a drifting field cost a redraw of all of them every frame. */
+/* The colour field drifts on transform only (no filter), so the GPU just moves four soft gradients. It pauses while you scroll
+   (html.lg-still) and stops on slow devices (html.lg-lite), so it never competes with scrolling. */
 .lg-backdrop{position:fixed;inset:-15%;z-index:-1;pointer-events:none;overflow:hidden}
-.lg-backdrop i{position:absolute;border-radius:50%;filter:blur(40px)}
-.lg-backdrop i:nth-child(1){width:60vmax;height:45vmax;left:-8%;top:2%;background:radial-gradient(circle,var(--blob1),transparent 68%)}
-.lg-backdrop i:nth-child(2){width:52vmax;height:40vmax;right:-10%;top:28%;background:radial-gradient(circle,var(--blob2),transparent 68%)}
-.lg-backdrop i:nth-child(3){width:64vmax;height:46vmax;left:6%;bottom:-6%;background:radial-gradient(circle,var(--blob3),transparent 68%)}
-.lg-backdrop i:nth-child(4){width:34vmax;height:26vmax;right:4%;bottom:24%;background:radial-gradient(circle,var(--blob4),transparent 70%)}
+.lg-backdrop i{position:absolute;border-radius:50%;will-change:transform}
+html.lg-still .lg-backdrop i{animation-play-state:paused}
+html.lg-lite .lg-backdrop i{animation:none}
+.lg-backdrop i:nth-child(1){width:60vmax;height:45vmax;left:-8%;top:2%;background:radial-gradient(closest-side,var(--blob1),transparent);animation:lg-drift1 28s ease-in-out infinite alternate}
+.lg-backdrop i:nth-child(2){width:52vmax;height:40vmax;right:-10%;top:28%;background:radial-gradient(closest-side,var(--blob2),transparent);animation:lg-drift2 33s ease-in-out infinite alternate}
+.lg-backdrop i:nth-child(3){width:64vmax;height:46vmax;left:6%;bottom:-6%;background:radial-gradient(closest-side,var(--blob3),transparent);animation:lg-drift3 39s ease-in-out infinite alternate}
+.lg-backdrop i:nth-child(4){width:34vmax;height:26vmax;right:4%;bottom:24%;background:radial-gradient(closest-side,var(--blob4),transparent);animation:lg-drift1 44s ease-in-out infinite alternate-reverse}
+@keyframes lg-drift1{to{transform:translate(16%,9%) scale(1.12)}}
+@keyframes lg-drift2{to{transform:translate(-18%,12%) scale(.92)}}
+@keyframes lg-drift3{to{transform:translate(10%,-14%) scale(1.08)}}
 
 /* --- the material --- */
 .card,.tx-group,.hero,nav.tabs .drop,.fab,.seg button.active,.type-grid button.active,.period-step .icon-btn{isolation:isolate;box-shadow:var(--lg-shadow)}
@@ -479,11 +485,13 @@ body::before{content:none}
 /* backdrop layer: a soft highlight that follows the pointer (under the content, so text stays crisp), plus frost on the
    floating pieces. Cards get no live blur: only the soft colour field is behind them, so a tint looks the same and scrolls far cheaper. */
 .card::before,.tx-group::before,.hero::before{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;pointer-events:none;
-  background:radial-gradient(220px 150px at var(--mx,22%) var(--my,0%),var(--lg-glow),transparent 70%)}
+  background:radial-gradient(220px 150px at var(--mx,22%) var(--my,0%),var(--lg-glow),transparent 70%),linear-gradient(160deg,var(--lg-sheen),transparent 45%)}
+/* frost grain: a static noise texture, drawn once, so cards read as frosted glass without a live blur */
+.card,.tx-group,.hero{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .32 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:160px;background-blend-mode:overlay}
 nav.tabs .drop::before,.fab::before,.seg button.active::before,.type-grid button.active::before,.period-step .icon-btn::before{
   content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;pointer-events:none;-webkit-backdrop-filter:var(--lg-frost);backdrop-filter:var(--lg-frost);
   background:radial-gradient(220px 150px at var(--mx,22%) var(--my,0%),var(--lg-glow),transparent 70%)}
-.hero::before{background:radial-gradient(280px 170px at var(--mx,20%) var(--my,0%),rgba(255,255,255,.07),transparent 70%)}
+.hero::before{background:radial-gradient(280px 170px at var(--mx,20%) var(--my,0%),rgba(255,255,255,.07),transparent 70%),linear-gradient(160deg,rgba(255,255,255,.06),transparent 45%)}
 /* rim: a hairline that is brightest at the top-left corner, fades out along the sides and comes back faintly at the bottom-right */
 .card::after,.tx-group::after,.hero::after,nav.tabs .drop::after,.fab::after,.seg button.active::after,.type-grid button.active::after,.period-step .icon-btn::after,.toast::after{
   content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:2;padding:1px;background:linear-gradient(155deg,var(--lg-rim-hi),transparent 34%,transparent 66%,var(--lg-rim-lo));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
@@ -492,7 +500,6 @@ nav.tabs .drop::before,.fab::before,.seg button.active::before,.type-grid button
 /* while the droplet slides it uses plain frost: re-running the lens every frame would stutter */
 .lens nav.tabs .drop[data-lgk]::before{-webkit-backdrop-filter:var(--lg-url) saturate(170%);backdrop-filter:var(--lg-url) saturate(170%)}
 .lens nav.tabs .drop.moving[data-lgk]::before{-webkit-backdrop-filter:saturate(170%);backdrop-filter:saturate(170%)}
-.lens header[data-lgk]::before{-webkit-backdrop-filter:var(--lg-url) blur(10px) saturate(190%);backdrop-filter:var(--lg-url) blur(10px) saturate(190%)}
 
 /* header and sheets: glass with enough tint for text */
 header::before{background:var(--lg-tint-bar);box-shadow:none}
@@ -521,7 +528,6 @@ nav.tabs button>*{transition:transform .5s var(--spring)}
 nav.tabs button.active>*{transform:scale(1.08)}
 @media(max-width:560px){
   nav.tabs{background:var(--lg-tint-clear)!important;box-shadow:var(--lg-shadow)!important;-webkit-backdrop-filter:blur(16px) saturate(200%) brightness(1.05);backdrop-filter:blur(16px) saturate(200%) brightness(1.05)}
-  .lens nav.tabs[data-lgk]{-webkit-backdrop-filter:var(--lg-url) blur(14px) saturate(200%) brightness(1.05);backdrop-filter:var(--lg-url) blur(14px) saturate(200%) brightness(1.05)}
   /* the bar is the droplet's backdrop root, so there is nothing for its lens to bend: plain frost */
   .lens nav.tabs .drop[data-lgk]::before{-webkit-backdrop-filter:saturate(170%);backdrop-filter:saturate(170%)}
   nav.tabs::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:2;padding:1px;background:linear-gradient(155deg,var(--lg-rim-hi),transparent 34%,transparent 66%,var(--lg-rim-lo));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
@@ -1034,11 +1040,11 @@ function lgFilter(w,h,r,bezel,scale){
   if(LG.filters.size>80){ const [old,oe]=LG.filters.entries().next().value; oe.remove(); LG.filters.delete(old); }
   return id;
 }
-function lgLens(el,soft){
+function lgLens(el){
   const w=Math.round(el.offsetWidth), h=Math.round(el.offsetHeight); if(!w||!h) return;
   if(h>1400||w*h>1.5e6){ delete el.dataset.lgk; return; } // safety: a huge element would need a huge map
   const r=Math.round(Math.min(parseFloat(getComputedStyle(el).borderTopLeftRadius)||0,h/2,w/2));
-  const bezel=Math.max(8,Math.min(soft?14:26,Math.min(w,h)*.35)), id=lgFilter(w,h,r,bezel,Math.min(56,bezel*2.2));
+  const bezel=Math.max(8,Math.min(26,Math.min(w,h)*.35)), id=lgFilter(w,h,r,bezel,Math.min(56,bezel*2.2));
   if(el.dataset.lgk!==id||!el.style.getPropertyValue('--lg-url')){ el.dataset.lgk=id; el.style.setProperty('--lg-url',`url(#${id})`); }
 }
 /* The droplet moves like liquid: its leading edge springs ahead and its trailing edge follows on a softer
@@ -1091,13 +1097,35 @@ function lgRefresh(){
   const wait=(LG.busy||0)-performance.now(); if(wait>0){ clearTimeout(LG.later); LG.later=setTimeout(lgSchedule,wait+20); return; }
   const vh=innerHeight, near=el=>{ const r=el.getBoundingClientRect(); return r.bottom>-200&&r.top<vh+200&&r.width>0; };
   document.querySelectorAll(LG_SEL).forEach(el=>{ if(near(el)) lgLens(el); });
-  const hd=document.querySelector('header'); if(hd&&hd.offsetWidth) lgLens(hd,true);
-  const nav=document.querySelector('nav.tabs'); if(nav&&innerWidth<=560) lgLens(nav);
 }
 function lgSchedule(){ if(LG&&!LG.raf) LG.raf=requestAnimationFrame(lgRefresh); }
 addEventListener('resize',lgSchedule);
 // while scrolling nothing needs re-measuring; refresh once it settles
-addEventListener('scroll',()=>{ clearTimeout(LG.scrollT); LG.scrollT=setTimeout(lgSchedule,140); },{capture:true,passive:true});
+// while scrolling: pause the colour field and skip re-measuring; both resume once it settles
+addEventListener('scroll',()=>{
+  document.documentElement.classList.add('lg-still'); clearTimeout(LG.scrollT);
+  LG.scrollT=setTimeout(()=>{ document.documentElement.classList.remove('lg-still'); lgSchedule(); },220);
+},{capture:true,passive:true});
+/* Slow device? Watch frame times for two seconds after load; if they are mostly slow (under ~42 fps, which also
+   catches iPhone Low Power Mode) the colour field stops drifting on this device. */
+function lgWatchFrames(ms,done){
+  const gaps=[]; let last=0, end=0;
+  const tick=t=>{ if(last) gaps.push(t-last); last=t; if(!end) end=t+ms; if(t<end) requestAnimationFrame(tick); else done(gaps); };
+  requestAnimationFrame(tick);
+}
+setTimeout(()=>{ if(document.hidden) return; lgWatchFrames(2000,g=>{
+  const slow=g.filter(x=>x>24).length; if(g.length&&slow/g.length>.5) document.documentElement.classList.add('lg-lite');
+}); },1500);
+/* ?fps on the address shows a small live frame meter, for checking smoothness on a phone without DevTools. */
+if(/[?&]fps\b/.test(location.search)) addEventListener('load',()=>{
+  const m=document.createElement('div');
+  m.style.cssText='position:fixed;left:8px;top:calc(8px + env(safe-area-inset-top));z-index:99;padding:4px 8px;border-radius:8px;background:rgba(0,0,0,.72);color:#fff;font:600 12px/1.3 ui-monospace,monospace;pointer-events:none;white-space:pre';
+  document.body.appendChild(m);
+  (function loop(){ lgWatchFrames(1000,g=>{
+    const fps=Math.round(g.length*1000/Math.max(1,g.reduce((a,b)=>a+b,0))), worst=Math.round(Math.max(0,...g));
+    m.textContent=`${fps} fps · worst ${worst} ms${document.documentElement.classList.contains('lg-lite')?' · lite':''}`; loop();
+  }); })();
+});
 document.addEventListener('click',lgSchedule,true); // toggles that change without a re-render
 document.addEventListener('pointermove',e=>{
   if(e.pointerType!=='mouse') return; const g=e.target.closest&&e.target.closest(LG_SEL); if(!g) return;

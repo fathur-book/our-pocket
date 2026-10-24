@@ -433,7 +433,7 @@ input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-an
 /* ================= Liquid glass =================
    A drifting colour field sits behind the app; cards, chrome and controls are glass over it.
    Every glass surface = tint (background) + backdrop layer (::before: frost, plus edge bending in Chromium,
-   and a soft highlight that follows the pointer) + rim (::after: a hairline that fades along the edge).
+   and a soft highlight at the top-left) + rim (::after: a hairline that fades along the edge).
    Edge bending: lgRefresh() gives on-screen glass a data-lgk attribute and an SVG lens filter in --lg-url
    (Chromium only; the Safari engine, including Chrome on iPhone, keeps the frost). */
 :root{
@@ -464,16 +464,17 @@ input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-an
     --blob1:rgba(16,185,129,.42); --blob2:rgba(6,182,212,.30); --blob3:rgba(99,102,241,.34); --blob4:rgba(234,179,8,.12);
 }
 body::before{content:none}
-/* The colour field drifts on transform only (no filter), so the GPU just moves four soft gradients. It pauses while you scroll
-   (html.lg-still) and stops on slow devices (html.lg-lite), so it never competes with scrolling. */
+/* The colour field drifts on transform only (no filter), in about 8 steps a second: it moves only a few pixels a second, so each
+   step is under a pixel and looks continuous, while every blurred layer redraws 8 times a second instead of 60. It pauses while
+   you scroll (html.lg-still) and stops on slow devices (html.lg-lite). */
 .lg-backdrop{position:fixed;inset:-15%;z-index:-1;pointer-events:none;overflow:hidden}
 .lg-backdrop i{position:absolute;border-radius:50%;will-change:transform}
 html.lg-still .lg-backdrop i{animation-play-state:paused}
 html.lg-lite .lg-backdrop i{animation:none}
-.lg-backdrop i:nth-child(1){width:60vmax;height:45vmax;left:-8%;top:2%;background:radial-gradient(closest-side,var(--blob1),transparent);animation:lg-drift1 28s ease-in-out infinite alternate}
-.lg-backdrop i:nth-child(2){width:52vmax;height:40vmax;right:-10%;top:28%;background:radial-gradient(closest-side,var(--blob2),transparent);animation:lg-drift2 33s ease-in-out infinite alternate}
-.lg-backdrop i:nth-child(3){width:64vmax;height:46vmax;left:6%;bottom:-6%;background:radial-gradient(closest-side,var(--blob3),transparent);animation:lg-drift3 39s ease-in-out infinite alternate}
-.lg-backdrop i:nth-child(4){width:34vmax;height:26vmax;right:4%;bottom:24%;background:radial-gradient(closest-side,var(--blob4),transparent);animation:lg-drift1 44s ease-in-out infinite alternate-reverse}
+.lg-backdrop i:nth-child(1){width:60vmax;height:45vmax;left:-8%;top:2%;background:radial-gradient(closest-side,var(--blob1),transparent);animation:lg-drift1 28s steps(224) infinite alternate}
+.lg-backdrop i:nth-child(2){width:52vmax;height:40vmax;right:-10%;top:28%;background:radial-gradient(closest-side,var(--blob2),transparent);animation:lg-drift2 33s steps(264) infinite alternate}
+.lg-backdrop i:nth-child(3){width:64vmax;height:46vmax;left:6%;bottom:-6%;background:radial-gradient(closest-side,var(--blob3),transparent);animation:lg-drift3 39s steps(312) infinite alternate}
+.lg-backdrop i:nth-child(4){width:34vmax;height:26vmax;right:4%;bottom:24%;background:radial-gradient(closest-side,var(--blob4),transparent);animation:lg-drift1 44s steps(352) infinite alternate-reverse}
 @keyframes lg-drift1{to{transform:translate(16%,9%) scale(1.12)}}
 @keyframes lg-drift2{to{transform:translate(-18%,12%) scale(.92)}}
 @keyframes lg-drift3{to{transform:translate(10%,-14%) scale(1.08)}}
@@ -482,7 +483,7 @@ html.lg-lite .lg-backdrop i{animation:none}
 .card,.tx-group,.hero,nav.tabs .drop,.fab,.seg button.active,.type-grid button.active,.period-step .icon-btn{isolation:isolate;box-shadow:var(--lg-shadow)}
 .card,.tx-group{position:relative;background:var(--lg-tint);border-color:transparent}
 .hero{background:var(--lg-hero);border-color:transparent}
-/* backdrop layer: a soft highlight that follows the pointer (under the content, so text stays crisp), plus frost on the
+/* backdrop layer: a soft fixed highlight at the top-left (under the content, so text stays crisp), plus frost on the
    floating pieces. Cards get no live blur: only the soft colour field is behind them, so a tint looks the same and scrolls far cheaper. */
 .card::before,.tx-group::before,.hero::before{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;pointer-events:none;
   background:radial-gradient(220px 150px at var(--mx,22%) var(--my,0%),var(--lg-glow),transparent 70%),linear-gradient(160deg,var(--lg-sheen),transparent 45%)}
@@ -1103,8 +1104,9 @@ addEventListener('resize',lgSchedule);
 // while scrolling nothing needs re-measuring; refresh once it settles
 // while scrolling: pause the colour field and skip re-measuring; both resume once it settles
 addEventListener('scroll',()=>{
-  document.documentElement.classList.add('lg-still'); clearTimeout(LG.scrollT);
-  LG.scrollT=setTimeout(()=>{ document.documentElement.classList.remove('lg-still'); lgSchedule(); },220);
+  if(!LG.still){ LG.still=true; document.documentElement.classList.add('lg-still'); }
+  clearTimeout(LG.scrollT);
+  LG.scrollT=setTimeout(()=>{ LG.still=false; document.documentElement.classList.remove('lg-still'); lgSchedule(); },220);
 },{capture:true,passive:true});
 /* Slow device? Watch frame times for two seconds after load; if they are mostly slow (under ~42 fps, which also
    catches iPhone Low Power Mode) the colour field stops drifting on this device. */
@@ -1127,11 +1129,6 @@ if(/[?&]fps\b/.test(location.search)) addEventListener('load',()=>{
   }); })();
 });
 document.addEventListener('click',lgSchedule,true); // toggles that change without a re-render
-document.addEventListener('pointermove',e=>{
-  if(e.pointerType!=='mouse') return; const g=e.target.closest&&e.target.closest(LG_SEL); if(!g) return;
-  const r=g.getBoundingClientRect();
-  g.style.setProperty('--mx',((e.clientX-r.left)/r.width*100).toFixed(1)+'%'); g.style.setProperty('--my',((e.clientY-r.top)/r.height*100).toFixed(1)+'%');
-},{passive:true});
 function refreshIcons(){ if(window.lucide) lucide.createIcons(); lgSchedule(); }
 
 let toastTimer=null, toastUndoFn=null;

@@ -97,7 +97,8 @@ nav.tabs button.active{background:var(--dark);color:#fff;box-shadow:0 1px 4px rg
 nav.tabs button svg{width:15px;height:15px}
 .safe-pill{display:flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;background:var(--fill);border:0;font-size:14px;color:var(--text)}
 .safe-label{color:var(--chrome-muted);font-weight:600;font-size:13px}
-#safePill.neg{color:var(--amber-text)}
+#safePill.neg{color:var(--rose-text)}
+#safePill.unset{color:var(--chrome-muted);font-weight:600}
 #safePill.up{animation:pill-up .9s cubic-bezier(.16,1,.3,1)}
 #safePill.down{animation:pill-down .9s cubic-bezier(.16,1,.3,1)}
 @keyframes pill-up{from{color:var(--emerald)}}
@@ -134,9 +135,16 @@ main>section>*+*{margin-top:var(--gap)}
 :root[data-theme="dark"] .hero{border-color:var(--dark-border)}
 .hero .label{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8;font-weight:700}
 .hero .big{font-size:clamp(40px,7vw,76px);font-weight:700;letter-spacing:-.04em;margin:12px 0 0;line-height:.95;font-variant-numeric:tabular-nums}
+.hero .big.neg{color:#fda4af}
 .hero .big .cur{font-size:.4em;font-weight:700;letter-spacing:0;color:#94a3b8;margin-right:.2em;vertical-align:.7em}
 .btn-ghost-light{background:#ffffff1a;color:#e2e8f0;border:1px solid #ffffff22;padding:6px 10px;border-radius:9px;font-size:12px;font-weight:600}
 .hero{container-type:inline-size}
+/* No money counted yet this period: ask for the missing entry instead of showing a shortfall. */
+.hero-empty{margin-top:14px}
+.hero-empty .he-t{margin:0;font-size:clamp(22px,3.4vw,30px);font-weight:700;letter-spacing:-.02em;line-height:1.15;color:#fff}
+.hero-empty .he-d{margin:8px 0 0;max-width:52ch;font-size:15px;line-height:1.5;color:#cbd5e1}
+.he-acts{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:16px}
+.he-acts .btn,.he-acts .btn-ghost-light{min-height:44px;padding:0 18px;font-size:14px;border-radius:12px}
 /* Safe-to-Spend card: a pace line, a payday runway (time) and one allocation bar (money). */
 .pace{margin:14px 0 0;font-size:16px;color:#cbd5e1}
 .pace strong{color:#fff;font-variant-numeric:tabular-nums}
@@ -157,7 +165,7 @@ main>section>*+*{margin-top:var(--gap)}
 /* Solid = money already moved; striped = set aside for bills / Essentials not paid yet. */
 .sw-safe{background:#34d399}.sw-spent{background:#94a3b8}.sw-saved{background:#059669}
 .sw-bills{background:repeating-linear-gradient(135deg,#fcd34d 0 4px,#fcd34d80 4px 7px)}
-.sw-ess{background:repeating-linear-gradient(135deg,#f59e0b 0 4px,#f59e0b80 4px 7px)}
+.sw-ess{background:repeating-linear-gradient(135deg,#e2e8f0 0 4px,#e2e8f066 4px 7px)}
 .sw-adj{background:repeating-linear-gradient(135deg,#94a3b8 0 4px,#94a3b880 4px 7px)}
 .sw-prev{background:repeating-linear-gradient(135deg,#e11d48 0 4px,#e11d4880 4px 7px)}
 .alloc-legend{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));column-gap:20px}
@@ -182,7 +190,7 @@ main>section>*+*{margin-top:var(--gap)}
 /* Essentials on Ringkasan: a shopping list; dots = units bought / planned this pay period. */
 .shop-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px 24px;flex-wrap:wrap}
 .shop-left{text-align:right}
-.shop-left .amt{font-size:32px;font-weight:700;letter-spacing:-.03em;line-height:1;color:var(--amber-text);font-variant-numeric:tabular-nums}
+.shop-left .amt{font-size:32px;font-weight:700;letter-spacing:-.03em;line-height:1;color:var(--text);font-variant-numeric:tabular-nums}
 .shop-left .amt.done{display:inline-flex;align-items:center;gap:8px;color:var(--emerald-text)}
 .shop-left .amt.done svg{width:28px;height:28px}
 .shop-left .sub{margin-top:4px}
@@ -192,7 +200,7 @@ main>section>*+*{margin-top:var(--gap)}
 .shop-row .nm{flex:1;min-width:0}
 .shop-row .n{display:block;font-size:15px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .shop-row .mt{display:flex;align-items:center;gap:8px;margin-top:5px;font-size:12px;color:var(--muted)}
-.shop-row .left{font-size:15px;font-weight:700;color:var(--amber-text);white-space:nowrap;font-variant-numeric:tabular-nums}
+.shop-row .left{font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;font-variant-numeric:tabular-nums}
 .shop-row.done .n{color:var(--muted);text-decoration:line-through}
 .shop-row.done .left{color:var(--emerald);font-size:13px}
 .pips{display:flex;flex-wrap:wrap;gap:3px}
@@ -416,6 +424,11 @@ body{overflow-x:clip;overflow-wrap:anywhere}
 @media(max-width:359px){
   .brand h1{display:none} /* very small phones: logo icon only, so the header stays one row */
 }
+/* Touch: small buttons keep their look but get a 44px hit area. Glass pieces already use ::after, so they are left out. */
+@media (pointer:coarse){
+  .btn-sm,.btn-ghost-light,.link-btn,.icon-btn:not(.period-step .icon-btn),.seg button:not(.active){position:relative}
+  .btn-sm::after,.btn-ghost-light::after,.link-btn::after,.icon-btn:not(.period-step .icon-btn)::after,.seg button:not(.active)::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+}
 :focus-visible{outline:2px solid var(--emerald);outline-offset:2px}
 ::selection{background:color-mix(in srgb, var(--emerald) 30%, transparent)}
 html{accent-color:var(--emerald);caret-color:var(--emerald);scrollbar-color:var(--border2) transparent}
@@ -445,7 +458,7 @@ input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-an
   --lg-tint-bar:rgba(255,255,255,.55);    /* header */
   --lg-tint-sheet:rgba(255,255,255,.48);  /* sheets and popups */
   --lg-dim:rgba(16,28,24,.16);            /* behind a sheet */
-  --lg-hero:rgba(22,27,25,.66);
+  --lg-hero:#1b2320; /* opaque: the Safe-to-Spend figures must not depend on what scrolls behind them */
   --lg-rim-hi:rgba(255,255,255,.9); --lg-rim-lo:rgba(255,255,255,.3); --lg-glow:rgba(255,255,255,.4); --lg-sheen:rgba(255,255,255,.22);
   --lg-shadow:0 10px 30px rgba(20,40,34,.12),0 1px 2px rgba(20,40,34,.08);
   --lg-frost:blur(16px) saturate(190%) brightness(1.04);
@@ -457,7 +470,7 @@ input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-an
     --bg:#040807; --muted:#a1a1a6;
     --lg-tint:rgba(28,32,30,.40); --lg-tint-clear:rgba(40,46,44,.18); --lg-tint-bead:rgba(70,78,75,.28);
     --lg-tint-drop:rgba(255,255,255,.04); --lg-drop-glint:rgba(255,255,255,.22); --lg-drop-glint2:rgba(255,255,255,.1); --lg-drop-edge:rgba(255,255,255,.28); --lg-drop-depth:rgba(0,0,0,.35);
-    --lg-tint-bar:rgba(20,24,22,.58); --lg-tint-sheet:rgba(18,22,20,.5); --lg-dim:rgba(0,0,0,.22); --lg-hero:rgba(10,14,12,.62);
+    --lg-tint-bar:rgba(20,24,22,.58); --lg-tint-sheet:rgba(18,22,20,.5); --lg-dim:rgba(0,0,0,.22); --lg-hero:#121715;
     --lg-rim-hi:rgba(255,255,255,.4); --lg-rim-lo:rgba(255,255,255,.1); --lg-glow:rgba(255,255,255,.12); --lg-sheen:rgba(255,255,255,.05);
     --lg-shadow:0 12px 34px rgba(0,0,0,.5),0 1px 2px rgba(0,0,0,.4);
     --lg-ink-accent:#6ee7b7;
@@ -546,6 +559,8 @@ nav.tabs button.active>*{transform:scale(1.08)}
 .fab{background:var(--lg-tint-clear);color:var(--lg-ink-accent);box-shadow:var(--lg-shadow);transition:transform .45s var(--spring)}
 .fab:hover{background:var(--lg-tint-bead)}
 .fab:active{transform:scale(1.06)}
+/* phones: slides below the tab bar while scrolling down, so it never sits on the amounts */
+.fab.away{transform:translateY(calc(100% + 32px));opacity:0;pointer-events:none;transition:transform .25s var(--ease),opacity .2s var(--ease)}
 .lens .fab[data-lgk]::before{-webkit-backdrop-filter:var(--lg-url) blur(5px) saturate(190%) brightness(1.06);backdrop-filter:var(--lg-url) blur(5px) saturate(190%) brightness(1.06)}
 .head-log,.head-log:hover{background:var(--lg-tint-clear);color:var(--lg-ink-accent);-webkit-backdrop-filter:blur(8px) saturate(190%);backdrop-filter:blur(8px) saturate(190%);box-shadow:inset 1.5px 1.5px 0 -.5px var(--lg-rim-hi),inset -1px -1px 0 -.5px var(--lg-rim-lo),0 2px 10px rgba(0,0,0,.08);transition:transform .45s var(--spring)}
 .head-log:hover{background:var(--lg-tint-bead)}
@@ -1137,7 +1152,7 @@ function runToastUndo(){ const fn=toastUndoFn; toastUndoFn=null; document.getEle
 /* showSafe: append how this entry moved Safe-to-Spend (safeDelta is set by the render() that just ran). */
 function toastUndo(msg,snap,showSafe){
   const won=pockets.filter(p=>{ const b=(snap.pockets||[]).find(x=>x.id===p.id); return b&&b.currentAmount<b.targetAmount&&p.currentAmount>=p.targetAmount; });
-  const safe= !showSafe? '' : safeDelta? ` Safe-to-Spend ${fmt(lastSafe)} (${fmt(safeDelta,true)}).` : ` Safe-to-Spend tetap ${fmt(lastSafe)}.`;
+  const safe= !showSafe||fundsState(financialSummary())==='none'? '' : safeDelta? ` Safe-to-Spend ${fmt(lastSafe)} (${fmt(safeDelta,true)}).` : ` Safe-to-Spend tetap ${fmt(lastSafe)}.`;
   toast((won.length?`Target tercapai: ${won.map(p=>p.name).join(', ')}! `:'')+msg+safe, ()=>{ applyState(snap); render(); toast('Dibatalkan — data dikembalikan seperti semula.'); }, won.length>0);
 }
 
@@ -1238,7 +1253,8 @@ let lastSafe=null, safeDelta=0;
 function render(){
   rolloverBills();
   const fin=financialSummary(), ess=essentialsSummary();
-  const sp=document.getElementById('safePill'); sp.textContent=fmt(fin.safeToSpend); sp.classList.toggle('neg',fin.safeToSpend<0);
+  const sp=document.getElementById('safePill'), unset=fundsState(fin)==='none';
+  sp.textContent= unset? 'Belum dihitung' : fmt(fin.safeToSpend); sp.classList.toggle('neg',fin.safeToSpend<0&&!unset); sp.classList.toggle('unset',unset);
   safeDelta= lastSafe===null? 0 : fin.safeToSpend-lastSafe; lastSafe=fin.safeToSpend;
   if(safeDelta){ sp.classList.remove('up','down'); void sp.offsetWidth; sp.classList.add(safeDelta>0?'up':'down'); }
   const titles={dashboard:'Ringkasan',essentials:'Belanja Essentials & Tagihan',pockets:'Tabungan & Rekening',activity:'Riwayat Transaksi',settings:'Pengaturan'};
@@ -1260,9 +1276,28 @@ function render(){
   saveState();
 }
 
+/* Money this pay period can draw on: leftover from before, income, money taken out of pockets, upward balance fixes. */
+function periodFunds(fin){ return Math.max(0,fin.carryOver)+fin.cycleIncome+Math.max(0,-fin.cycleSaved)+Math.max(0,fin.cycleAdjust); }
+/* Why a negative Safe-to-Spend would mislead: 'none' = nothing to count from yet (no opening balance, no money in);
+   'nopay' = this period's salary isn't logged yet. Either way the hero asks for the missing entry instead of showing a shortfall. */
+function fundsState(fin){
+  if(fin.safeToSpend>=0) return null;
+  if(periodFunds(fin)<=0&&!openingTx()) return 'none';
+  if(fin.cycleIncome<=0) return 'nopay';
+  return null;
+}
+function heroNoFunds(fin){
+  const none=fundsState(fin)==='none', payday=fin.nextPayday.toLocaleDateString('id-ID',{day:'numeric',month:'short'});
+  return `<div class="hero-empty"><p class="he-t">${none?'Mulai dari saldo awal':'Gaji periode ini belum dicatat'}</p>
+    <p class="he-d">${none? 'Safe-to-Spend dihitung dari uang yang kamu punya. Catat saldo awal (sisa uang di rekening sekarang) atau gaji yang sudah masuk.'
+      : `Catat gaji yang masuk untuk melihat berapa yang aman dibelanjakan sampai ${payday}. Tanpa gaji, rencana periode ini kurang ${fmt(-fin.safeToSpend)}.`}</p>
+    <div class="he-acts">${none? `<button class="btn btn-emerald" onclick="openOpeningBalance()">Catat saldo awal</button><button class="btn-ghost-light" onclick="startIncomeLog()">Catat gaji</button>`
+      : `<button class="btn btn-emerald" onclick="startIncomeLog()">Catat gaji</button>`}</div></div>`;
+}
+function startIncomeLog(){ logState=freshLogState(); logState.type='income'; logState.categoryId='cat_salary'; openLogger(); }
 /* Where this pay period's money is: one bar, scaled to whichever is larger — the money in, or what it is committed to. */
 function safeAlloc(fin){
-  const inSaved=Math.max(0,-fin.cycleSaved), avail=Math.max(0,fin.carryOver)+fin.cycleIncome+inSaved+Math.max(0,fin.cycleAdjust);
+  const inSaved=Math.max(0,-fin.cycleSaved), avail=periodFunds(fin), none=fundsState(fin)==='none';
   const segs=[
     {k:'spent',l:'Sudah keluar',v:fin.cycleSpending,go:'activity',t:'Semua pengeluaran periode ini (termasuk kartu kredit)'},
     {k:'saved',l:'Ditabung',v:Math.max(0,fin.cycleSaved),go:'pockets',t:'Dipindah ke pocket tabungan periode ini'},
@@ -1273,7 +1308,8 @@ function safeAlloc(fin){
     {k:'safe',l:'Aman dibelanjakan',v:Math.max(0,fin.safeToSpend),t:'Safe-to-Spend'}].filter(x=>x.v>0);
   const scale=Math.max(avail,segs.reduce((t,x)=>t+x.v,0)); if(!scale) return '';
   const src=[fin.carryOver>0?`sisa ${fmt(fin.carryOver)}`:'',inSaved?`${fmt(inSaved)} dari tabungan`:'',fin.cycleAdjust>0?`${fmt(fin.cycleAdjust)} penyesuaian saldo`:''].filter(Boolean).join(' + ');
-  return `<div class="alloc"><div class="alloc-cap"><span>Dana periode ini <strong>${fmt(avail)}</strong>${src?` (termasuk ${src})`:''}</span>${fin.safeToSpend<0?`<span class="short">Kurang <strong style="color:inherit">${fmt(-fin.safeToSpend)}</strong></span>`:''}</div>
+  return `<div class="alloc"><div class="alloc-cap">${none? `<span>Kebutuhan periode ini <strong>${fmt(segs.reduce((t,x)=>t+x.v,0))}</strong></span>`
+      : `<span>Dana periode ini <strong>${fmt(avail)}</strong>${src?` (termasuk ${src})`:''}</span>${fin.safeToSpend<0?`<span class="short">Kurang <strong style="color:inherit">${fmt(-fin.safeToSpend)}</strong></span>`:''}`}</div>
     <div class="alloc-bar" role="img" aria-label="${segs.map(x=>`${x.l} ${fmt(x.v)}`).join(', ')}">${segs.map(x=>`<i class="sw-${x.k}" style="flex:${x.v} 1 0"></i>`).join('')}${fin.safeToSpend<0&&avail?`<u style="left:${(avail/scale*100).toFixed(1)}%" title="Batas dana periode ini"></u>`:''}</div>
     <div class="alloc-legend">${segs.map(x=>{ const inner=`<span class="sw sw-${x.k}"></span><span class="lb">${x.l}</span><strong>${fmt(x.v)}</strong>`; return x.go? `<button title="${x.t}" onclick="goTab('${x.go}')">${inner}</button>` : `<div title="${x.t}">${inner}</div>`; }).join('')}</div></div>`;
 }
@@ -1311,8 +1347,8 @@ function renderDashboard(fin,ess){
         <p class="label" style="margin:6px 0 0">Safe-to-Spend sampai gajian</p>
         <button class="btn-ghost-light" onclick="toggleFormula()">${showFormula?'Sembunyikan rumus':'Cara menghitungnya?'}</button>
       </div>
-      <div class="big" style="${fin.safeToSpend<0?'color:#fcd34d':''}"><span class="cur">Rp</span>${fin.safeToSpend<0?'−':''}${fmt(Math.abs(fin.safeToSpend)).replace(/Rp\s/,'')}</div>
-      <p class="pace">${fin.safeToSpend>0?`≈ <strong>${fmt(fin.perDay)}</strong> per hari selama ${fin.daysToPayday} hari ke depan`: (fin.cycleIncome+fin.carryOver<=0&&!openingTx()? `Belum ada pemasukan tercatat. <button class="btn-ghost-light" onclick="openOpeningBalance()">Catat saldo awal</button>` : 'Rencana belanja melebihi dana periode ini.')}</p>
+      ${fundsState(fin)? heroNoFunds(fin) : `<div class="big${fin.safeToSpend<0?' neg':''}"><span class="cur">Rp</span>${fin.safeToSpend<0?'−':''}${fmt(Math.abs(fin.safeToSpend)).replace(/Rp\s/,'')}</div>
+      <p class="pace">${fin.safeToSpend>0?`≈ <strong>${fmt(fin.perDay)}</strong> per hari selama ${fin.daysToPayday} hari ke depan`: (fin.cycleIncome+fin.carryOver<=0&&!openingTx()? `Belum ada pemasukan tercatat. <button class="btn-ghost-light" onclick="openOpeningBalance()">Catat saldo awal</button>` : 'Rencana belanja melebihi dana periode ini.')}</p>`}
       ${(()=>{ const t=today(), t0=new Date(t.getFullYear(),t.getMonth(),t.getDate()), total=Math.max(1,Math.round((fin.nextPayday-fin.cycleStart)/86400000)), day=Math.min(total,Math.max(1,Math.round((t0-fin.cycleStart)/86400000)+1)), pct=((day-.5)/total*100).toFixed(1), short=d=>d.toLocaleDateString('id-ID',{day:'numeric',month:'short'});
         return `<div class="runway"><div class="runway-row"><span>Hari ke-<strong>${day}</strong> dari ${total}</span><button class="btn-ghost-light" onclick="openPaydayModal()">Ubah tanggal gajian</button></div><div class="runway-track" role="progressbar" aria-label="Periode gajian berjalan" aria-valuemin="1" aria-valuemax="${total}" aria-valuenow="${day}"><i style="width:${pct}%"></i><b style="left:${pct}%"></b></div><div class="runway-row"><span>${short(fin.cycleStart)}</span><span>Gajian <strong>${fin.nextPayday.toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short'})}</strong></span></div></div>`; })()}
       ${safeAlloc(fin)}
@@ -1419,7 +1455,7 @@ function renderEssentials(fin,ess){
       <p style="font-size:13px;color:var(--muted);margin:0;align-self:center">Klik <strong>+ Catat beli</strong> di baris mana pun, atau tombol <strong>Catat</strong>.</p>
     </div>
     <div style="overflow-x:auto"><table class="ess-table"><thead><tr><th>Item</th><th class="num">Harga / Unit</th><th class="center">Target</th><th class="num">Total Rencana</th><th class="center">Sudah Dibeli</th><th class="num">Sisa</th><th class="num">Aksi</th></tr></thead>
-    <tbody>${filtered.map(item=>{ const cat=catById(item.categoryId); return `<tr class="${item.isComplete?'done':''}" style="${item.skipped?'opacity:.6':''}"><td class="c-item"><div style="display:flex;gap:10px;align-items:center"><span class="cat-ico tint"${catTone(cat)}><i data-lucide="${item.isComplete?'check':cat?cat.icon:'shopping-bag'}"></i></span><div><strong style="${item.isComplete?'text-decoration:line-through;color:var(--muted)':''}">${esc(item.name)}</strong><div style="font-size:12px;color:var(--muted)">${cat?cat.name:''}</div><div class="ess-meta" style="font-size:13px;color:var(--muted);margin-top:2px">${fmt(item.unitPrice)} × ${ess.paused?item.defaultQty:`<button class="qty-btn" onclick="openEssQty('${item.id}')">${qtyLabel(item)}</button>`}${item.skipped?'':` = <strong style="color:var(--text)">${fmt(item.totalPlanned)}</strong>`}</div></div></div></td><td class="num c-price">${fmt(item.unitPrice)}</td><td class="center c-qty">${ess.paused?`<span style="color:var(--muted)">${item.defaultQty}x</span>`:`<button class="qty-btn" title="Ubah jumlah untuk periode ini" onclick="openEssQty('${item.id}')">${qtyLabel(item)}</button>`}</td><td class="num c-total"><strong>${fmt(item.totalPlanned)}</strong></td><td class="center c-bought">${item.skipped?'<span style="color:var(--muted)">—</span>':`<span class="badge ${item.boughtQty>0?'ok':''}" style="${item.boughtQty===0?'background:var(--surface2);color:var(--muted);border-color:var(--border)':''}">${item.boughtQty} / ${item.targetQty}</span>`}</td><td class="num c-left">${item.skipped?`<span style="color:var(--muted);font-weight:700">Dilewati</span>${item.spentAmount?`<div style="font-size:12px;color:var(--muted)">dibeli ${fmt(item.spentAmount)}</div>`:''}`:item.isComplete?'<span style="color:var(--emerald);font-weight:700">✓ Terpenuhi</span>':`<strong style="color:var(--amber-text)">${fmt(item.remainingAmount)}</strong><div style="font-size:12px;color:var(--muted)">kurang ${item.remainingQty}x lagi</div>`}</td><td class="num c-act"><button class="btn ${item.isComplete?'':'btn-dark'} btn-sm" onclick="openLoggerWithEssential('${item.id}')">${item.isComplete?'+ Beli lagi':'+ Catat beli'}</button></td></tr>`;}).join('')}</tbody></table></div>
+    <tbody>${filtered.map(item=>{ const cat=catById(item.categoryId); return `<tr class="${item.isComplete?'done':''}" style="${item.skipped?'opacity:.6':''}"><td class="c-item"><div style="display:flex;gap:10px;align-items:center"><span class="cat-ico tint"${catTone(cat)}><i data-lucide="${item.isComplete?'check':cat?cat.icon:'shopping-bag'}"></i></span><div><strong style="${item.isComplete?'text-decoration:line-through;color:var(--muted)':''}">${esc(item.name)}</strong><div style="font-size:12px;color:var(--muted)">${cat?cat.name:''}</div><div class="ess-meta" style="font-size:13px;color:var(--muted);margin-top:2px">${fmt(item.unitPrice)} × ${ess.paused?item.defaultQty:`<button class="qty-btn" onclick="openEssQty('${item.id}')">${qtyLabel(item)}</button>`}${item.skipped?'':` = <strong style="color:var(--text)">${fmt(item.totalPlanned)}</strong>`}</div></div></div></td><td class="num c-price">${fmt(item.unitPrice)}</td><td class="center c-qty">${ess.paused?`<span style="color:var(--muted)">${item.defaultQty}x</span>`:`<button class="qty-btn" title="Ubah jumlah untuk periode ini" onclick="openEssQty('${item.id}')">${qtyLabel(item)}</button>`}</td><td class="num c-total"><strong>${fmt(item.totalPlanned)}</strong></td><td class="center c-bought">${item.skipped?'<span style="color:var(--muted)">—</span>':`<span class="badge ${item.boughtQty>0?'ok':''}" style="${item.boughtQty===0?'background:var(--surface2);color:var(--muted);border-color:var(--border)':''}">${item.boughtQty} / ${item.targetQty}</span>`}</td><td class="num c-left">${item.skipped?`<span style="color:var(--muted);font-weight:700">Dilewati</span>${item.spentAmount?`<div style="font-size:12px;color:var(--muted)">dibeli ${fmt(item.spentAmount)}</div>`:''}`:item.isComplete?'<span style="color:var(--emerald);font-weight:700">✓ Terpenuhi</span>':`<strong style="color:var(--text)">${fmt(item.remainingAmount)}</strong><div style="font-size:12px;color:var(--muted)">kurang ${item.remainingQty}x lagi</div>`}</td><td class="num c-act"><button class="btn ${item.isComplete?'':'btn-dark'} btn-sm" onclick="openLoggerWithEssential('${item.id}')">${item.isComplete?'+ Beli lagi':'+ Catat beli'}</button></td></tr>`;}).join('')}</tbody></table></div>
     ${filtered.length===0?'<p style="text-align:center;color:var(--muted);font-size:14px;padding:20px">Tidak ada item di filter ini.</p>':''}
   </div>
 
@@ -2409,6 +2445,12 @@ function saveTxEdit(id){
 /* Nav wiring */
 document.querySelectorAll('[data-tab]').forEach(b=> b.addEventListener('click',()=>goTab(b.dataset.tab)));
 document.getElementById('fabBtn').addEventListener('click',()=>{ logState=freshLogState(); openLogger(); });
+/* The floating Catat button steps aside while scrolling down and comes back on scroll up or at the end of the page. */
+(()=>{ const fab=document.getElementById('fabBtn'); let lastY=scrollY, queued=false;
+  addEventListener('scroll',()=>{ if(queued) return; queued=true; requestAnimationFrame(()=>{ queued=false;
+    const y=scrollY, end=y+innerHeight>=document.documentElement.scrollHeight-8;
+    if(end) fab.classList.remove('away'); else if(Math.abs(y-lastY)>6) fab.classList.toggle('away',y>lastY&&y>80);
+    if(Math.abs(y-lastY)>6||end) lastY=y; }); },{passive:true}); })();
 document.getElementById('quickLogTop').addEventListener('click',()=>{ logState=freshLogState(); openLogger(); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); else trapModalTab(e); });
 render();

@@ -10,20 +10,26 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#0f172a" />
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
 <title>FlowPocket — Clarity-First Finance</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+
 <!-- Third-party code is pinned and hash-checked: if a CDN ever serves a modified file, the browser refuses to run it. -->
 <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js" integrity="sha384-hJnF5AwidE18GSWTAGHv3ByzzvfNZ1Tcx5y1UUV3WkauuMCEzBJBMSwSt/PUPXnM" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
 <script type="importmap">{"integrity":{"https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs":"sha384-+0ti2moQlmLN7WZHE2RHIf5lV8hHxhxEalN0il3YZceG26fUPyOkR0hp9daxk1i7"}}</script>
 <style>
 :root{
-  --bg:#f6f7f9; --surface:#ffffff; --surface2:#f8fafc; --border:#e2e8f0; --border2:#cbd5e1;
-  --text:#0f172a; --muted:#64748b; --muted2:#64748b;
-  --dark:#0f172a; --dark2:#1e293b; --dark-border:#334155;
-  --emerald:#059669; --emerald-bg:#ecfdf5; --emerald-border:#a7f3d0; --emerald-text:#065f46;
+  --bg:#f2f2f7; --surface:#ffffff; --surface2:#f7f7fa; --border:#e5e5ea; --border2:#d1d1d6;
+  --text:#1c1c1e; --muted:#6e6e73; --muted2:#6e6e73;
+  --dark:#1c1c1e; --dark2:#2c2c2e; --dark-border:#3a3a3c;
+  /* Glass: translucent chrome (header, tab bar, sheets, toast). Falls back to opaque --surface below. */
+  --fill:rgba(120,120,128,.12);
+  --glass-bg:rgba(255,255,255,.72); --glass-blur:saturate(180%) blur(20px);
+  --glass-edge:inset 0 .5px 0 rgba(255,255,255,.6), 0 0 0 .5px rgba(0,0,0,.06);
+  --glass-shadow:0 8px 32px rgba(0,0,0,.08);
+  --ease:cubic-bezier(.2,.8,.2,1);
+  --emerald:#1f9d55; --emerald-bg:#ecfdf5; --emerald-border:#a7f3d0; --emerald-text:#065f46;
   --amber:#d97706; --amber-bg:#fffbeb; --amber-border:#fde68a; --amber-text:#92400e;
   --indigo:#4f46e5; --indigo-bg:#eef2ff;
   --rose:#e11d48; --rose-bg:#fff1f2; --rose-border:#fecdd3; --rose-text:#be123c;
@@ -35,10 +41,15 @@
 }
 @media (prefers-color-scheme: dark){
   :root{
-    --bg:#0b1220; --surface:#111827; --surface2:#0f172a; --border:#1f2937; --border2:#374151;
-    --text:#f1f5f9; --muted:#94a3b8; --muted2:#8391a7;
-    /* --dark is the "ink" fill (hero, date boxes, toasts). Its light value (#0f172a) is the same as the dark-mode page, so raise it here. */
-    --dark:#1e293b; --dark2:#273449;
+    --bg:#000000; --surface:#1c1c1e; --surface2:#2c2c2e; --border:#38383a; --border2:#48484a;
+    --text:#f5f5f7; --muted:#98989d; --muted2:#98989d;
+    /* --dark is the "ink" fill (hero, date boxes). Its light value is near the dark-mode page, so raise it here. */
+    --dark:#2c2c2e; --dark2:#3a3a3c; --dark-border:#48484a;
+    --emerald:#34c759;
+    --fill:rgba(120,120,128,.24);
+    --glass-bg:rgba(28,28,30,.58);
+    --glass-edge:inset 0 .5px 0 rgba(255,255,255,.12), 0 0 0 .5px rgba(255,255,255,.08);
+    --glass-shadow:0 8px 32px rgba(0,0,0,.4);
     --emerald-bg:#064e3b33; --emerald-border:#065f46; --emerald-text:#6ee7b7;
     --amber-bg:#78350f33; --amber-border:#92400e; --amber-text:#fcd34d;
     --indigo:#a5b4fc; --indigo-bg:#312e8133;
@@ -47,9 +58,13 @@
     color-scheme: dark;
   }
 }
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){ :root{--glass-bg:var(--surface);--glass-blur:none} }
+@media (prefers-reduced-transparency: reduce){ :root{--glass-bg:var(--surface);--glass-blur:none} }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{margin:0;font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-size:15px;line-height:1.5;font-variant-numeric:tabular-nums;background:var(--bg);color:var(--text);padding-bottom:96px;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(60vmax 50vmax at 0% 0%,rgba(52,199,89,.07),transparent 70%),radial-gradient(60vmax 50vmax at 100% 100%,rgba(10,132,255,.07),transparent 70%)}
+@media (prefers-color-scheme: dark){ body::before{background:radial-gradient(60vmax 50vmax at 0% 0%,rgba(52,199,89,.10),transparent 70%),radial-gradient(60vmax 50vmax at 100% 100%,rgba(10,132,255,.10),transparent 70%)} }
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;font-size:15px;line-height:1.5;font-variant-numeric:tabular-nums;background:var(--bg);color:var(--text);padding-bottom:96px;-webkit-font-smoothing:antialiased}
 button{font-family:inherit;cursor:pointer}
 input,select,textarea{font-family:inherit}
 a{color:inherit}
@@ -100,7 +115,7 @@ main>section>*+*{margin-top:var(--gap)}
 .hero-head .btn-ghost-light{white-space:nowrap}
 @media(prefers-color-scheme:dark){.hero{border-color:var(--dark-border)}}
 .hero .label{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8;font-weight:700}
-.hero .big{font-size:clamp(40px,7vw,76px);font-weight:800;letter-spacing:-.04em;margin:12px 0 0;line-height:.95;font-variant-numeric:tabular-nums}
+.hero .big{font-size:clamp(40px,7vw,76px);font-weight:700;letter-spacing:-.04em;margin:12px 0 0;line-height:.95;font-variant-numeric:tabular-nums}
 .hero .big .cur{font-size:.4em;font-weight:700;letter-spacing:0;color:#94a3b8;margin-right:.2em;vertical-align:.7em}
 .btn-ghost-light{background:#ffffff1a;color:#e2e8f0;border:1px solid #ffffff22;padding:6px 10px;border-radius:9px;font-size:12px;font-weight:600}
 .hero{container-type:inline-size}
@@ -149,7 +164,7 @@ main>section>*+*{margin-top:var(--gap)}
 /* Essentials on Ringkasan: a shopping list; dots = units bought / planned this pay period. */
 .shop-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px 24px;flex-wrap:wrap}
 .shop-left{text-align:right}
-.shop-left .amt{font-size:32px;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--amber-text);font-variant-numeric:tabular-nums}
+.shop-left .amt{font-size:32px;font-weight:700;letter-spacing:-.03em;line-height:1;color:var(--amber-text);font-variant-numeric:tabular-nums}
 .shop-left .amt.done{display:inline-flex;align-items:center;gap:8px;color:var(--emerald-text)}
 .shop-left .amt.done svg{width:28px;height:28px}
 .shop-left .sub{margin-top:4px}
@@ -217,7 +232,7 @@ tr.done{background:color-mix(in srgb, var(--emerald-bg) 45%, transparent)}
 .acc-ico{width:36px;height:36px;border-radius:10px;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .acc-sum{display:flex;flex-wrap:wrap;gap:10px 28px;padding:14px 0;border-bottom:1px solid var(--border)}
 .acc-sum span{display:block;font-size:12px;color:var(--muted);font-weight:600}
-.acc-sum strong{font-size:20px;font-weight:800;letter-spacing:-.02em}
+.acc-sum strong{font-size:20px;font-weight:700;letter-spacing:-.02em}
 .acc-list{display:grid;grid-template-columns:1fr 1fr;column-gap:28px}
 .acc-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
 .acc-name{display:block;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -264,7 +279,7 @@ select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);backg
 .field{margin-bottom:14px}
 .field label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px}
 .field input,.field select,.field textarea{width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:15px}
-.field input.big{font-size:20px;font-weight:800;padding:13px 14px}
+.field input.big{font-size:20px;font-weight:700;padding:13px 14px}
 .type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;background:var(--surface2);border:1px solid var(--border);padding:3px;border-radius:11px}
 .type-grid button{border:0;background:transparent;padding:8px 4px;border-radius:8px;font-size:12px;font-weight:700;color:var(--muted)}
 .type-grid button.active{background:var(--dark);color:#fff}
@@ -1120,7 +1135,7 @@ function renderPockets(fin){
 
   ${pockets.length?`<div><h3 style="margin:0 0 4px">Pocket Tabungan</h3><p class="sub" style="font-size:13px;color:var(--muted);margin:0 0 16px;max-width:70ch"> Tabungan terpisah dari uang belanja. Saldo pocket tidak mengurangi Safe-to-Spend; hanya menabung ke pocket (atau mengambil darinya) yang mengubahnya.</p>
   <div class="grid" style="grid-template-columns:1fr 1fr">${pockets.map(p=>{ const pct=Math.min(100,Math.round(p.currentAmount/p.targetAmount*100)); return `<div class="card"><div style="display:flex;justify-content:space-between;gap:10px"><div style="display:flex;gap:10px;align-items:center"><span class="cat-ico" style="width:42px;height:42px;border-radius:12px;background:var(--emerald-bg);color:var(--emerald-text)"><i data-lucide="${p.icon}"></i></span><div><h3>${esc(p.name)}</h3><p class="sub">${esc(p.description)}</p></div></div><span class="badge ok" style="align-self:flex-start">${pct>=100?'<i data-lucide="badge-check"></i>Tercapai':pct+'%'}</span></div>
-  <div style="display:flex;justify-content:space-between;margin-top:16px;align-items:flex-end"><div><div style="font-size:12px;color:var(--muted)">Terkumpul</div><div style="font-size:22px;font-weight:800">${fmt(p.currentAmount)}</div></div><div style="text-align:right"><div style="font-size:12px;color:var(--muted)">Target${p.targetDate?` (${esc(p.targetDate)})`:''}</div><strong style="font-size:14px">${fmt(p.targetAmount)}</strong><div style="font-size:12px;color:var(--muted)">kurang ${fmt(Math.max(0,p.targetAmount-p.currentAmount))}</div></div></div>
+  <div style="display:flex;justify-content:space-between;margin-top:16px;align-items:flex-end"><div><div style="font-size:12px;color:var(--muted)">Terkumpul</div><div style="font-size:22px;font-weight:700">${fmt(p.currentAmount)}</div></div><div style="text-align:right"><div style="font-size:12px;color:var(--muted)">Target${p.targetDate?` (${esc(p.targetDate)})`:''}</div><strong style="font-size:14px">${fmt(p.targetAmount)}</strong><div style="font-size:12px;color:var(--muted)">kurang ${fmt(Math.max(0,p.targetAmount-p.currentAmount))}</div></div></div>
   <div class="bar" style="margin-top:10px"><i style="width:${pct}%"></i></div>
   ${p.monthlyHint?`<p class="sub" style="margin:10px 0 0">Saran top up ${fmt(p.monthlyHint)} / bulan</p>`:''}<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)"><button class="btn btn-dark" style="flex:1 1 120px" onclick="openPocketAction('${p.id}','topup')">+ Isi pocket</button><button class="btn" style="flex:1 1 120px" onclick="openPocketAction('${p.id}','spend')">Pakai dari Pocket</button></div></div>`;}).join('')}</div></div>`:''}
 

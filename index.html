@@ -2468,7 +2468,7 @@ function openTxEdit(id){
     <div class="field"><label for="teTitle">Judul / Catatan</label><input id="teTitle" type="text" value="${esc(tx.title)}"></div>
     <div class="field"><label for="teDate">Tanggal</label><input id="teDate" type="date" value="${esc(tx.date)}" max="${todayISO()}"></div>
     ${isTf?'':`<div class="field"><label for="teCat">Kategori</label><select id="teCat">${cats.map(c=>`<option value="${c.id}" ${tx.categoryId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>
-    <div class="field"><label for="teAcc">Rekening</label><select id="teAcc">${accounts.map(a=>`<option value="${a.id}" ${tx.accountId===a.id?'selected':''}>${esc(a.name)} — ${fmt(a.balance)}</option>`).join('')}</select></div>`}
+    ${tx.pocketId?'':`<div class="field"><label for="teAcc">Rekening</label><select id="teAcc">${accounts.map(a=>`<option value="${a.id}" ${tx.accountId===a.id?'selected':''}>${esc(a.name)} — ${fmt(a.balance)}</option>`).join('')}</select></div>`}`}
     <div class="field"><label for="teTag">Tag (opsional)</label><input id="teTag" type="text" value="${esc(tx.tag||'')}"></div>
     <p style="font-size:12px;color:var(--muted);line-height:1.5;margin:0">${tx.adjust?`Penyesuaian ini ${tx.moves[0].amount>0?'menambah':'mengurangi'} saldo — ubah nominalnya di sini, atau hapus lalu sesuaikan ulang untuk arah sebaliknya.`:isTf?'Rute transfer (dari/ke) tetap. Untuk mengubahnya, hapus entri ini lalu catat ulang.':'Saldo rekening, pocket, dan tagihan terkait ikut disesuaikan.'}</p>`;
   modalShell('Ubah transaksi', body, `<button class="btn btn-emerald" style="width:100%;padding:13px;font-size:15px" onclick="saveTxEdit('${tx.id}')">Simpan perubahan</button>`);
@@ -2479,12 +2479,13 @@ function saveTxEdit(id){
   if(amt<=0){ toast('Masukkan nominal lebih dari nol dulu ya.'); return; }
   const raw=fv('teDate'), date=/^\d{4}-\d{2}-\d{2}$/.test(raw)? raw : tx.date;
   if(date>todayISO()){ toast('Tanggal tidak boleh di masa depan.'); return; }
-  const accountId= isTf? tx.accountId : fv('teAcc');
-  if(!accById(accountId)){ toast('Pilih rekening dulu.'); return; }
-  const p= isTf&&tx.pocketId? pockById(tx.pocketId) : null;
+  const pocketSpend= tx.type==='expense'&&!!tx.pocketId; // paid from savings: no account, so it keeps none
+  const accountId= isTf||pocketSpend? tx.accountId : fv('teAcc');
+  if(!pocketSpend&&!accById(accountId)){ toast('Pilih rekening dulu.'); return; }
+  const p= tx.pocketId? pockById(tx.pocketId) : null;
   if(p&&amt!==tx.amount){
-    if(tx.fromPocket&&amt>p.currentAmount+tx.amount){ toast(`Saldo ${p.name} hanya ${fmt(p.currentAmount+tx.amount)}.`); return; }
-    if(!tx.fromPocket&&p.currentAmount<tx.amount){ toast(`${p.name} tinggal ${fmt(p.currentAmount)} — sebagian dana ini sudah dipakai, jadi nominalnya tidak bisa diubah.`); return; }
+    if((tx.fromPocket||pocketSpend)&&amt>p.currentAmount+tx.amount){ toast(`Saldo ${p.name} hanya ${fmt(p.currentAmount+tx.amount)}.`); return; }
+    if(isTf&&!tx.fromPocket&&p.currentAmount<tx.amount){ toast(`${p.name} tinggal ${fmt(p.currentAmount)} — sebagian dana ini sudah dipakai, jadi nominalnya tidak bisa diubah.`); return; }
   }
   const edited={...tx,amount:amt,date,accountId,title:fv('teTitle').trim()||tx.title,tag:fv('teTag').trim(),
     ...(isTf? {} : {categoryId:fv('teCat')}),

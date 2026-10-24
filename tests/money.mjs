@@ -86,6 +86,8 @@ const results = await page.evaluate(async () => {
     'transfer to account, new amount': [() => log({ type: 'transfer', amount: '40000', accountId: 'a1', transferTo: 'acc:a2' }), () => editTx(45000), () => log({ type: 'transfer', amount: '45000', accountId: 'a1', transferTo: 'acc:a2' })],
     'save into pocket, new amount': [() => log({ type: 'transfer', amount: '30000', accountId: 'a1', transferTo: 'pock:p1' }), () => editTx(10000), () => log({ type: 'transfer', amount: '10000', accountId: 'a1', transferTo: 'pock:p1' })],
     'take out of pocket, new amount': [() => log({ type: 'transfer', amount: '25000', fromPocket: 'p1', transferTo: 'acc:a2' }), () => editTx(50000), () => log({ type: 'transfer', amount: '50000', fromPocket: 'p1', transferTo: 'acc:a2' })],
+    'spend from pocket, new amount': [() => pocketAction('spend', 35000), () => editTx(50000), () => pocketAction('spend', 50000)],
+    'spend from pocket, new title only': [() => pocketAction('spend', 35000), () => editTx(35000, { title: 'Edited' }), () => pocketAction('spend', 35000)],
   };
   for (const [name, [create, edit, direct]] of Object.entries(edits)) {
     reset(); create(); closeModal(); edit();
@@ -113,6 +115,9 @@ const results = await page.evaluate(async () => {
   const saveId = transactions.find(t => t.tag === '#pocket-save').id;
   openTxEdit(saveId); setAmt(document.getElementById('teAmt'), 10000); saveTxEdit(saveId); closeModal();
   check('edit refuses a pocket transfer that was already spent', state() === spent, `${spent} -> ${state()}`);
+  reset(); pocketAction('spend', 150000); const spentOnce = state(), spendId = transactions[0].id;
+  openTxEdit(spendId); setAmt(document.getElementById('teAmt'), 500000); saveTxEdit(spendId); closeModal();
+  check('edit refuses a pocket spend above what the pocket held', state() === spentOnce && transactions[0].amount === 150000, `${spentOnce} -> ${state()}`);
 
   // Sync conflict: the other phone added X, this phone added Y before seeing X. Both must survive, balances include both.
   reset();

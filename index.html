@@ -426,7 +426,8 @@ input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-an
   --bg:#e9f0ed; --muted:#56565b;
   --lg-tint:rgba(255,255,255,.34);        /* cards */
   --lg-tint-clear:rgba(255,255,255,.16);  /* tab bar, toggles, Catat: the clearest glass */
-  --lg-tint-bead:rgba(255,255,255,.42);   /* droplets and the slider knob */
+  --lg-tint-bead:rgba(255,255,255,.42);   /* toggle droplets */
+  --lg-tint-drop:rgba(255,255,255,.05); --lg-drop-glint:rgba(255,255,255,.6); --lg-drop-glint2:rgba(255,255,255,.3); --lg-drop-edge:rgba(255,255,255,.85); --lg-drop-depth:rgba(0,40,28,.12); /* tab droplet */
   --lg-tint-bar:rgba(255,255,255,.55);    /* header */
   --lg-tint-sheet:rgba(255,255,255,.48);  /* sheets and popups */
   --lg-dim:rgba(16,28,24,.16);            /* behind a sheet */
@@ -442,6 +443,7 @@ input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-an
   :root{
     --bg:#040807; --muted:#a1a1a6;
     --lg-tint:rgba(28,32,30,.40); --lg-tint-clear:rgba(40,46,44,.18); --lg-tint-bead:rgba(70,78,75,.28);
+    --lg-tint-drop:rgba(255,255,255,.04); --lg-drop-glint:rgba(255,255,255,.22); --lg-drop-glint2:rgba(255,255,255,.1); --lg-drop-edge:rgba(255,255,255,.28); --lg-drop-depth:rgba(0,0,0,.35);
     --lg-tint-bar:rgba(20,24,22,.58); --lg-tint-sheet:rgba(18,22,20,.5); --lg-dim:rgba(0,0,0,.22); --lg-hero:rgba(10,14,12,.62);
     --lg-rim-hi:rgba(255,255,255,.4); --lg-rim-lo:rgba(255,255,255,.1); --lg-glow:rgba(255,255,255,.12);
     --lg-shadow:0 12px 34px rgba(0,0,0,.5),0 1px 2px rgba(0,0,0,.4);
@@ -474,9 +476,10 @@ body::before{content:none}
   content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:2;padding:1px;background:linear-gradient(155deg,var(--lg-rim-hi),transparent 34%,transparent 66%,var(--lg-rim-lo));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
 /* Edge bending (Chromium): lens first, then a light frost. Cards bend gently; small controls bend more. */
 .lens .card[data-lgk]::before,.lens .tx-group[data-lgk]::before,.lens .hero[data-lgk]::before{-webkit-backdrop-filter:var(--lg-url) blur(3px) saturate(185%) brightness(1.04);backdrop-filter:var(--lg-url) blur(3px) saturate(185%) brightness(1.04)}
-.lens nav.tabs .drop[data-lgk]::before,.lens .fab[data-lgk]::before,.lens .seg button.active[data-lgk]::before,.lens .type-grid button.active[data-lgk]::before{-webkit-backdrop-filter:var(--lg-url) blur(1.5px) saturate(190%) brightness(1.06);backdrop-filter:var(--lg-url) blur(1.5px) saturate(190%) brightness(1.06)}
+.lens .fab[data-lgk]::before,.lens .seg button.active[data-lgk]::before,.lens .type-grid button.active[data-lgk]::before{-webkit-backdrop-filter:var(--lg-url) blur(1.5px) saturate(190%) brightness(1.06);backdrop-filter:var(--lg-url) blur(1.5px) saturate(190%) brightness(1.06)}
 /* while the droplet slides it uses plain frost: re-running the lens every frame would stutter */
-.lens nav.tabs .drop.moving[data-lgk]::before{-webkit-backdrop-filter:blur(2px) saturate(160%) brightness(1.08);backdrop-filter:blur(2px) saturate(160%) brightness(1.08)}
+.lens nav.tabs .drop[data-lgk]::before{-webkit-backdrop-filter:var(--lg-url) saturate(170%);backdrop-filter:var(--lg-url) saturate(170%)}
+.lens nav.tabs .drop.moving[data-lgk]::before{-webkit-backdrop-filter:saturate(170%);backdrop-filter:saturate(170%)}
 .lens header[data-lgk]::before{-webkit-backdrop-filter:var(--lg-url) blur(10px) saturate(190%);backdrop-filter:var(--lg-url) blur(10px) saturate(190%)}
 
 /* header and sheets: glass with enough tint for text */
@@ -495,11 +498,20 @@ nav.tabs .drop{position:absolute;z-index:0;top:0;left:0;width:0;height:0;border-
 nav.tabs .drop.on{opacity:1}
 nav.tabs button{position:relative;z-index:1}
 nav.tabs button.active,nav.tabs button.active:hover{background:transparent!important;box-shadow:none}
+/* the droplet is a clear lens, not frost: no blur, a little brighter and more saturated than the bar, with wet highlights */
+nav.tabs .drop{background:var(--lg-tint-drop);box-shadow:0 6px 16px -4px rgba(0,0,0,.2),0 1px 3px rgba(0,0,0,.08)}
+nav.tabs .drop::before{-webkit-backdrop-filter:saturate(170%);backdrop-filter:saturate(170%);background:none}
+nav.tabs .drop::after{padding:0;-webkit-mask:none;mask:none;
+  background:radial-gradient(42% 34% at 30% 0%,var(--lg-drop-glint),transparent 75%),radial-gradient(36% 30% at 72% 100%,var(--lg-drop-glint2),transparent 75%);
+  box-shadow:inset 0 0 0 1px var(--lg-drop-edge),inset 0 1.5px 1px -.5px var(--lg-rim-hi),inset 0 0 9px -2px var(--lg-drop-depth),inset 0 -2px 3px -1px var(--lg-drop-glint2)}
+/* the label under the droplet is magnified a touch, as if seen through it */
+nav.tabs button>*{transition:transform .5s var(--spring)}
+nav.tabs button.active>*{transform:scale(1.08)}
 @media(max-width:560px){
   nav.tabs{background:var(--lg-tint-clear)!important;box-shadow:var(--lg-shadow)!important;-webkit-backdrop-filter:blur(16px) saturate(200%) brightness(1.05);backdrop-filter:blur(16px) saturate(200%) brightness(1.05)}
   .lens nav.tabs[data-lgk]{-webkit-backdrop-filter:var(--lg-url) blur(14px) saturate(200%) brightness(1.05);backdrop-filter:var(--lg-url) blur(14px) saturate(200%) brightness(1.05)}
   /* the bar is the droplet's backdrop root, so there is nothing for its lens to bend: plain frost */
-  .lens nav.tabs .drop[data-lgk]::before{-webkit-backdrop-filter:blur(2px) saturate(160%) brightness(1.08);backdrop-filter:blur(2px) saturate(160%) brightness(1.08)}
+  .lens nav.tabs .drop[data-lgk]::before{-webkit-backdrop-filter:saturate(170%);backdrop-filter:saturate(170%)}
   nav.tabs::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:2;padding:1px;background:linear-gradient(155deg,var(--lg-rim-hi),transparent 34%,transparent 66%,var(--lg-rim-lo));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
   nav.tabs button{color:var(--text)}
   nav.tabs button.active{color:var(--lg-ink-accent)}
@@ -1025,22 +1037,22 @@ function lgDrop(target){
   if(!from||from.x!==x||from.y!==y||from.w!==w||from.h!==h){ drop.style.width=w+'px'; drop.style.height=h+'px'; drop.style.translate=at(x,y); }
   if(from&&LG.tab!==b.dataset.tab&&drop.classList.contains('on')&&drop.animate&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
     const W=nav.clientWidth, right=x>from.x, N=48, kf=[];
-    const soft=(v,goal,dir)=>{ const e=(v-goal)*dir; return e>0? goal+dir*8*Math.tanh(e/8) : v; }; // overshoot eases out, at most ~8px
+    const soft=(v,goal,dir)=>{ const e=(v-goal)*dir; return e>0? goal+dir*13*Math.tanh(e/13) : v; }; // overshoot eases out, at most ~13px
     for(let i=0;i<=N;i++){
-      const t=i/N, lead=lgSpringAt(t,.5,15), trail=lgSpringAt(t,.72,10);
+      const t=i/N, lead=lgSpringAt(t,.38,17), trail=lgSpringAt(t,.55,11.5);
       let L=from.x+(x-from.x)*(right?trail:lead), R=from.x+from.w+(x+w-from.x-from.w)*(right?lead:trail);
       L=soft(L,x,right?1:-1); R=soft(R,x+w,right?1:-1);
       L=Math.max(2,L); R=Math.min(W-2,R); // squish against the ends of the bar
       const ew=from.w+(w-from.w)*Math.min(1,t*1.5), eh=from.h+(h-from.h)*Math.min(1,t*1.5);
-      const maxW=Math.max(from.w,w)*1.7, minW=Math.min(from.w,w)*.8;
+      const maxW=Math.max(from.w,w)*2, minW=Math.min(from.w,w)*.7;
       if(R-L>maxW){ if(right) L=R-maxW; else R=L+maxW; }
       if(R-L<minW){ const m=(L+R)/2; L=m-minW/2; R=m+minW/2; }
-      const width=R-L, lift=1+.07*Math.sin(Math.PI*Math.min(1,t/.7)), sy=Math.min(1.12,Math.max(.78,Math.sqrt(ew/width)))*lift;
+      const width=R-L, lift=1+.1*Math.sin(Math.PI*Math.min(1,t/.65)), sy=Math.min(1.2,Math.max(.72,Math.sqrt(ew/width)))*lift;
       kf.push(i===N? {translate:at(x,y),scale:'1 1',offset:1} : {translate:at(L+width/2-w/2,y),scale:`${width/w} ${sy*eh/h}`,offset:t});
     }
     (LG.anim||[]).forEach(a=>a.cancel());
-    drop.classList.add('moving'); LG.busy=performance.now()+680;
-    LG.anim=[drop.animate(kf,{duration:660})];
+    drop.classList.add('moving'); LG.busy=performance.now()+800;
+    LG.anim=[drop.animate(kf,{duration:780})];
     LG.anim[0].onfinish=LG.anim[0].oncancel=()=>drop.classList.remove('moving');
   }
   drop.classList.add('on');
@@ -1049,7 +1061,12 @@ function lgDrop(target){
 /* Start the glide as the finger lands, before the tab is built; if no tap follows, it glides back. */
 document.addEventListener('pointerdown',e=>{
   const b=e.target.closest&&e.target.closest('nav.tabs button'); if(!b||e.button) return;
-  lgDrop(b); clearTimeout(LG.back); LG.back=setTimeout(lgSchedule,700);
+  const drop=b.parentNode.querySelector('.drop');
+  if(b.dataset.tab===LG.tab&&drop&&drop.animate&&!(LG.anim||[]).some(a=>a.playState==='running')&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
+    LG.anim=[drop.animate([['1 1',0],['1.14 .86',.18],['.93 1.08',.42],['1.04 .97',.66],['1 1',1]].map(([scale,offset])=>({scale,offset,easing:'cubic-bezier(.45,0,.55,1)'})),{duration:620})]; // jelly
+    return;
+  }
+  lgDrop(b); clearTimeout(LG.back); LG.back=setTimeout(lgSchedule,900);
 },{passive:true});
 function lgRefresh(){
   LG.raf=0; lgDrop(); if(!LG.on) return;

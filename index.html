@@ -418,8 +418,8 @@ input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-an
 
 /* ================= Liquid glass =================
    A drifting colour field sits behind the app; cards, chrome and controls are glass over it.
-   Every glass surface = tint (background) + backdrop layer (::before: frost, plus edge bending in Chromium)
-   + rim (::after: specular edges and a highlight that follows the pointer).
+   Every glass surface = tint (background) + backdrop layer (::before: frost, plus edge bending in Chromium,
+   and a soft highlight that follows the pointer) + rim (::after: a hairline that fades along the edge).
    Edge bending: lgRefresh() gives on-screen glass a data-lgk attribute and an SVG lens filter in --lg-url
    (Chromium only; the Safari engine, including Chrome on iPhone, keeps the frost). */
 :root{
@@ -428,7 +428,8 @@ input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-an
   --lg-tint-clear:rgba(255,255,255,.16);  /* tab bar, toggles, Catat: the clearest glass */
   --lg-tint-bead:rgba(255,255,255,.42);   /* droplets and the slider knob */
   --lg-tint-bar:rgba(255,255,255,.55);    /* header */
-  --lg-tint-sheet:rgba(255,255,255,.66);  /* sheets and popups */
+  --lg-tint-sheet:rgba(255,255,255,.48);  /* sheets and popups */
+  --lg-dim:rgba(16,28,24,.16);            /* behind a sheet */
   --lg-hero:rgba(22,27,25,.66);
   --lg-rim-hi:rgba(255,255,255,.9); --lg-rim-lo:rgba(255,255,255,.3); --lg-glow:rgba(255,255,255,.4);
   --lg-shadow:0 10px 30px rgba(20,40,34,.12),0 1px 2px rgba(20,40,34,.08);
@@ -441,7 +442,7 @@ input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-an
   :root{
     --bg:#040807; --muted:#a1a1a6;
     --lg-tint:rgba(28,32,30,.40); --lg-tint-clear:rgba(40,46,44,.18); --lg-tint-bead:rgba(70,78,75,.28);
-    --lg-tint-bar:rgba(20,24,22,.58); --lg-tint-sheet:rgba(18,22,20,.76); --lg-hero:rgba(10,14,12,.62);
+    --lg-tint-bar:rgba(20,24,22,.58); --lg-tint-sheet:rgba(18,22,20,.5); --lg-dim:rgba(0,0,0,.22); --lg-hero:rgba(10,14,12,.62);
     --lg-rim-hi:rgba(255,255,255,.4); --lg-rim-lo:rgba(255,255,255,.1); --lg-glow:rgba(255,255,255,.12);
     --lg-shadow:0 12px 34px rgba(0,0,0,.5),0 1px 2px rgba(0,0,0,.4);
     --lg-ink-accent:#6ee7b7;
@@ -460,37 +461,38 @@ body::before{content:none}
 @keyframes lg-drift3{to{transform:translate(10%,-14%) scale(1.08)}}
 
 /* --- the material --- */
-.card,.tx-group,.hero,nav.tabs .drop,.fab,.seg button.active,.type-grid button.active,.runway-track>b{isolation:isolate;box-shadow:var(--lg-shadow)}
+.card,.tx-group,.hero,nav.tabs .drop,.fab,.seg button.active,.type-grid button.active{isolation:isolate;box-shadow:var(--lg-shadow)}
 .card,.tx-group{position:relative;background:var(--lg-tint);border-color:transparent}
 .hero{background:var(--lg-hero);border-color:transparent}
-.card::before,.tx-group::before,.hero::before,nav.tabs .drop::before,.fab::before,.seg button.active::before,.type-grid button.active::before,.runway-track>b::before{
-  content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;pointer-events:none;-webkit-backdrop-filter:var(--lg-frost);backdrop-filter:var(--lg-frost)}
-.card::after,.tx-group::after,.hero::after,header::after,nav.tabs .drop::after,.fab::after,.seg button.active::after,.type-grid button.active::after,.runway-track>b::after,.toast::after{
-  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:2;
-  box-shadow:inset 1.5px 1.5px 0 -.5px var(--lg-rim-hi),inset -1px -1px 0 -.5px var(--lg-rim-lo),inset 0 0 18px -6px var(--lg-glow);
-  background:radial-gradient(160px 110px at var(--mx,26%) var(--my,0%),var(--lg-glow),transparent 70%)}
-.hero::after{background:radial-gradient(220px 140px at var(--mx,20%) var(--my,0%),rgba(255,255,255,.10),transparent 70%)}
-/* Edge bending (Chromium): lens first, then a light frost. Bars over moving text keep more frost so labels stay readable. */
-.lens .card[data-lgk]::before,.lens .tx-group[data-lgk]::before,.lens .hero[data-lgk]::before{-webkit-backdrop-filter:var(--lg-url) blur(2.5px) saturate(185%) brightness(1.04);backdrop-filter:var(--lg-url) blur(2.5px) saturate(185%) brightness(1.04)}
-.lens nav.tabs .drop[data-lgk]::before,.lens .fab[data-lgk]::before,.lens .seg button.active[data-lgk]::before,.lens .type-grid button.active[data-lgk]::before,.lens .runway-track>b[data-lgk]::before{-webkit-backdrop-filter:var(--lg-url) blur(1.5px) saturate(190%) brightness(1.06);backdrop-filter:var(--lg-url) blur(1.5px) saturate(190%) brightness(1.06)}
+/* backdrop layer: frost, and a soft highlight that follows the pointer (under the content, so text stays crisp) */
+.card::before,.tx-group::before,.hero::before,nav.tabs .drop::before,.fab::before,.seg button.active::before,.type-grid button.active::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;pointer-events:none;-webkit-backdrop-filter:var(--lg-frost);backdrop-filter:var(--lg-frost);
+  background:radial-gradient(220px 150px at var(--mx,22%) var(--my,0%),var(--lg-glow),transparent 70%)}
+.hero::before{background:radial-gradient(280px 170px at var(--mx,20%) var(--my,0%),rgba(255,255,255,.07),transparent 70%)}
+/* rim: a hairline that is brightest at the top-left corner, fades out along the sides and comes back faintly at the bottom-right */
+.card::after,.tx-group::after,.hero::after,nav.tabs .drop::after,.fab::after,.seg button.active::after,.type-grid button.active::after,.toast::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:2;padding:1px;background:linear-gradient(155deg,var(--lg-rim-hi),transparent 34%,transparent 66%,var(--lg-rim-lo));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
+/* Edge bending (Chromium): lens first, then a light frost. Cards bend gently; small controls bend more. */
+.lens .card[data-lgk]::before,.lens .tx-group[data-lgk]::before,.lens .hero[data-lgk]::before{-webkit-backdrop-filter:var(--lg-url) blur(3px) saturate(185%) brightness(1.04);backdrop-filter:var(--lg-url) blur(3px) saturate(185%) brightness(1.04)}
+.lens nav.tabs .drop[data-lgk]::before,.lens .fab[data-lgk]::before,.lens .seg button.active[data-lgk]::before,.lens .type-grid button.active[data-lgk]::before{-webkit-backdrop-filter:var(--lg-url) blur(1.5px) saturate(190%) brightness(1.06);backdrop-filter:var(--lg-url) blur(1.5px) saturate(190%) brightness(1.06)}
+/* while the droplet slides it uses plain frost: re-running the lens every frame would stutter */
+.lens nav.tabs .drop.moving[data-lgk]::before{-webkit-backdrop-filter:blur(2px) saturate(160%) brightness(1.08);backdrop-filter:blur(2px) saturate(160%) brightness(1.08)}
 .lens header[data-lgk]::before{-webkit-backdrop-filter:var(--lg-url) blur(10px) saturate(190%);backdrop-filter:var(--lg-url) blur(10px) saturate(190%)}
 
 /* header and sheets: glass with enough tint for text */
 header::before{background:var(--lg-tint-bar);box-shadow:none}
-header::after{border-radius:0;box-shadow:inset 0 -1px 0 var(--lg-rim-lo),inset 0 1px 0 var(--lg-rim-lo);background:none}
-.modal{background:var(--lg-tint-sheet);box-shadow:var(--lg-shadow),inset 1.5px 1.5px 0 -.5px var(--lg-rim-hi),inset -1px -1px 0 -.5px var(--lg-rim-lo)}
+header::after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 -1px 0 var(--lg-rim-lo)}
+.modal{background:var(--lg-tint-sheet);box-shadow:var(--lg-shadow),inset 0 1px 0 var(--lg-rim-hi)}
+.modal-back{background:var(--lg-dim);-webkit-backdrop-filter:blur(12px) saturate(160%);backdrop-filter:blur(12px) saturate(160%)}
+.modal .field input,.modal .field select,.modal .field textarea{background:color-mix(in srgb,var(--surface) 55%,transparent)}
 .toast{background:var(--lg-tint-bar)}
-.toast::after{background:none}
 .tx-group-head{background:color-mix(in srgb,var(--surface2) 35%,transparent)}
 
 /* tab bar: the clearest glass, with a liquid droplet that slides to the active tab */
 @media(min-width:561px){nav.tabs{position:relative}} /* phone: stays fixed at the bottom */
 nav.tabs .drop{position:absolute;z-index:0;top:0;left:0;width:0;height:0;border-radius:999px;background:var(--lg-tint-bead);opacity:0;pointer-events:none;
-  transition:transform .55s var(--spring),width .55s var(--spring),height .3s,opacity .2s}
+  transform-origin:0 0;transition:opacity .2s;box-shadow:0 2px 10px rgba(0,0,0,.10)}
 nav.tabs .drop.on{opacity:1}
-nav.tabs .drop{box-shadow:0 2px 10px rgba(0,0,0,.10)}
-nav.tabs .drop.stretch{animation:lg-stretch .55s ease}
-@keyframes lg-stretch{40%{scale:1.28 .88}}
 nav.tabs button{position:relative;z-index:1}
 nav.tabs button.active,nav.tabs button.active:hover{background:transparent!important;box-shadow:none}
 @media(max-width:560px){
@@ -498,7 +500,7 @@ nav.tabs button.active,nav.tabs button.active:hover{background:transparent!impor
   .lens nav.tabs[data-lgk]{-webkit-backdrop-filter:var(--lg-url) blur(14px) saturate(200%) brightness(1.05);backdrop-filter:var(--lg-url) blur(14px) saturate(200%) brightness(1.05)}
   /* the bar is the droplet's backdrop root, so there is nothing for its lens to bend: plain frost */
   .lens nav.tabs .drop[data-lgk]::before{-webkit-backdrop-filter:blur(2px) saturate(160%) brightness(1.08);backdrop-filter:blur(2px) saturate(160%) brightness(1.08)}
-  nav.tabs::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:2;box-shadow:inset 1.5px 1.5px 0 -.5px var(--lg-rim-hi),inset -1px -1px 0 -.5px var(--lg-rim-lo),inset 0 0 18px -6px var(--lg-glow)}
+  nav.tabs::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:2;padding:1px;background:linear-gradient(155deg,var(--lg-rim-hi),transparent 34%,transparent 66%,var(--lg-rim-lo));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
   nav.tabs button{color:var(--text)}
   nav.tabs button.active{color:var(--lg-ink-accent)}
 }
@@ -517,13 +519,11 @@ nav.tabs button.active,nav.tabs button.active:hover{background:transparent!impor
 .seg button,.type-grid button{transition:transform .45s var(--spring),color .2s}
 .seg button:active,.type-grid button:active{transform:scale(1.05)}
 
-/* liquid bars: a glass groove, a glossy fill, and a glass bead on the payday slider */
-.bar,.runway-track,.alloc-bar{position:relative;border-color:transparent;box-shadow:inset 0 1px 2px rgba(0,0,0,.14),inset 0 -1px 0 var(--lg-rim-lo)}
-.bar{background:color-mix(in srgb,var(--fill) 70%,transparent)}
-.bar::after,.alloc-bar::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.45),rgba(255,255,255,.08) 48%,rgba(0,0,0,.06))}
-.bar>i,.runway-track>i,.alloc-bar>i{box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -1px 1px rgba(0,0,0,.18)}
-.runway-track{height:8px}
-.runway-track>b{width:22px;height:22px;margin:-11px 0 0 -11px;border:0;background:var(--lg-tint-bead)}
+/* bars: a thin see-through track, a solid fill and a plain white thumb (iOS-style); the glass stays on the surfaces */
+.bar{height:8px;background:color-mix(in srgb,var(--fill) 75%,transparent);border-color:transparent}
+.runway-track{background:rgba(255,255,255,.14)}
+.runway-track>i{background:rgba(255,255,255,.34)}
+.runway-track>b{width:18px;height:18px;margin:-9px 0 0 -9px;border:0;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.35),0 0 0 .5px rgba(0,0,0,.08)}
 
 /* press and spring */
 .btn{transition:background-color .2s var(--ease),color .2s var(--ease),transform .45s var(--spring)}
@@ -535,8 +535,9 @@ nav.tabs button.active,nav.tabs button.active:hover{background:transparent!impor
 @media (prefers-reduced-transparency: reduce){
   .lg-backdrop{display:none}
   .card,.tx-group,.modal,.toast{background:var(--surface)} .hero{background:var(--dark)} header::before{background:var(--surface)}
-  .fab,nav.tabs .drop,.seg button.active,.type-grid button.active,.runway-track>b{background:var(--surface)}
-  .card::before,.tx-group::before,.hero::before,nav.tabs .drop::before,.fab::before,.seg button.active::before,.type-grid button.active::before,.runway-track>b::before{display:none}
+  .fab,nav.tabs .drop,.seg button.active,.type-grid button.active{background:var(--surface)}
+  .modal .field input,.modal .field select,.modal .field textarea{background:var(--surface)}
+  .card::before,.tx-group::before,.hero::before,nav.tabs .drop::before,.fab::before,.seg button.active::before,.type-grid button.active::before{display:none}
   @media(max-width:560px){ nav.tabs{background:var(--surface)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important} }
 }
 </style>
@@ -967,7 +968,7 @@ function pockById(id){ return pockets.find(p=>p.id===id); }
    (Chrome on iPhone is WebKit and keeps the frost). Filters are keyed by size, so the cards render()
    rebuilds on every tap reuse them, and only glass near the screen gets one. */
 const LG_RGB=['1 0 0 0 0 0 0 0 0 0 0 0 0 0 0','0 0 0 0 0 0 1 0 0 0 0 0 0 0 0','0 0 0 0 0 0 0 0 0 0 0 0 1 0 0']; // keep one channel each
-const LG_SEL='.card,.tx-group,.hero,nav.tabs .drop,.fab,.seg button.active,.type-grid button.active,.runway-track>b';
+const LG_SEL='.card,.tx-group,.hero,nav.tabs .drop,.fab,.seg button.active,.type-grid button.active';
 var LG={ on:navigator.vendor==='Google Inc.'&&!!window.CSS&&CSS.supports('backdrop-filter','url(#x) blur(1px)')&&!matchMedia('(prefers-reduced-transparency: reduce)').matches,
   filters:new Map(), raf:0, tab:null };
 if(LG.on) document.documentElement.classList.add('lens');
@@ -989,42 +990,57 @@ function lgMap(w,h,r,bezel){
   ctx.putImageData(img,0,0); return c.toDataURL();
 }
 function lgFilter(w,h,r,bezel,scale){
-  const id=`lgk${w}-${h}-${r}`, f=LG.filters.get(id);
+  const id=`lgk${w}-${h}-${r}-${Math.round(scale)}`, f=LG.filters.get(id);
   if(f){ LG.filters.delete(id); LG.filters.set(id,f); return id; } // most recently used last
   const el=document.createElementNS('http://www.w3.org/2000/svg','filter');
   el.id=id; el.setAttribute('x',0); el.setAttribute('y',0); el.setAttribute('width',w); el.setAttribute('height',h);
   el.setAttribute('filterUnits','userSpaceOnUse'); el.setAttribute('color-interpolation-filters','sRGB');
   // each colour channel bends a touch more than the last: a faint chromatic fringe at the rim
   el.innerHTML=`<feImage href="${lgMap(w,h,r,bezel)}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="none" result="m"/>`
-    +[1,1.03,1.06].map((k,j)=>`<feDisplacementMap in="SourceGraphic" in2="m" scale="${(scale*k).toFixed(1)}" xChannelSelector="R" yChannelSelector="G" result="d${j}"/>`
+    +[1,1.02,1.04].map((k,j)=>`<feDisplacementMap in="SourceGraphic" in2="m" scale="${(scale*k).toFixed(1)}" xChannelSelector="R" yChannelSelector="G" result="d${j}"/>`
       +`<feColorMatrix in="d${j}" type="matrix" values="${LG_RGB[j]} 0 0 0 1 0" result="c${j}"/>`).join('')
     +'<feBlend in="c0" in2="c1" mode="screen" result="c01"/><feBlend in="c01" in2="c2" mode="screen"/>';
   document.getElementById('lgDefs').appendChild(el); LG.filters.set(id,el);
   if(LG.filters.size>80){ const [old,oe]=LG.filters.entries().next().value; oe.remove(); LG.filters.delete(old); }
   return id;
 }
-function lgLens(el,soft){
+function lgLens(el,soft,gentle){
   const w=Math.round(el.offsetWidth), h=Math.round(el.offsetHeight); if(!w||!h) return;
   if(h>1400||w*h>1.5e6){ delete el.dataset.lgk; return; } // a long list group keeps the frost: its map would be huge
   const r=Math.round(Math.min(parseFloat(getComputedStyle(el).borderTopLeftRadius)||0,h/2,w/2));
-  const bezel=Math.max(8,Math.min(soft?14:26,Math.min(w,h)*.35)), id=lgFilter(w,h,r,bezel,Math.min(56,bezel*2.2));
+  // cards: a narrow, shallow bevel so the edge reads as a soft curve, not a smear; small controls bend like a droplet
+  const bezel=Math.max(8,Math.min(gentle?12:soft?14:26,Math.min(w,h)*.35)), id=lgFilter(w,h,r,bezel,Math.min(56,bezel*(gentle?1.2:2.2)));
   if(el.dataset.lgk!==id||!el.style.getPropertyValue('--lg-url')){ el.dataset.lgk=id; el.style.setProperty('--lg-url',`url(#${id})`); }
 }
+/* The droplet moves on transform only (smooth even while a tab is being built), with a small overshoot
+   that never leaves the bar, and stretches a little mid-way. */
 function lgDrop(){
   const nav=document.querySelector('nav.tabs'), drop=nav&&nav.querySelector('.drop'), b=nav&&nav.querySelector('button.active');
-  if(!drop||!b||!b.offsetWidth){ if(drop) drop.classList.remove('on'); return; }
-  const first=!drop.classList.contains('on');
-  if(first) drop.style.transition='none';
-  drop.style.width=b.offsetWidth+'px'; drop.style.height=b.offsetHeight+'px';
-  drop.style.transform=`translate(${b.offsetLeft}px,${b.offsetTop}px)`;
-  if(first){ void drop.offsetWidth; drop.style.transition=''; drop.classList.add('on'); }
-  else if(LG.tab&&LG.tab!==b.dataset.tab){ drop.classList.remove('stretch'); void drop.offsetWidth; drop.classList.add('stretch'); }
-  LG.tab=b.dataset.tab;
+  if(!drop||!b||!b.offsetWidth){ if(drop) drop.classList.remove('on'); LG.box=null; return; }
+  const x=b.offsetLeft, y=b.offsetTop, w=b.offsetWidth, h=b.offsetHeight, from=LG.box, at=(px,py)=>`translate(${px}px,${py}px)`;
+  drop.style.width=w+'px'; drop.style.height=h+'px'; drop.style.transform=at(x,y);
+  if(from&&LG.tab!==b.dataset.tab&&drop.classList.contains('on')&&drop.animate&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
+    const maxX=nav.clientWidth-w-2, dir=Math.sign(x-from.x), over=Math.max(2-x,Math.min(maxX-x,dir*Math.min(6,Math.abs(x-from.x)*.04)));
+    const sw=Math.min((from.w+w)/2*1.14,nav.clientWidth-4), mid=Math.max(2,Math.min(nav.clientWidth-sw-2,(from.x+from.w/2+x+w/2)/2-sw/2));
+    if(LG.anim) LG.anim.cancel();
+    drop.classList.add('moving'); LG.busy=performance.now()+520;
+    LG.anim=drop.animate([
+      {transform:`${at(from.x,from.y)} scale(${from.w/w},${from.h/h})`},
+      {transform:`${at(mid,y+h*.05)} scale(${sw/w},.9)`,offset:.45},
+      {transform:at(x+over,y),offset:.8},
+      {transform:at(x,y)}
+    ],{duration:480,easing:'cubic-bezier(.3,.6,.25,1)'});
+    LG.anim.onfinish=LG.anim.oncancel=()=>drop.classList.remove('moving');
+  }
+  drop.classList.add('on');
+  LG.tab=b.dataset.tab; LG.box={x,y,w,h};
 }
 function lgRefresh(){
   LG.raf=0; lgDrop(); if(!LG.on) return;
+  // new lens maps wait until the droplet has landed, so building them never stalls its first frames
+  const wait=(LG.busy||0)-performance.now(); if(wait>0){ clearTimeout(LG.later); LG.later=setTimeout(lgSchedule,wait+20); return; }
   const vh=innerHeight, near=el=>{ const r=el.getBoundingClientRect(); return r.bottom>-200&&r.top<vh+200&&r.width>0; };
-  document.querySelectorAll(LG_SEL).forEach(el=>{ if(near(el)) lgLens(el, el.matches('.card,.tx-group,.hero')&&el.offsetHeight>240); });
+  document.querySelectorAll(LG_SEL).forEach(el=>{ if(near(el)) lgLens(el,false,el.matches('.card,.tx-group,.hero')); });
   const hd=document.querySelector('header'); if(hd&&hd.offsetWidth) lgLens(hd,true);
   const nav=document.querySelector('nav.tabs'); if(nav&&innerWidth<=560) lgLens(nav);
 }

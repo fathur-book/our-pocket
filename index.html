@@ -81,8 +81,8 @@
 @media (prefers-reduced-transparency: reduce){ :root{--glass-bg:var(--surface);--glass-blur:none} }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
-body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(60vmax 50vmax at 0% 0%,rgba(52,199,89,.07),transparent 70%),radial-gradient(60vmax 50vmax at 100% 100%,rgba(10,132,255,.07),transparent 70%)}
-:root[data-theme="dark"] body::before{background:radial-gradient(60vmax 50vmax at 0% 0%,rgba(52,199,89,.10),transparent 70%),radial-gradient(60vmax 50vmax at 100% 100%,rgba(10,132,255,.10),transparent 70%)}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(60vmax 50vmax at 0% 0%,rgba(52,199,89,.13),transparent 70%),radial-gradient(60vmax 50vmax at 100% 100%,rgba(10,132,255,.13),transparent 70%)}
+:root[data-theme="dark"] body::before{background:radial-gradient(60vmax 50vmax at 0% 0%,rgba(52,199,89,.17),transparent 70%),radial-gradient(60vmax 50vmax at 100% 100%,rgba(10,132,255,.17),transparent 70%)}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;font-size:15px;line-height:1.5;font-variant-numeric:tabular-nums;background:var(--bg);color:var(--text);padding-bottom:96px;-webkit-font-smoothing:antialiased}
 button{font-family:inherit;cursor:pointer}
 input,select,textarea{font-family:inherit}
@@ -473,7 +473,7 @@ input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-an
   --lg-shadow:0 10px 30px rgba(20,40,34,.12),0 1px 2px rgba(20,40,34,.08);
   --lg-frost:blur(16px) saturate(190%) brightness(1.04);
   --lg-ink-accent:#04694a;
-  --blob1:rgba(16,185,129,.62); --blob2:rgba(34,211,238,.48); --blob3:rgba(129,140,248,.46); --blob4:rgba(250,204,21,.30);
+  --blob1:rgba(16,185,129,.78); --blob2:rgba(34,211,238,.62); --blob3:rgba(129,140,248,.60); --blob4:rgba(250,204,21,.44);
   --spring:cubic-bezier(.34,1.56,.64,1);
 }
 :root[data-theme="dark"]{
@@ -484,7 +484,7 @@ input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-an
     --lg-rim-hi:rgba(255,255,255,.4); --lg-rim-lo:rgba(255,255,255,.1); --lg-glow:rgba(255,255,255,.12); --lg-sheen:rgba(255,255,255,.05);
     --lg-shadow:0 12px 34px rgba(0,0,0,.5),0 1px 2px rgba(0,0,0,.4);
     --lg-ink-accent:#6ee7b7;
-    --blob1:rgba(16,185,129,.5); --blob2:rgba(6,182,212,.38); --blob3:rgba(99,102,241,.42); --blob4:rgba(234,179,8,.16);
+    --blob1:rgba(16,185,129,.64); --blob2:rgba(6,182,212,.52); --blob3:rgba(99,102,241,.56); --blob4:rgba(234,179,8,.28);
 }
 body::before{content:none}
 /* The colour field floats: each blob wanders a loop and its glow swells and fades. Only transform and opacity animate (no
@@ -697,14 +697,28 @@ function monthInfo(){
   return {day,dim,daysLeft:dim-day+1,elapsedPct:Math.round(day/dim*100)};
 }
 /* ============ PAY CYCLE — Safe-to-Spend only has to last until the next salary ============ */
-const DEFAULT_SETTINGS={payday:25,mainAccountId:null,budgets:{},paydaySet:false,setupSkip:[],setupDismissed:false};
+const DEFAULT_SETTINGS={payday:25,mainAccountId:null,budgets:{},paydaySet:false,setupSkip:[],setupDismissed:false,periodMode:'payday',customStart:null,customEnd:null};
 let settings={...DEFAULT_SETTINGS}; // payday: day of month the salary arrives (clamped to short months)
 /* Default account for new entries: the one last picked for a pocket top-up or card payoff, else the first bank account. */
 function mainAccountId(){ const m=accounts.find(a=>a.id===settings.mainAccountId&&a.type!=='credit'); if(m) return m.id; const b=accounts.find(a=>a.type==='bank')||accounts.find(a=>a.type!=='credit'); return b?b.id:null; }
 function needMainAccount(){ if(mainAccountId()) return false; toast('Tambahkan rekening bank / e-wallet dulu di Pengaturan.'); goTab('settings'); return true; }
 function paydayIn(y,m){ return new Date(y,m,Math.min(settings.payday,new Date(y,m+1,0).getDate())); }
+/* Manual money period: the user picks the first and last day; everything that uses the pay cycle
+   (Safe-to-Spend, bills, Essentials) then runs on this range instead of the payday cycle.
+   customEnd is the LAST day of the period; endD is the day after, so ranges stay [start, end). */
+function customPeriod(){
+  if(settings.periodMode!=='custom'||!settings.customStart||!settings.customEnd) return null;
+  const ok=s=>/^\d{4}-\d{2}-\d{2}$/.test(s), p=s=>{ const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); };
+  if(!ok(settings.customStart)||!ok(settings.customEnd)) return null;
+  const startD=p(settings.customStart), lastDay=p(settings.customEnd);
+  if(lastDay<startD) return null;
+  const endD=new Date(lastDay.getFullYear(),lastDay.getMonth(),lastDay.getDate()+1);
+  return {startD,lastDay,endD};
+}
 function payCycle(){
+  const cp=customPeriod();
   const t=today(), y=t.getFullYear(), m=t.getMonth(), t0=new Date(y,m,t.getDate());
+  if(cp) return {next:cp.lastDay,daysUntil:Math.max(0,Math.round((cp.endD-t0)/86400000))}; // money has to last through the last day
   const thisMonth=paydayIn(y,m);
   const next= t0<thisMonth? thisMonth : paydayIn(y,m+1); // on payday itself the salary is in, so look to next month
   return {next,daysUntil:Math.round((next-t0)/86400000)}; // days from today (inclusive) to payday (exclusive)
@@ -712,8 +726,12 @@ function payCycle(){
 /* The current pay cycle: from the last payday (inclusive) to the next payday (exclusive). */
 let cycleCache=null;
 function cycleBounds(){
-  const key=todayISO()+'|'+settings.payday;
-  if(!cycleCache||cycleCache.key!==key){ const {next}=payCycle(), prev=paydayIn(next.getFullYear(),next.getMonth()-1); cycleCache={key,start:isoDate(prev),end:isoDate(next),prev,next}; }
+  const cp=customPeriod();
+  const key=todayISO()+'|'+(cp? 'custom:'+settings.customStart+':'+settings.customEnd : settings.payday);
+  if(!cycleCache||cycleCache.key!==key){
+    if(cp) cycleCache={key,start:isoDate(cp.startD),end:isoDate(cp.endD),prev:cp.startD,next:cp.endD};
+    else { const {next}=payCycle(), prev=paydayIn(next.getFullYear(),next.getMonth()-1); cycleCache={key,start:isoDate(prev),end:isoDate(next),prev,next}; }
+  }
   return cycleCache;
 }
 function inCycle(tx){ const {start,end}=cycleBounds(); return typeof tx.date==='string'&&tx.date>=start&&tx.date<end; }
@@ -789,6 +807,9 @@ function isValidState(s){
   const okId=v=>str(v)&&SAFE_ID.test(v), optId=v=>v==null||okId(v), optNum=v=>v==null||num(v);
   const optQty=v=>v==null||(Number.isInteger(v)&&v>0);
   if(s.settings!=null&&!(typeof s.settings==='object'&&Number.isInteger(s.settings.payday)&&s.settings.payday>=1&&s.settings.payday<=31)) return false;
+  if(s.settings&&s.settings.periodMode!=null&&!['payday','custom'].includes(s.settings.periodMode)) return false;
+  if(s.settings&&s.settings.customStart!=null&&!(str(s.settings.customStart)&&/^\d{4}-\d{2}-\d{2}$/.test(s.settings.customStart))) return false;
+  if(s.settings&&s.settings.customEnd!=null&&!(str(s.settings.customEnd)&&/^\d{4}-\d{2}-\d{2}$/.test(s.settings.customEnd))) return false;
   if(s.essentials!=null&&!(Array.isArray(s.essentials)&&s.essentials.every(e=>e&&okId(e.id)&&str(e.name)&&num(e.unitPrice)&&e.unitPrice>0&&Number.isInteger(e.targetQty)&&e.targetQty>0&&optId(e.categoryId)))) return false;
   if(s.settings&&s.settings.mainAccountId!=null&&!okId(s.settings.mainAccountId)) return false;
   if(s.settings&&s.settings.budgets!=null&&!(typeof s.settings.budgets==='object'&&!Array.isArray(s.settings.budgets)&&Object.entries(s.settings.budgets).every(([k,v])=>okId(k)&&num(v)&&v>=0))) return false;
@@ -1238,7 +1259,8 @@ function financialSummary(){
   });
   const bills=billsDueUnpaid(), billsReserved=bills.total, essentialsReserved=essentialsRemaining;
   const safeToSpend=carryOver+cycleIncome+cycleAdjust-cycleSpending-cycleSaved-billsReserved-essentialsReserved;
-  const {elapsedPct:monthElapsedPercent}=monthInfo();
+  const cpFin=customPeriod();
+  const monthElapsedPercent= cpFin? Math.max(0,Math.min(100,Math.round((today()-cpFin.startD)/(cpFin.endD-cpFin.startD)*100))) : monthInfo().elapsedPct;
   const {next:nextPayday,daysUntil:daysToPayday}=payCycle();
   const perDay= safeToSpend>0? Math.floor(safeToSpend/daysToPayday) : 0;
   return {carryOver,cycleIncome,cycleSpending,cycleSaved,cycleAdjust,cycleStart:cyc.prev,totalLiquidCash,creditFloatHolding,totalPocketsSaved,essentialsRemaining,billsReserved,essentialsReserved,nextPayday,daysToPayday,perDay,safeToSpend,monthElapsedPercent};
@@ -1305,6 +1327,10 @@ function startIncomeLog(){ logState=freshLogState(); logState.type='income'; log
 /* Payday chip: when the salary comes; tapping it changes the payday. */
 function payChip(fin){
   const d=fin.nextPayday.toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short'});
+  if(settings.periodMode==='custom'){
+    const left=fin.daysToPayday===0?'hari terakhir':fin.daysToPayday===1?'sisa 1 hari':`sisa ${fin.daysToPayday} hari`;
+    return `<button class="pay-chip" onclick="openPeriodModal()" title="Ubah periode uang"><i data-lucide="calendar"></i><span>Periode manual · berakhir ${d} · ${left}</span><i data-lucide="chevron-right"></i></button>`;
+  }
   return `<button class="pay-chip" onclick="openPaydayModal()" title="Ubah tanggal gajian"><i data-lucide="calendar"></i><span>${fin.daysToPayday===1?'Gajian besok':`Gajian ${fin.daysToPayday} hari lagi`} · ${d}</span><i data-lucide="chevron-right"></i></button>`;
 }
 /* Where this pay period's money went: spent, saved and what is left. Sisa = Safe-to-Spend + bills and Essentials still to pay,
@@ -1356,7 +1382,7 @@ function renderDashboard(fin,ess){
     <div class="dash-left" style="grid-column:span 7">
     <div class="hero">
       <div class="hero-head">
-        <p class="label" style="margin:6px 0 0">Safe-to-Spend sampai gajian</p>
+        <p class="label" style="margin:6px 0 0">${settings.periodMode==='custom'?'Safe-to-Spend periode ini':'Safe-to-Spend sampai gajian'}</p>
         <button class="btn-ghost-light" onclick="toggleFormula()">${showFormula?'Sembunyikan rumus':'Cara menghitungnya?'}</button>
       </div>
       ${fundsState(fin)? heroNoFunds(fin) : `<div class="big${fin.safeToSpend<0?' neg':''}"><span class="cur">Rp</span>${fin.safeToSpend<0?'−':''}${fmt(Math.abs(fin.safeToSpend)).replace(/Rp\s/,'')}</div>
@@ -1434,18 +1460,52 @@ function saveOpeningBalance(){
   transactions=[{id:'tx_open_'+Date.now(),date,title:'Saldo awal',amount:amt,type:'income',categoryId:'cat_opening',accountId:mainAccountId()||accounts[0].id,tag:'#saldo-awal',pocketId:null,opening:true},...transactions].sort((a,b)=>b.date.localeCompare(a.date));
   closeModal(); render(); toastUndo(`Saldo awal ${fmt(amt)} dicatat.`,snap);
 }
-function openPaydayModal(){
-  const body=`<div class="field"><label for="paydayInput">Gaji masuk setiap tanggal (1–31)</label><input id="paydayInput" class="big" type="number" min="1" max="31" value="${settings.payday}"></div>
-  <p style="font-size:12px;color:var(--muted);margin:0">Untuk bulan yang lebih pendek, tanggal 29–31 otomatis menjadi hari terakhir bulan itu. Safe-to-Spend dihitung per periode gajian: dari tanggal ini sampai sebelum tanggal yang sama bulan depan.</p>`;
-  modalShell('Tanggal Gajian', body, `<button class="btn btn-emerald" style="width:100%;padding:12px" onclick="savePayday()">Simpan</button>`);
-  document.getElementById('paydayInput').focus();
+/* The money period: normally it follows the payday, but the user can also pin an exact range
+   (e.g. 23 Oct – 25 Nov). One dialog for both; openPaydayModal stays as an alias because the
+   hero chip and the setup checklist still call it. */
+let periodDraftMode='payday';
+function fmtDayShort(iso){ return new Date(iso+'T00:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'short'}); }
+function openPeriodModal(){
+  periodDraftMode=settings.periodMode==='custom'?'custom':'payday';
+  const body=`<div class="seg" role="group" aria-label="Mode periode" style="margin-bottom:14px">
+    <button type="button" id="pmPayday" onclick="setPeriodMode('payday')">Dari tanggal gajian</button>
+    <button type="button" id="pmCustom" onclick="setPeriodMode('custom')">Atur manual</button></div>
+  <div id="pmPaydayBox">
+    <div class="field"><label for="paydayInput">Gaji masuk setiap tanggal (1–31)</label><input id="paydayInput" class="big" type="number" min="1" max="31" value="${settings.payday}"></div>
+    <p style="font-size:12px;color:var(--muted);margin:0">Untuk bulan yang lebih pendek, tanggal 29–31 otomatis menjadi hari terakhir bulan itu. Safe-to-Spend dihitung per periode gajian: dari tanggal ini sampai sebelum tanggal yang sama bulan depan.</p>
+  </div>
+  <div id="pmCustomBox">
+    <div class="field"><label for="periodStartInput">Tanggal mulai periode</label><input id="periodStartInput" class="big" type="date" value="${settings.customStart||todayISO()}"></div>
+    <div class="field"><label for="periodEndInput">Tanggal selesai (hari terakhir periode)</label><input id="periodEndInput" class="big" type="date" value="${settings.customEnd||todayISO()}"></div>
+    <p style="font-size:12px;color:var(--muted);margin:0">Contoh: periode 23 Okt – 25 Nov. Safe-to-Spend, tagihan dan Essentials dihitung hanya untuk rentang tanggal ini, berapa pun tanggal gajiannya. Nanti bisa diganti lagi atau kembali ke mode gajian kapan saja.</p>
+  </div>`;
+  modalShell('Periode Uang', body, `<button class="btn btn-emerald" style="width:100%;padding:12px" onclick="savePeriod()">Simpan</button>`);
+  setPeriodMode(periodDraftMode);
 }
-function savePayday(){
+function setPeriodMode(m){
+  periodDraftMode=m;
+  const pm=document.getElementById('pmPayday'), cm=document.getElementById('pmCustom');
+  if(!pm||!cm) return;
+  pm.classList.toggle('active',m==='payday'); cm.classList.toggle('active',m==='custom');
+  pm.setAttribute('aria-pressed',m==='payday'); cm.setAttribute('aria-pressed',m==='custom');
+  document.getElementById('pmPaydayBox').style.display=m==='payday'?'':'none';
+  document.getElementById('pmCustomBox').style.display=m==='custom'?'':'none';
+}
+function savePeriod(){
+  if(periodDraftMode==='custom'){
+    const s=document.getElementById('periodStartInput').value, e=document.getElementById('periodEndInput').value;
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(s)||!/^\d{4}-\d{2}-\d{2}$/.test(e)){ toast('Pilih tanggal mulai dan tanggal selesai dulu.'); return; }
+    if(e<s){ toast('Tanggal selesai harus sama atau setelah tanggal mulai.'); return; }
+    const snap=snapshot(); settings={...settings,periodMode:'custom',customStart:s,customEnd:e,paydaySet:true};
+    closeModal(); render(); toastUndo(`Periode uang diatur manual: ${fmtDayShort(s)} – ${fmtDayShort(e)}.`,snap);
+    return;
+  }
   const d=Number(document.getElementById('paydayInput').value);
   if(!Number.isInteger(d)||d<1||d>31){ toast('Masukkan tanggal 1 sampai 31.'); return; }
-  const snap=snapshot(); settings={...settings,payday:d,paydaySet:true};
-  closeModal(); render(); toastUndo(`Tanggal gajian diubah ke tanggal ${d}.`,snap);
+  const snap=snapshot(); settings={...settings,payday:d,paydaySet:true,periodMode:'payday'};
+  closeModal(); render(); toastUndo(`Periode uang mengikuti gajian: tanggal ${d}.`,snap);
 }
+function openPaydayModal(){ openPeriodModal(); }
 function toggleFormula(){ showFormula=!showFormula; render(); }
 function goTab(t){ activeTab=t; render(); window.scrollTo({top:0,behavior:'smooth'}); }
 
@@ -2330,7 +2390,7 @@ function settingsList(title,sub,addLabel,addFn,rows,empty){
 const setRow=(main,meta,editFn,delFn)=>`<div class="set-row"><div style="min-width:0"><strong>${main}</strong><div class="set-meta">${meta}</div></div><div class="set-actions"><button class="btn btn-sm" onclick="${editFn}">Ubah</button><button class="icon-btn" aria-label="Hapus" onclick="${delFn}">🗑</button></div></div>`;
 function renderSettings(){
   document.getElementById('view-settings').innerHTML=`<div class="set-grid">
-  <div class="card wide"><div class="set-head"><div><h3>Gajian</h3><p class="sub">Safe-to-Spend menyisihkan kebutuhan sampai tanggal ini.</p></div><button class="btn btn-sm" onclick="openPaydayModal()">Ubah</button></div><p style="margin:0;font-size:14px">Setiap tanggal <strong>${settings.payday}</strong></p></div>
+  <div class="card wide"><div class="set-head"><div><h3>Periode Uang</h3><p class="sub">Safe-to-Spend, tagihan dan Essentials dihitung untuk periode ini.</p></div><button class="btn btn-sm" onclick="openPeriodModal()">Ubah</button></div><p style="margin:0;font-size:14px">${settings.periodMode==='custom'&&settings.customStart&&settings.customEnd? `Manual: <strong>${fmtDayShort(settings.customStart)} – ${fmtDayShort(settings.customEnd)}</strong>` : `Otomatis dari gajian: setiap tanggal <strong>${settings.payday}</strong>`}</p></div>
   <div class="card wide"><div class="set-head"><div><h3>Tampilan</h3><p class="sub">Tema terang atau gelap. Otomatis mengikuti pengaturan perangkat.</p></div></div>
     <div class="seg" role="group" aria-label="Tema" style="flex-wrap:nowrap">${[['auto','Otomatis'],['light','Terang'],['dark','Gelap']].map(([v,l])=>`<button class="${getTheme()===v?'active':''}" aria-pressed="${getTheme()===v}" onclick="setTheme('${v}');renderSettings();refreshIcons()">${l}</button>`).join('')}</div></div>
   ${settingsList('Rekening & Kartu','Semua rekening, e-wallet dan kartu kredit yang kamu punya.','+ Rekening','openAccountForm()',

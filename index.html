@@ -491,7 +491,7 @@ header::after{content:"";position:absolute;inset:0;pointer-events:none;box-shado
 /* tab bar: the clearest glass, with a liquid droplet that slides to the active tab */
 @media(min-width:561px){nav.tabs{position:relative}} /* phone: stays fixed at the bottom */
 nav.tabs .drop{position:absolute;z-index:0;top:0;left:0;width:0;height:0;border-radius:999px;background:var(--lg-tint-bead);opacity:0;pointer-events:none;
-  transform-origin:0 0;transition:opacity .2s;box-shadow:0 2px 10px rgba(0,0,0,.10)}
+  transition:opacity .2s;box-shadow:0 2px 10px rgba(0,0,0,.10)}
 nav.tabs .drop.on{opacity:1}
 nav.tabs button{position:relative;z-index:1}
 nav.tabs button.active,nav.tabs button.active:hover{background:transparent!important;box-shadow:none}
@@ -1012,29 +1012,40 @@ function lgLens(el,soft,gentle){
   const bezel=Math.max(8,Math.min(gentle?12:soft?14:26,Math.min(w,h)*.35)), id=lgFilter(w,h,r,bezel,Math.min(56,bezel*(gentle?1.2:2.2)));
   if(el.dataset.lgk!==id||!el.style.getPropertyValue('--lg-url')){ el.dataset.lgk=id; el.style.setProperty('--lg-url',`url(#${id})`); }
 }
-/* The droplet moves on transform only (smooth even while a tab is being built), with a small overshoot
-   that never leaves the bar, and stretches a little mid-way. */
-function lgDrop(){
-  const nav=document.querySelector('nav.tabs'), drop=nav&&nav.querySelector('.drop'), b=nav&&nav.querySelector('button.active');
+/* The droplet glides on a spring: one smooth motion with a single small overshoot that never leaves
+   the bar, plus a gentle stretch. Both run on transform/scale only, so they stay smooth while a tab is built. */
+const LG_LINEAR=!!window.CSS&&CSS.supports('transition-timing-function','linear(0, 1)');
+function lgSpring(r){ // damped-spring easing that overshoots by r (a fraction of the distance) once, then settles
+  if(!LG_LINEAR) return 'cubic-bezier(.2,.9,.25,1)';
+  const ln=Math.log(r), z=-ln/Math.sqrt(Math.PI*Math.PI+ln*ln), w=6.5/z, wd=w*Math.sqrt(1-z*z), pts=[];
+  for(let i=0;i<40;i++){ const t=i/40; pts.push((1-Math.exp(-z*w*t)*(Math.cos(wd*t)+z*w/wd*Math.sin(wd*t))).toFixed(4)); }
+  return `linear(${pts.join(',')},1)`;
+}
+function lgDrop(target){
+  const nav=document.querySelector('nav.tabs'), drop=nav&&nav.querySelector('.drop'), b=target||(nav&&nav.querySelector('button.active'));
   if(!drop||!b||!b.offsetWidth){ if(drop) drop.classList.remove('on'); LG.box=null; return; }
-  const x=b.offsetLeft, y=b.offsetTop, w=b.offsetWidth, h=b.offsetHeight, from=LG.box, at=(px,py)=>`translate(${px}px,${py}px)`;
-  drop.style.width=w+'px'; drop.style.height=h+'px'; drop.style.transform=at(x,y);
+  // position with `translate` and size/stretch with `scale`: CSS applies translate first, so stretching never moves the droplet
+  const x=b.offsetLeft, y=b.offsetTop, w=b.offsetWidth, h=b.offsetHeight, from=LG.box, at=(px,py)=>`${px}px ${py}px`;
+  if(!from||from.x!==x||from.y!==y||from.w!==w||from.h!==h){ drop.style.width=w+'px'; drop.style.height=h+'px'; drop.style.translate=at(x,y); }
   if(from&&LG.tab!==b.dataset.tab&&drop.classList.contains('on')&&drop.animate&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
-    const maxX=nav.clientWidth-w-2, dir=Math.sign(x-from.x), over=Math.max(2-x,Math.min(maxX-x,dir*Math.min(6,Math.abs(x-from.x)*.04)));
-    const sw=Math.min((from.w+w)/2*1.14,nav.clientWidth-4), mid=Math.max(2,Math.min(nav.clientWidth-sw-2,(from.x+from.w/2+x+w/2)/2-sw/2));
-    if(LG.anim) LG.anim.cancel();
-    drop.classList.add('moving'); LG.busy=performance.now()+520;
-    LG.anim=drop.animate([
-      {transform:`${at(from.x,from.y)} scale(${from.w/w},${from.h/h})`},
-      {transform:`${at(mid,y+h*.05)} scale(${sw/w},.9)`,offset:.45},
-      {transform:at(x+over,y),offset:.8},
-      {transform:at(x,y)}
-    ],{duration:480,easing:'cubic-bezier(.3,.6,.25,1)'});
-    LG.anim.onfinish=LG.anim.oncancel=()=>drop.classList.remove('moving');
+    const dist=Math.abs(x-from.x), room=x>from.x? nav.clientWidth-2-(x+w) : x-2;
+    const r=Math.max(.002,Math.min(.08,Math.min(6,Math.max(0,room))/Math.max(dist,1))), st=1+Math.min(.12,dist/w*.04);
+    (LG.anim||[]).forEach(a=>a.cancel());
+    drop.classList.add('moving'); LG.busy=performance.now()+560;
+    // scaling happens around the centre, so the start frame is shifted to keep the old box exactly where it was
+    const sx=from.w/w, sy=from.h/h, ease='cubic-bezier(.45,0,.55,1)';
+    LG.anim=[drop.animate([{translate:at(from.x+(from.w-w)/2,from.y+(from.h-h)/2)},{translate:at(x,y)}],{duration:540,easing:lgSpring(r)}),
+      drop.animate([{scale:`${sx} ${sy}`,easing:ease},{scale:`${st*(sx*.6+.4)} ${(2-st)*(sy*.6+.4)}`,offset:.3,easing:ease},{scale:'1 1'}],{duration:540})];
+    LG.anim[0].onfinish=LG.anim[0].oncancel=()=>drop.classList.remove('moving');
   }
   drop.classList.add('on');
   LG.tab=b.dataset.tab; LG.box={x,y,w,h};
 }
+/* Start the glide as the finger lands, before the tab is built; if no tap follows, it glides back. */
+document.addEventListener('pointerdown',e=>{
+  const b=e.target.closest&&e.target.closest('nav.tabs button'); if(!b||e.button) return;
+  lgDrop(b); clearTimeout(LG.back); LG.back=setTimeout(lgSchedule,700);
+},{passive:true});
 function lgRefresh(){
   LG.raf=0; lgDrop(); if(!LG.on) return;
   // new lens maps wait until the droplet has landed, so building them never stalls its first frames

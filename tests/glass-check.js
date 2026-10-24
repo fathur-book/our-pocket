@@ -6,7 +6,7 @@ window.__glassCheck = async (only) => {
   const root = document.documentElement;
   const dark = matchMedia('(prefers-color-scheme: dark)').matches;
   const phone = innerWidth <= 560;
-  const frame = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const frame = () => new Promise(r => setTimeout(r, 60)); // not rAF: it never fires in a hidden tab
   const $ = s => document.querySelector(s);
   const cs = (el, prop, pseudo) => { el = typeof el === 'string' ? $(el) : el; return el ? getComputedStyle(el, pseudo || null).getPropertyValue(prop).trim() : ''; };
   const token = n => getComputedStyle(root).getPropertyValue(n).trim();

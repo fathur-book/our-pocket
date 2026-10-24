@@ -155,15 +155,13 @@ main>section>*+*{margin-top:var(--gap)}
 .hero-empty .he-d{margin:8px 0 0;max-width:52ch;font-size:15px;line-height:1.5;color:#cbd5e1}
 .he-acts{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:16px}
 .he-acts .btn,.he-acts .btn-ghost-light{min-height:44px;padding:0 18px;font-size:14px;border-radius:var(--r-sm)}
-/* Safe-to-Spend card: a pace line, a payday runway (time) and one allocation bar (money). */
+/* Safe-to-Spend card: the number, a payday chip (tap to change the payday) and one bar of where the period's money went. */
 .pace{margin:14px 0 0;font-size:16px;color:#cbd5e1}
 .pace strong{color:#fff;font-variant-numeric:tabular-nums}
-.runway{margin-top:20px}
-.runway-row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:#94a3b8}
-.runway-row strong{color:#e2e8f0}
-.runway-track{position:relative;height:6px;margin:10px 7px 8px;border-radius:999px;background:#ffffff14}
-.runway-track>i{position:absolute;left:0;top:0;bottom:0;border-radius:inherit;background:#ffffff3d}
-.runway-track>b{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:#fff;border:3px solid var(--dark)}
+.pay-chip{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;margin-top:16px;padding:7px 10px 7px 12px;border-radius:999px;background:#ffffff14;border:1px solid #ffffff22;color:#e2e8f0;font:inherit;font-size:13px;font-weight:600}
+.pay-chip:hover{background:#ffffff22;color:#fff}
+.pay-chip svg{width:15px;height:15px}
+.pay-chip svg:last-child{width:14px;height:14px;color:#94a3b8}
 /* margin-top:auto pins the allocation to the bottom when the card stretches to the spending column. */
 .alloc{margin-top:auto;padding-top:26px}
 .alloc-cap{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:13px;color:#94a3b8}
@@ -173,17 +171,15 @@ main>section>*+*{margin-top:var(--gap)}
 .alloc-bar>i{display:block;min-width:3px}
 .alloc-bar>u{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:#fff}
 /* Solid = money already moved; striped = set aside for bills / Essentials not paid yet. */
-.sw-safe{background:#34d399}.sw-spent{background:#94a3b8}.sw-saved{background:#059669}
-.sw-bills{background:repeating-linear-gradient(135deg,#fcd34d 0 4px,#fcd34d80 4px 7px)}
-.sw-ess{background:repeating-linear-gradient(135deg,#e2e8f0 0 4px,#e2e8f066 4px 7px)}
-.sw-adj{background:repeating-linear-gradient(135deg,#94a3b8 0 4px,#94a3b880 4px 7px)}
-.sw-prev{background:repeating-linear-gradient(135deg,#e11d48 0 4px,#e11d4880 4px 7px)}
-.alloc-legend{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));column-gap:20px}
-.alloc-legend>*{display:flex;align-items:center;gap:8px;width:100%;min-width:0;padding:8px 0;background:none;border:0;border-top:1px solid #ffffff14;color:#cbd5e1;font:inherit;font-size:13px;text-align:left}
-.alloc-legend button:hover{color:#fff}
+.sw-left{background:#34d399}.sw-spent{background:#94a3b8}.sw-saved{background:#059669}
+.alloc-legend{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.alloc-legend>*{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0;padding:0;background:none;border:0;color:#94a3b8;font:inherit;font-size:12px;text-align:left}
+.alloc-legend button:hover{color:#e2e8f0}
+.alloc-legend .lb{display:flex;align-items:center;gap:6px}
 .alloc-legend .sw{width:10px;height:10px;border-radius:3px;flex-shrink:0}
-.alloc-legend .lb{flex:1;min-width:0}
-.alloc-legend strong{color:#fff;white-space:nowrap;font-variant-numeric:tabular-nums}
+.alloc-legend strong{color:#fff;font-family:var(--font-display);font-size:clamp(13px,3.8vw,16px);white-space:nowrap;font-variant-numeric:tabular-nums;word-spacing:.08em}
+/* narrow card: three amounts don't fit side by side, so the legend becomes rows (label left, amount right) */
+@container (max-width:460px){ .alloc-legend{grid-template-columns:1fr;gap:0} .alloc-legend>*{flex-direction:row;justify-content:space-between;align-items:center;width:100%;padding:9px 0;border-top:1px solid #ffffff14;font-size:13px} .alloc-legend strong{font-size:15px} }
 .formula{margin-top:12px;background:#ffffff0f;border:1px solid var(--dark-border);border-radius:var(--r-md);padding:12px;font-size:13px;line-height:1.6;color:#cbd5e1}
 .bar{height:10px;background:var(--surface2);border:1px solid var(--border);border-radius:999px;overflow:hidden}
 .bar>i{display:block;height:100%;border-radius:999px;background:var(--emerald);transition:width .4s}
@@ -583,9 +579,6 @@ nav.tabs button.active>*{transform:scale(1.08)}
 
 /* bars: a thin see-through track, a solid fill and a plain white thumb (iOS-style); the glass stays on the surfaces */
 .bar{height:8px;background:color-mix(in srgb,var(--fill) 75%,transparent);border-color:transparent}
-.runway-track{background:rgba(255,255,255,.14)}
-.runway-track>i{background:rgba(255,255,255,.34)}
-.runway-track>b{width:18px;height:18px;margin:-9px 0 0 -9px;border:0;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.35),0 0 0 .5px rgba(0,0,0,.08)}
 
 /* press and spring */
 .btn{transition:background-color .2s var(--ease),color .2s var(--ease),transform .45s var(--spring)}
@@ -1305,23 +1298,27 @@ function heroNoFunds(fin){
       : `<button class="btn btn-emerald" onclick="startIncomeLog()">Catat gaji</button>`}</div></div>`;
 }
 function startIncomeLog(){ logState=freshLogState(); logState.type='income'; logState.categoryId='cat_salary'; openLogger(); }
-/* Where this pay period's money is: one bar, scaled to whichever is larger — the money in, or what it is committed to. */
+/* Payday chip: when the salary comes; tapping it changes the payday. */
+function payChip(fin){
+  const d=fin.nextPayday.toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short'});
+  return `<button class="pay-chip" onclick="openPaydayModal()" title="Ubah tanggal gajian"><i data-lucide="calendar"></i><span>${fin.daysToPayday===1?'Gajian besok':`Gajian ${fin.daysToPayday} hari lagi`} · ${d}</span><i data-lucide="chevron-right"></i></button>`;
+}
+/* Where this pay period's money went: spent, saved and what is left. Sisa = Safe-to-Spend + bills and Essentials still to pay,
+   so it can be larger than the big number; downward balance fixes and last period's shortfall count as spent. */
 function safeAlloc(fin){
-  const inSaved=Math.max(0,-fin.cycleSaved), avail=periodFunds(fin), none=fundsState(fin)==='none';
+  if(fundsState(fin)==='none') return '';
+  const avail=periodFunds(fin), inSaved=Math.max(0,-fin.cycleSaved), held=fin.billsReserved+fin.essentialsReserved;
+  const gone=fin.cycleSpending+Math.max(0,-fin.cycleAdjust)+Math.max(0,-fin.carryOver), saved=Math.max(0,fin.cycleSaved), left=Math.max(0,avail-gone-saved);
   const segs=[
-    {k:'spent',l:'Sudah keluar',v:fin.cycleSpending,go:'activity',t:'Semua pengeluaran periode ini (termasuk kartu kredit)'},
-    {k:'saved',l:'Ditabung',v:Math.max(0,fin.cycleSaved),go:'pockets',t:'Dipindah ke pocket tabungan periode ini'},
-    {k:'bills',l:'Tagihan belum dibayar',v:fin.billsReserved,go:'essentials',t:'Tagihan periode ini yang belum dibayar (perkiraan)'},
-    {k:'ess',l:'Essentials belum dibeli',v:fin.essentialsReserved,go:'essentials',t:'Essentials yang belum dibeli (harga perkiraan)'},
-    {k:'adj',l:'Penyesuaian saldo',v:Math.max(0,-fin.cycleAdjust),go:'activity',t:'Saldo dikurangi agar sama dengan aplikasi bank'},
-    {k:'prev',l:'Minus periode lalu',v:Math.max(0,-fin.carryOver),t:'Kekurangan dari periode gajian sebelumnya'},
-    {k:'safe',l:'Aman dibelanjakan',v:Math.max(0,fin.safeToSpend),t:'Safe-to-Spend'}].filter(x=>x.v>0);
-  const scale=Math.max(avail,segs.reduce((t,x)=>t+x.v,0)); if(!scale) return '';
+    {k:'spent',l:'Sudah keluar',v:gone,go:'activity',t:[`Pengeluaran ${fmt(fin.cycleSpending)} (termasuk kartu kredit)`,fin.cycleAdjust<0?`penyesuaian saldo ${fmt(-fin.cycleAdjust)}`:'',fin.carryOver<0?`minus periode lalu ${fmt(-fin.carryOver)}`:''].filter(Boolean).join(' + ')},
+    {k:'saved',l:'Ditabung',v:saved,go:'pockets',t:'Dipindah ke pocket tabungan periode ini'},
+    {k:'left',l:'Sisa',v:left,t:held?`Termasuk ${fmt(held)} untuk tagihan dan Essentials yang belum dibayar`:'Semuanya aman dibelanjakan'}];
+  const scale=Math.max(avail,gone+saved); if(!scale) return '';
   const src=[fin.carryOver>0?`sisa ${fmt(fin.carryOver)}`:'',inSaved?`${fmt(inSaved)} dari tabungan`:'',fin.cycleAdjust>0?`${fmt(fin.cycleAdjust)} penyesuaian saldo`:''].filter(Boolean).join(' + ');
-  return `<div class="alloc"><div class="alloc-cap">${none? `<span>Kebutuhan periode ini <strong>${fmt(segs.reduce((t,x)=>t+x.v,0))}</strong></span>`
-      : `<span>Dana periode ini <strong>${fmt(avail)}</strong>${src?` (termasuk ${src})`:''}</span>${fin.safeToSpend<0?`<span class="short">Kurang <strong style="color:inherit">${fmt(-fin.safeToSpend)}</strong></span>`:''}`}</div>
-    <div class="alloc-bar" role="img" aria-label="${segs.map(x=>`${x.l} ${fmt(x.v)}`).join(', ')}">${segs.map(x=>`<i class="sw-${x.k}" style="flex:${x.v} 1 0"></i>`).join('')}${fin.safeToSpend<0&&avail?`<u style="left:${(avail/scale*100).toFixed(1)}%" title="Batas dana periode ini"></u>`:''}</div>
-    <div class="alloc-legend">${segs.map(x=>{ const inner=`<span class="sw sw-${x.k}"></span><span class="lb">${x.l}</span><strong>${fmt(x.v)}</strong>`; return x.go? `<button title="${x.t}" onclick="goTab('${x.go}')">${inner}</button>` : `<div title="${x.t}">${inner}</div>`; }).join('')}</div></div>`;
+  const total=`<strong${src?` title="Termasuk ${src}"`:''}>${fmt(avail)}</strong>`;
+  return `<div class="alloc"><div class="alloc-cap">${fin.safeToSpend<0? `<span>Dana periode ini ${total}</span><span class="short">Kurang <strong style="color:inherit">${fmt(-fin.safeToSpend)}</strong></span>` : `<span>Dana periode ini</span>${total}`}</div>
+    <div class="alloc-bar" role="img" aria-label="${segs.map(x=>`${x.l} ${fmt(x.v)}`).join(', ')}">${segs.filter(x=>x.v>0).map(x=>`<i class="sw-${x.k}" style="flex:${x.v} 1 0"></i>`).join('')}${gone+saved>avail&&avail?`<u style="left:${(avail/scale*100).toFixed(1)}%" title="Batas dana periode ini"></u>`:''}</div>
+    <div class="alloc-legend">${segs.map(x=>{ const inner=`<span class="lb"><span class="sw sw-${x.k}"></span>${x.l}</span><strong>${fmt(x.v)}</strong>`; return x.go? `<button title="${x.t}" onclick="goTab('${x.go}')">${inner}</button>` : `<div title="${x.t}">${inner}</div>`; }).join('')}</div></div>`;
 }
 /* Essentials as a shopping list: open items first, each with one dot per planned unit (filled = bought). */
 function essShopList(ess){
@@ -1358,9 +1355,8 @@ function renderDashboard(fin,ess){
         <button class="btn-ghost-light" onclick="toggleFormula()">${showFormula?'Sembunyikan rumus':'Cara menghitungnya?'}</button>
       </div>
       ${fundsState(fin)? heroNoFunds(fin) : `<div class="big${fin.safeToSpend<0?' neg':''}"><span class="cur">Rp</span>${fin.safeToSpend<0?'−':''}${fmt(Math.abs(fin.safeToSpend)).replace(/Rp\s/,'')}</div>
-      <p class="pace">${fin.safeToSpend>0?`≈ <strong>${fmt(fin.perDay)}</strong> per hari selama ${fin.daysToPayday} hari ke depan`: (fin.cycleIncome+fin.carryOver<=0&&!openingTx()? `Belum ada pemasukan tercatat. <button class="btn-ghost-light" onclick="openOpeningBalance()">Catat saldo awal</button>` : 'Rencana belanja melebihi dana periode ini.')}</p>`}
-      ${(()=>{ const t=today(), t0=new Date(t.getFullYear(),t.getMonth(),t.getDate()), total=Math.max(1,Math.round((fin.nextPayday-fin.cycleStart)/86400000)), day=Math.min(total,Math.max(1,Math.round((t0-fin.cycleStart)/86400000)+1)), pct=((day-.5)/total*100).toFixed(1), short=d=>d.toLocaleDateString('id-ID',{day:'numeric',month:'short'});
-        return `<div class="runway"><div class="runway-row"><span>Hari ke-<strong>${day}</strong> dari ${total}</span><button class="btn-ghost-light" onclick="openPaydayModal()">Ubah tanggal gajian</button></div><div class="runway-track" role="progressbar" aria-label="Periode gajian berjalan" aria-valuemin="1" aria-valuemax="${total}" aria-valuenow="${day}"><i style="width:${pct}%"></i><b style="left:${pct}%"></b></div><div class="runway-row"><span>${short(fin.cycleStart)}</span><span>Gajian <strong>${fin.nextPayday.toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short'})}</strong></span></div></div>`; })()}
+      ${fin.safeToSpend<=0&&fin.cycleIncome+fin.carryOver<=0&&!openingTx()? `<p class="pace">Belum ada pemasukan tercatat. <button class="btn-ghost-light" onclick="openOpeningBalance()">Catat saldo awal</button></p>` : ''}`}
+      ${payChip(fin)}
       ${safeAlloc(fin)}
       ${showFormula?`<div class="formula"><strong style="color:#fff">Cara menghitungnya (periode ${fin.cycleStart.toLocaleDateString('id-ID',{day:'numeric',month:'short'})} – ${fin.nextPayday.toLocaleDateString('id-ID',{day:'numeric',month:'short'})}):</strong><br>${fin.carryOver?`Sisa periode sebelumnya ${fmt(fin.carryOver)} + `:''}pemasukan ${fmt(fin.cycleIncome)}${fin.cycleAdjust>0?` + penyesuaian saldo ${fmt(fin.cycleAdjust)}`:fin.cycleAdjust<0?` − penyesuaian saldo ${fmt(-fin.cycleAdjust)}`:''} − pengeluaran ${fmt(fin.cycleSpending)}${fin.cycleSaved>0?` − ditabung ke pocket ${fmt(fin.cycleSaved)}`:fin.cycleSaved<0?` + diambil dari tabungan ${fmt(-fin.cycleSaved)}`:''} − tagihan yang belum dibayar ${fmt(fin.billsReserved)} − Essentials yang belum dibeli ${fmt(fin.essentialsReserved)}. Essentials dan tagihan yang sudah dibayar dihitung dengan nominal aslinya (masuk ke pengeluaran). Pocket tabungan disimpan terpisah (total ${fmt(fin.totalPocketsSaved)}) dan tidak mengurangi angka ini.</div>`:''}
     </div>

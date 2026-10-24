@@ -10,8 +10,21 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)" />
-<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+<meta name="theme-color" id="themeColor" content="#f2f2f7" />
+<script>/* Theme before the first paint: the choice saved on this device (Pengaturan → Tampilan), else the system setting. */
+(function(){
+  var t=null, root=document.documentElement, sys=matchMedia('(prefers-color-scheme: dark)');
+  try{ t=localStorage.getItem('fp-theme'); }catch(e){}
+  function apply(){
+    var dark=t==='dark'||(t!=='light'&&sys.matches); root.dataset.theme=dark?'dark':'light';
+    var m=document.getElementById('themeColor'); if(m) m.content=dark?'#000000':'#f2f2f7';
+  }
+  apply(); document.addEventListener('DOMContentLoaded',apply);
+  if(sys.addEventListener) sys.addEventListener('change',apply);
+  window.getTheme=function(){ return t==='light'||t==='dark'?t:'auto'; };
+  window.setTheme=function(v){ t=v==='light'||v==='dark'?v:null; try{ t?localStorage.setItem('fp-theme',t):localStorage.removeItem('fp-theme'); }catch(e){} apply(); };
+})();
+</script>
 <title>FlowPocket — Clarity-First Finance</title>
 
 <!-- Third-party code is pinned and hash-checked: if a CDN ever serves a modified file, the browser refuses to run it. -->
@@ -41,8 +54,7 @@
   --gap:24px; --pad:24px; /* section gap and card padding; 16px on phones */
   color-scheme: light;
 }
-@media (prefers-color-scheme: dark){
-  :root{
+:root[data-theme="dark"]{
     --bg:#000000; --surface:#1c1c1e; --surface2:#2c2c2e; --border:#38383a; --border2:#48484a;
     --text:#f5f5f7; --muted:#98989d; --muted2:#98989d;
     /* --dark is the "ink" fill (hero, date boxes). Its light value is near the dark-mode page, so raise it here. */
@@ -60,14 +72,13 @@
     --rose-bg:#88133733; --rose-border:#9f1239; --rose-text:#fda4af;
     --c-food:#fb8a66; --c-coffee:#d9a06b; --c-transport:#79a6f7; --c-util:#45c4da; --c-subs:#ad8ff7; --c-shop:#f286b6; --c-income:#34d399;
     color-scheme: dark;
-  }
 }
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){ :root{--glass-bg:var(--surface);--glass-blur:none} }
 @media (prefers-reduced-transparency: reduce){ :root{--glass-bg:var(--surface);--glass-blur:none} }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(60vmax 50vmax at 0% 0%,rgba(52,199,89,.07),transparent 70%),radial-gradient(60vmax 50vmax at 100% 100%,rgba(10,132,255,.07),transparent 70%)}
-@media (prefers-color-scheme: dark){ body::before{background:radial-gradient(60vmax 50vmax at 0% 0%,rgba(52,199,89,.10),transparent 70%),radial-gradient(60vmax 50vmax at 100% 100%,rgba(10,132,255,.10),transparent 70%)} }
+:root[data-theme="dark"] body::before{background:radial-gradient(60vmax 50vmax at 0% 0%,rgba(52,199,89,.10),transparent 70%),radial-gradient(60vmax 50vmax at 100% 100%,rgba(10,132,255,.10),transparent 70%)}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;font-size:15px;line-height:1.5;font-variant-numeric:tabular-nums;background:var(--bg);color:var(--text);padding-bottom:96px;-webkit-font-smoothing:antialiased}
 button{font-family:inherit;cursor:pointer}
 input,select,textarea{font-family:inherit}
@@ -120,7 +131,7 @@ main>section>*+*{margin-top:var(--gap)}
 .hero{background:var(--dark);color:#fff;border:1px solid var(--dark);border-radius:24px;padding:22px;position:relative;overflow:hidden;display:flex;flex-direction:column}
 .hero-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:8px}
 .hero-head .btn-ghost-light{white-space:nowrap}
-@media(prefers-color-scheme:dark){.hero{border-color:var(--dark-border)}}
+:root[data-theme="dark"] .hero{border-color:var(--dark-border)}
 .hero .label{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8;font-weight:700}
 .hero .big{font-size:clamp(40px,7vw,76px);font-weight:700;letter-spacing:-.04em;margin:12px 0 0;line-height:.95;font-variant-numeric:tabular-nums}
 .hero .big .cur{font-size:.4em;font-weight:700;letter-spacing:0;color:#94a3b8;margin-right:.2em;vertical-align:.7em}
@@ -159,7 +170,7 @@ main>section>*+*{margin-top:var(--gap)}
 .bar{height:10px;background:var(--surface2);border:1px solid var(--border);border-radius:999px;overflow:hidden}
 .bar>i{display:block;height:100%;border-radius:999px;background:var(--emerald);transition:width .4s}
 .bar.amber>i{background:#f59e0b}.bar.dark>i{background:var(--dark)}
-@media(prefers-color-scheme:dark){.bar.dark>i{background:#e2e8f0}}
+:root[data-theme="dark"] .bar.dark>i{background:#e2e8f0}
 .bar.sm{height:7px}
 .progress-row{display:flex;justify-content:space-between;font-size:13px;font-weight:600;margin-bottom:6px}
 .badge{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid}
@@ -234,7 +245,7 @@ tr.done{background:color-mix(in srgb, var(--emerald-bg) 45%, transparent)}
 .date-box.soon{background:var(--amber-bg);color:var(--amber-text);border-color:var(--amber-border)}
 .date-box.late{background:var(--rose-bg);color:var(--rose-text);border-color:var(--rose-border)}
 .sweep{background:#064e3b;color:#fff;border-radius:22px;padding:20px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center}
-@media(prefers-color-scheme:dark){.sweep{background:#065f46}}
+:root[data-theme="dark"] .sweep{background:#065f46}
 .acc-ico{width:36px;height:36px;border-radius:10px;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .acc-sum{display:flex;flex-wrap:wrap;gap:10px 28px;padding:14px 0;border-bottom:1px solid var(--border)}
 .acc-sum span{display:block;font-size:12px;color:var(--muted);font-weight:600}
@@ -442,8 +453,7 @@ input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-an
   --blob1:rgba(16,185,129,.50); --blob2:rgba(34,211,238,.36); --blob3:rgba(129,140,248,.34); --blob4:rgba(250,204,21,.20);
   --spring:cubic-bezier(.34,1.56,.64,1);
 }
-@media (prefers-color-scheme: dark){
-  :root{
+:root[data-theme="dark"]{
     --bg:#040807; --muted:#a1a1a6;
     --lg-tint:rgba(28,32,30,.40); --lg-tint-clear:rgba(40,46,44,.18); --lg-tint-bead:rgba(70,78,75,.28);
     --lg-tint-drop:rgba(255,255,255,.04); --lg-drop-glint:rgba(255,255,255,.22); --lg-drop-glint2:rgba(255,255,255,.1); --lg-drop-edge:rgba(255,255,255,.28); --lg-drop-depth:rgba(0,0,0,.35);
@@ -452,7 +462,6 @@ input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-an
     --lg-shadow:0 12px 34px rgba(0,0,0,.5),0 1px 2px rgba(0,0,0,.4);
     --lg-ink-accent:#6ee7b7;
     --blob1:rgba(16,185,129,.42); --blob2:rgba(6,182,212,.30); --blob3:rgba(99,102,241,.34); --blob4:rgba(234,179,8,.12);
-  }
 }
 body::before{content:none}
 .lg-backdrop{position:fixed;inset:-15%;z-index:-1;pointer-events:none;overflow:hidden}
@@ -2245,6 +2254,8 @@ const setRow=(main,meta,editFn,delFn)=>`<div class="set-row"><div style="min-wid
 function renderSettings(){
   document.getElementById('view-settings').innerHTML=`<div class="set-grid">
   <div class="card wide"><div class="set-head"><div><h3>Gajian</h3><p class="sub">Safe-to-Spend menyisihkan kebutuhan sampai tanggal ini.</p></div><button class="btn btn-sm" onclick="openPaydayModal()">Ubah</button></div><p style="margin:0;font-size:14px">Setiap tanggal <strong>${settings.payday}</strong></p></div>
+  <div class="card wide"><div class="set-head"><div><h3>Tampilan</h3><p class="sub">Tema terang atau gelap. Otomatis mengikuti pengaturan perangkat.</p></div></div>
+    <div class="seg" role="group" aria-label="Tema" style="flex-wrap:nowrap">${[['auto','Otomatis'],['light','Terang'],['dark','Gelap']].map(([v,l])=>`<button class="${getTheme()===v?'active':''}" aria-pressed="${getTheme()===v}" onclick="setTheme('${v}');renderSettings();refreshIcons()">${l}</button>`).join('')}</div></div>
   ${settingsList('Rekening & Kartu','Semua rekening, e-wallet dan kartu kredit yang kamu punya.','+ Rekening','openAccountForm()',
     accounts.map(a=>setRow(esc(a.name),`${esc((ACC_TYPES[a.type]||ACC_TYPES.bank).label)} · ${fmt(a.balance)}`,`openAccountForm('${a.id}')`,`deleteAccount('${a.id}')`)),
     'Belum ada rekening. Tambahkan rekening tempat gaji masuk terlebih dulu.')}

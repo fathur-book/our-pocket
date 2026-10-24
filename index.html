@@ -10,8 +10,21 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)" />
-<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+<meta name="theme-color" id="themeColor" content="#f2f2f7" />
+<script>/* Theme before the first paint: the choice saved on this device (Pengaturan → Tampilan), else the system setting. */
+(function(){
+  var t=null, root=document.documentElement, sys=matchMedia('(prefers-color-scheme: dark)');
+  try{ t=localStorage.getItem('fp-theme'); }catch(e){}
+  function apply(){
+    var dark=t==='dark'||(t!=='light'&&sys.matches); root.dataset.theme=dark?'dark':'light';
+    var m=document.getElementById('themeColor'); if(m) m.content=dark?'#000000':'#f2f2f7';
+  }
+  apply(); document.addEventListener('DOMContentLoaded',apply);
+  if(sys.addEventListener) sys.addEventListener('change',apply);
+  window.getTheme=function(){ return t==='light'||t==='dark'?t:'auto'; };
+  window.setTheme=function(v){ t=v==='light'||v==='dark'?v:null; try{ t?localStorage.setItem('fp-theme',t):localStorage.removeItem('fp-theme'); }catch(e){} apply(); };
+})();
+</script>
 <title>FlowPocket — Clarity-First Finance</title>
 
 <!-- Third-party code is pinned and hash-checked: if a CDN ever serves a modified file, the browser refuses to run it. -->
@@ -41,8 +54,7 @@
   --gap:24px; --pad:24px; /* section gap and card padding; 16px on phones */
   color-scheme: light;
 }
-@media (prefers-color-scheme: dark){
-  :root{
+:root[data-theme="dark"]{
     --bg:#000000; --surface:#1c1c1e; --surface2:#2c2c2e; --border:#38383a; --border2:#48484a;
     --text:#f5f5f7; --muted:#98989d; --muted2:#98989d;
     /* --dark is the "ink" fill (hero, date boxes). Its light value is near the dark-mode page, so raise it here. */
@@ -60,14 +72,13 @@
     --rose-bg:#88133733; --rose-border:#9f1239; --rose-text:#fda4af;
     --c-food:#fb8a66; --c-coffee:#d9a06b; --c-transport:#79a6f7; --c-util:#45c4da; --c-subs:#ad8ff7; --c-shop:#f286b6; --c-income:#34d399;
     color-scheme: dark;
-  }
 }
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){ :root{--glass-bg:var(--surface);--glass-blur:none} }
 @media (prefers-reduced-transparency: reduce){ :root{--glass-bg:var(--surface);--glass-blur:none} }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(60vmax 50vmax at 0% 0%,rgba(52,199,89,.07),transparent 70%),radial-gradient(60vmax 50vmax at 100% 100%,rgba(10,132,255,.07),transparent 70%)}
-@media (prefers-color-scheme: dark){ body::before{background:radial-gradient(60vmax 50vmax at 0% 0%,rgba(52,199,89,.10),transparent 70%),radial-gradient(60vmax 50vmax at 100% 100%,rgba(10,132,255,.10),transparent 70%)} }
+:root[data-theme="dark"] body::before{background:radial-gradient(60vmax 50vmax at 0% 0%,rgba(52,199,89,.10),transparent 70%),radial-gradient(60vmax 50vmax at 100% 100%,rgba(10,132,255,.10),transparent 70%)}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;font-size:15px;line-height:1.5;font-variant-numeric:tabular-nums;background:var(--bg);color:var(--text);padding-bottom:96px;-webkit-font-smoothing:antialiased}
 button{font-family:inherit;cursor:pointer}
 input,select,textarea{font-family:inherit}
@@ -110,6 +121,7 @@ p{text-wrap:pretty}
 .modal-title{margin:0;font-size:16px;font-weight:700;line-height:1.3}
 .page-head h2{margin:0;font-size:24px;line-height:1.2;letter-spacing:-.025em}
 .page-head p{margin:4px 0 0;font-size:13px;color:var(--muted)}
+.page-head{display:none} /* the highlighted tab already names the page, so the title row only left an empty band */
 .grid{display:grid;gap:var(--gap)}
 /* Every view is a vertical stack of sections with one consistent gap. */
 main>section>*+*{margin-top:var(--gap)}
@@ -119,7 +131,7 @@ main>section>*+*{margin-top:var(--gap)}
 .hero{background:var(--dark);color:#fff;border:1px solid var(--dark);border-radius:24px;padding:22px;position:relative;overflow:hidden;display:flex;flex-direction:column}
 .hero-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:8px}
 .hero-head .btn-ghost-light{white-space:nowrap}
-@media(prefers-color-scheme:dark){.hero{border-color:var(--dark-border)}}
+:root[data-theme="dark"] .hero{border-color:var(--dark-border)}
 .hero .label{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8;font-weight:700}
 .hero .big{font-size:clamp(40px,7vw,76px);font-weight:700;letter-spacing:-.04em;margin:12px 0 0;line-height:.95;font-variant-numeric:tabular-nums}
 .hero .big .cur{font-size:.4em;font-weight:700;letter-spacing:0;color:#94a3b8;margin-right:.2em;vertical-align:.7em}
@@ -158,7 +170,7 @@ main>section>*+*{margin-top:var(--gap)}
 .bar{height:10px;background:var(--surface2);border:1px solid var(--border);border-radius:999px;overflow:hidden}
 .bar>i{display:block;height:100%;border-radius:999px;background:var(--emerald);transition:width .4s}
 .bar.amber>i{background:#f59e0b}.bar.dark>i{background:var(--dark)}
-@media(prefers-color-scheme:dark){.bar.dark>i{background:#e2e8f0}}
+:root[data-theme="dark"] .bar.dark>i{background:#e2e8f0}
 .bar.sm{height:7px}
 .progress-row{display:flex;justify-content:space-between;font-size:13px;font-weight:600;margin-bottom:6px}
 .badge{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid}
@@ -233,7 +245,7 @@ tr.done{background:color-mix(in srgb, var(--emerald-bg) 45%, transparent)}
 .date-box.soon{background:var(--amber-bg);color:var(--amber-text);border-color:var(--amber-border)}
 .date-box.late{background:var(--rose-bg);color:var(--rose-text);border-color:var(--rose-border)}
 .sweep{background:#064e3b;color:#fff;border-radius:22px;padding:20px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center}
-@media(prefers-color-scheme:dark){.sweep{background:#065f46}}
+:root[data-theme="dark"] .sweep{background:#065f46}
 .acc-ico{width:36px;height:36px;border-radius:10px;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .acc-sum{display:flex;flex-wrap:wrap;gap:10px 28px;padding:14px 0;border-bottom:1px solid var(--border)}
 .acc-sum span{display:block;font-size:12px;color:var(--muted);font-weight:600}
@@ -351,7 +363,9 @@ select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);backg
 .period{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
 .period-step{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700}
 .period-step span{min-width:0;text-align:center}
-.period-step .icon-btn{width:30px;height:30px;font-size:17px;line-height:1;border:1px solid var(--border);color:var(--text)}
+.period-step{flex-shrink:0}.period-step span{white-space:nowrap}
+.period-step .icon-btn{position:relative;width:30px;height:30px;padding:0;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--text)}
+.period-step .icon-btn svg{width:16px;height:16px;stroke-width:2.5}
 .period-step .icon-btn:disabled{opacity:.35;cursor:default}
 .amt-wrap{position:relative;display:block}
 .amt-wrap input{width:100%;padding-right:64px!important}
@@ -418,90 +432,115 @@ input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-an
 
 /* ================= Liquid glass =================
    A drifting colour field sits behind the app; cards, chrome and controls are glass over it.
-   Every glass surface = tint (background) + backdrop layer (::before: frost, plus edge bending in Chromium)
-   + rim (::after: specular edges and a highlight that follows the pointer).
+   Every glass surface = tint (background) + backdrop layer (::before: frost, plus edge bending in Chromium,
+   and a soft highlight at the top-left) + rim (::after: a hairline that fades along the edge).
    Edge bending: lgRefresh() gives on-screen glass a data-lgk attribute and an SVG lens filter in --lg-url
    (Chromium only; the Safari engine, including Chrome on iPhone, keeps the frost). */
 :root{
   --bg:#e9f0ed; --muted:#56565b;
-  --lg-tint:rgba(255,255,255,.34);        /* cards */
+  --lg-tint:rgba(255,255,255,.30);        /* cards */
   --lg-tint-clear:rgba(255,255,255,.16);  /* tab bar, toggles, Catat: the clearest glass */
-  --lg-tint-bead:rgba(255,255,255,.42);   /* droplets and the slider knob */
+  --lg-tint-bead:rgba(255,255,255,.42);   /* toggle droplets */
+  --lg-tint-drop:rgba(255,255,255,.05); --lg-drop-glint:rgba(255,255,255,.6); --lg-drop-glint2:rgba(255,255,255,.3); --lg-drop-edge:rgba(255,255,255,.85); --lg-drop-depth:rgba(0,40,28,.12); /* tab droplet */
   --lg-tint-bar:rgba(255,255,255,.55);    /* header */
-  --lg-tint-sheet:rgba(255,255,255,.66);  /* sheets and popups */
+  --lg-tint-sheet:rgba(255,255,255,.48);  /* sheets and popups */
+  --lg-dim:rgba(16,28,24,.16);            /* behind a sheet */
   --lg-hero:rgba(22,27,25,.66);
-  --lg-rim-hi:rgba(255,255,255,.9); --lg-rim-lo:rgba(255,255,255,.3); --lg-glow:rgba(255,255,255,.4);
+  --lg-rim-hi:rgba(255,255,255,.9); --lg-rim-lo:rgba(255,255,255,.3); --lg-glow:rgba(255,255,255,.4); --lg-sheen:rgba(255,255,255,.22);
   --lg-shadow:0 10px 30px rgba(20,40,34,.12),0 1px 2px rgba(20,40,34,.08);
   --lg-frost:blur(16px) saturate(190%) brightness(1.04);
   --lg-ink-accent:#04694a;
-  --blob1:rgba(16,185,129,.50); --blob2:rgba(34,211,238,.36); --blob3:rgba(129,140,248,.34); --blob4:rgba(250,204,21,.20);
+  --blob1:rgba(16,185,129,.62); --blob2:rgba(34,211,238,.48); --blob3:rgba(129,140,248,.46); --blob4:rgba(250,204,21,.30);
   --spring:cubic-bezier(.34,1.56,.64,1);
 }
-@media (prefers-color-scheme: dark){
-  :root{
+:root[data-theme="dark"]{
     --bg:#040807; --muted:#a1a1a6;
     --lg-tint:rgba(28,32,30,.40); --lg-tint-clear:rgba(40,46,44,.18); --lg-tint-bead:rgba(70,78,75,.28);
-    --lg-tint-bar:rgba(20,24,22,.58); --lg-tint-sheet:rgba(18,22,20,.76); --lg-hero:rgba(10,14,12,.62);
-    --lg-rim-hi:rgba(255,255,255,.4); --lg-rim-lo:rgba(255,255,255,.1); --lg-glow:rgba(255,255,255,.12);
+    --lg-tint-drop:rgba(255,255,255,.04); --lg-drop-glint:rgba(255,255,255,.22); --lg-drop-glint2:rgba(255,255,255,.1); --lg-drop-edge:rgba(255,255,255,.28); --lg-drop-depth:rgba(0,0,0,.35);
+    --lg-tint-bar:rgba(20,24,22,.58); --lg-tint-sheet:rgba(18,22,20,.5); --lg-dim:rgba(0,0,0,.22); --lg-hero:rgba(10,14,12,.62);
+    --lg-rim-hi:rgba(255,255,255,.4); --lg-rim-lo:rgba(255,255,255,.1); --lg-glow:rgba(255,255,255,.12); --lg-sheen:rgba(255,255,255,.05);
     --lg-shadow:0 12px 34px rgba(0,0,0,.5),0 1px 2px rgba(0,0,0,.4);
     --lg-ink-accent:#6ee7b7;
     --blob1:rgba(16,185,129,.42); --blob2:rgba(6,182,212,.30); --blob3:rgba(99,102,241,.34); --blob4:rgba(234,179,8,.12);
-  }
 }
 body::before{content:none}
+/* The colour field drifts on transform only (no filter), in about 8 steps a second: it moves only a few pixels a second, so each
+   step is under a pixel and looks continuous, while every blurred layer redraws 8 times a second instead of 60. It pauses while
+   you scroll (html.lg-still) and stops on slow devices (html.lg-lite). */
 .lg-backdrop{position:fixed;inset:-15%;z-index:-1;pointer-events:none;overflow:hidden}
-.lg-backdrop i{position:absolute;border-radius:50%;filter:blur(40px)}
-.lg-backdrop i:nth-child(1){width:60vmax;height:45vmax;left:-8%;top:2%;background:radial-gradient(circle,var(--blob1),transparent 68%);animation:lg-drift1 28s ease-in-out infinite alternate}
-.lg-backdrop i:nth-child(2){width:52vmax;height:40vmax;right:-10%;top:28%;background:radial-gradient(circle,var(--blob2),transparent 68%);animation:lg-drift2 33s ease-in-out infinite alternate}
-.lg-backdrop i:nth-child(3){width:64vmax;height:46vmax;left:6%;bottom:-6%;background:radial-gradient(circle,var(--blob3),transparent 68%);animation:lg-drift3 39s ease-in-out infinite alternate}
-.lg-backdrop i:nth-child(4){width:34vmax;height:26vmax;right:4%;bottom:24%;background:radial-gradient(circle,var(--blob4),transparent 70%);animation:lg-drift1 44s ease-in-out infinite alternate-reverse}
+.lg-backdrop i{position:absolute;border-radius:50%;will-change:transform}
+html.lg-still .lg-backdrop i{animation-play-state:paused}
+html.lg-lite .lg-backdrop i{animation:none}
+.lg-backdrop i:nth-child(1){width:60vmax;height:45vmax;left:-8%;top:2%;background:radial-gradient(closest-side,var(--blob1),transparent);animation:lg-drift1 28s steps(224) infinite alternate}
+.lg-backdrop i:nth-child(2){width:52vmax;height:40vmax;right:-10%;top:28%;background:radial-gradient(closest-side,var(--blob2),transparent);animation:lg-drift2 33s steps(264) infinite alternate}
+.lg-backdrop i:nth-child(3){width:64vmax;height:46vmax;left:6%;bottom:-6%;background:radial-gradient(closest-side,var(--blob3),transparent);animation:lg-drift3 39s steps(312) infinite alternate}
+.lg-backdrop i:nth-child(4){width:34vmax;height:26vmax;right:4%;bottom:24%;background:radial-gradient(closest-side,var(--blob4),transparent);animation:lg-drift1 44s steps(352) infinite alternate-reverse}
 @keyframes lg-drift1{to{transform:translate(16%,9%) scale(1.12)}}
 @keyframes lg-drift2{to{transform:translate(-18%,12%) scale(.92)}}
 @keyframes lg-drift3{to{transform:translate(10%,-14%) scale(1.08)}}
 
 /* --- the material --- */
-.card,.tx-group,.hero,nav.tabs .drop,.fab,.seg button.active,.type-grid button.active,.runway-track>b{isolation:isolate;box-shadow:var(--lg-shadow)}
+.card,.tx-group,.hero,nav.tabs .drop,.fab,.seg button.active,.type-grid button.active,.period-step .icon-btn{isolation:isolate;box-shadow:var(--lg-shadow)}
 .card,.tx-group{position:relative;background:var(--lg-tint);border-color:transparent}
 .hero{background:var(--lg-hero);border-color:transparent}
-.card::before,.tx-group::before,.hero::before,nav.tabs .drop::before,.fab::before,.seg button.active::before,.type-grid button.active::before,.runway-track>b::before{
-  content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;pointer-events:none;-webkit-backdrop-filter:var(--lg-frost);backdrop-filter:var(--lg-frost)}
-.card::after,.tx-group::after,.hero::after,header::after,nav.tabs .drop::after,.fab::after,.seg button.active::after,.type-grid button.active::after,.runway-track>b::after,.toast::after{
-  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:2;
-  box-shadow:inset 1.5px 1.5px 0 -.5px var(--lg-rim-hi),inset -1px -1px 0 -.5px var(--lg-rim-lo),inset 0 0 18px -6px var(--lg-glow);
-  background:radial-gradient(160px 110px at var(--mx,26%) var(--my,0%),var(--lg-glow),transparent 70%)}
-.hero::after{background:radial-gradient(220px 140px at var(--mx,20%) var(--my,0%),rgba(255,255,255,.10),transparent 70%)}
-/* Edge bending (Chromium): lens first, then a light frost. Bars over moving text keep more frost so labels stay readable. */
-.lens .card[data-lgk]::before,.lens .tx-group[data-lgk]::before,.lens .hero[data-lgk]::before{-webkit-backdrop-filter:var(--lg-url) blur(2.5px) saturate(185%) brightness(1.04);backdrop-filter:var(--lg-url) blur(2.5px) saturate(185%) brightness(1.04)}
-.lens nav.tabs .drop[data-lgk]::before,.lens .fab[data-lgk]::before,.lens .seg button.active[data-lgk]::before,.lens .type-grid button.active[data-lgk]::before,.lens .runway-track>b[data-lgk]::before{-webkit-backdrop-filter:var(--lg-url) blur(1.5px) saturate(190%) brightness(1.06);backdrop-filter:var(--lg-url) blur(1.5px) saturate(190%) brightness(1.06)}
-.lens header[data-lgk]::before{-webkit-backdrop-filter:var(--lg-url) blur(10px) saturate(190%);backdrop-filter:var(--lg-url) blur(10px) saturate(190%)}
+/* backdrop layer: a soft fixed highlight at the top-left (under the content, so text stays crisp), plus frost on the
+   floating pieces. Cards get no live blur: only the soft colour field is behind them, so a tint looks the same and scrolls far cheaper. */
+.card::before,.tx-group::before,.hero::before{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;pointer-events:none;
+  background:radial-gradient(220px 150px at var(--mx,22%) var(--my,0%),var(--lg-glow),transparent 70%),linear-gradient(160deg,var(--lg-sheen),transparent 45%)}
+/* frost grain: a static noise texture, drawn once, so cards read as frosted glass without a live blur */
+.card,.tx-group,.hero{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .32 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:160px;background-blend-mode:overlay}
+nav.tabs .drop::before,.fab::before,.seg button.active::before,.type-grid button.active::before,.period-step .icon-btn::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;pointer-events:none;-webkit-backdrop-filter:var(--lg-frost);backdrop-filter:var(--lg-frost);
+  background:radial-gradient(220px 150px at var(--mx,22%) var(--my,0%),var(--lg-glow),transparent 70%)}
+.hero::before{background:radial-gradient(280px 170px at var(--mx,20%) var(--my,0%),rgba(255,255,255,.07),transparent 70%),linear-gradient(160deg,rgba(255,255,255,.06),transparent 45%)}
+/* rim: a hairline that is brightest at the top-left corner, fades out along the sides and comes back faintly at the bottom-right */
+.card::after,.tx-group::after,.hero::after,nav.tabs .drop::after,.fab::after,.seg button.active::after,.type-grid button.active::after,.period-step .icon-btn::after,.toast::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:2;padding:1px;background:linear-gradient(155deg,var(--lg-rim-hi),transparent 34%,transparent 66%,var(--lg-rim-lo));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
+/* Edge bending (Chromium): lens first, then a light frost, on the small floating controls. */
+.lens .fab[data-lgk]::before,.lens .period-step .icon-btn[data-lgk]::before,.lens .seg button.active[data-lgk]::before,.lens .type-grid button.active[data-lgk]::before{-webkit-backdrop-filter:var(--lg-url) blur(1.5px) saturate(190%) brightness(1.06);backdrop-filter:var(--lg-url) blur(1.5px) saturate(190%) brightness(1.06)}
+/* while the droplet slides it uses plain frost: re-running the lens every frame would stutter */
+.lens nav.tabs .drop[data-lgk]::before{-webkit-backdrop-filter:var(--lg-url) saturate(170%);backdrop-filter:var(--lg-url) saturate(170%)}
+.lens nav.tabs .drop.moving[data-lgk]::before{-webkit-backdrop-filter:saturate(170%);backdrop-filter:saturate(170%)}
 
 /* header and sheets: glass with enough tint for text */
 header::before{background:var(--lg-tint-bar);box-shadow:none}
-header::after{border-radius:0;box-shadow:inset 0 -1px 0 var(--lg-rim-lo),inset 0 1px 0 var(--lg-rim-lo);background:none}
-.modal{background:var(--lg-tint-sheet);box-shadow:var(--lg-shadow),inset 1.5px 1.5px 0 -.5px var(--lg-rim-hi),inset -1px -1px 0 -.5px var(--lg-rim-lo)}
+header::after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 -1px 0 var(--lg-rim-lo)}
+.modal{background:var(--lg-tint-sheet);box-shadow:var(--lg-shadow),inset 0 1px 0 var(--lg-rim-hi)}
+.modal-back{background:var(--lg-dim);-webkit-backdrop-filter:blur(12px) saturate(160%);backdrop-filter:blur(12px) saturate(160%)}
+.modal .field input,.modal .field select,.modal .field textarea{background:color-mix(in srgb,var(--surface) 55%,transparent)}
 .toast{background:var(--lg-tint-bar)}
-.toast::after{background:none}
 .tx-group-head{background:color-mix(in srgb,var(--surface2) 35%,transparent)}
 
 /* tab bar: the clearest glass, with a liquid droplet that slides to the active tab */
 @media(min-width:561px){nav.tabs{position:relative}} /* phone: stays fixed at the bottom */
 nav.tabs .drop{position:absolute;z-index:0;top:0;left:0;width:0;height:0;border-radius:999px;background:var(--lg-tint-bead);opacity:0;pointer-events:none;
-  transition:transform .55s var(--spring),width .55s var(--spring),height .3s,opacity .2s}
+  transition:opacity .2s;box-shadow:0 2px 10px rgba(0,0,0,.10)}
 nav.tabs .drop.on{opacity:1}
-nav.tabs .drop{box-shadow:0 2px 10px rgba(0,0,0,.10)}
-nav.tabs .drop.stretch{animation:lg-stretch .55s ease}
-@keyframes lg-stretch{40%{scale:1.28 .88}}
 nav.tabs button{position:relative;z-index:1}
 nav.tabs button.active,nav.tabs button.active:hover{background:transparent!important;box-shadow:none}
+/* the droplet is a clear lens, not frost: no blur, a little brighter and more saturated than the bar, with wet highlights */
+nav.tabs .drop{background:var(--lg-tint-drop);box-shadow:0 6px 16px -4px rgba(0,0,0,.2),0 1px 3px rgba(0,0,0,.08)}
+nav.tabs .drop::before{-webkit-backdrop-filter:saturate(170%);backdrop-filter:saturate(170%);background:none}
+nav.tabs .drop::after{padding:0;-webkit-mask:none;mask:none;
+  background:radial-gradient(42% 34% at 30% 0%,var(--lg-drop-glint),transparent 75%),radial-gradient(36% 30% at 72% 100%,var(--lg-drop-glint2),transparent 75%);
+  box-shadow:inset 0 0 0 1px var(--lg-drop-edge),inset 0 1.5px 1px -.5px var(--lg-rim-hi),inset 0 0 9px -2px var(--lg-drop-depth),inset 0 -2px 3px -1px var(--lg-drop-glint2)}
+/* the label under the droplet is magnified a touch, as if seen through it */
+nav.tabs button>*{transition:transform .5s var(--spring)}
+nav.tabs button.active>*{transform:scale(1.08)}
 @media(max-width:560px){
   nav.tabs{background:var(--lg-tint-clear)!important;box-shadow:var(--lg-shadow)!important;-webkit-backdrop-filter:blur(16px) saturate(200%) brightness(1.05);backdrop-filter:blur(16px) saturate(200%) brightness(1.05)}
-  .lens nav.tabs[data-lgk]{-webkit-backdrop-filter:var(--lg-url) blur(14px) saturate(200%) brightness(1.05);backdrop-filter:var(--lg-url) blur(14px) saturate(200%) brightness(1.05)}
   /* the bar is the droplet's backdrop root, so there is nothing for its lens to bend: plain frost */
-  .lens nav.tabs .drop[data-lgk]::before{-webkit-backdrop-filter:blur(2px) saturate(160%) brightness(1.08);backdrop-filter:blur(2px) saturate(160%) brightness(1.08)}
-  nav.tabs::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:2;box-shadow:inset 1.5px 1.5px 0 -.5px var(--lg-rim-hi),inset -1px -1px 0 -.5px var(--lg-rim-lo),inset 0 0 18px -6px var(--lg-glow)}
+  .lens nav.tabs .drop[data-lgk]::before{-webkit-backdrop-filter:saturate(170%);backdrop-filter:saturate(170%)}
+  nav.tabs::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:2;padding:1px;background:linear-gradient(155deg,var(--lg-rim-hi),transparent 34%,transparent 66%,var(--lg-rim-lo));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
   nav.tabs button{color:var(--text)}
   nav.tabs button.active{color:var(--lg-ink-accent)}
 }
+
+/* month arrows: small clear-glass buttons */
+.period-step .icon-btn{background:var(--lg-tint-clear);transition:transform .45s var(--spring)}
+.period-step .icon-btn:hover:not(:disabled){background:var(--lg-tint-bead);color:var(--text)}
+.period-step .icon-btn:active:not(:disabled){transform:scale(1.1)}
+.period-step .icon-btn:disabled{box-shadow:none;opacity:.35}
 
 /* Catat: clear glass with an emerald label instead of a solid green pill */
 .fab{background:var(--lg-tint-clear);color:var(--lg-ink-accent);box-shadow:var(--lg-shadow);transition:transform .45s var(--spring)}
@@ -517,13 +556,11 @@ nav.tabs button.active,nav.tabs button.active:hover{background:transparent!impor
 .seg button,.type-grid button{transition:transform .45s var(--spring),color .2s}
 .seg button:active,.type-grid button:active{transform:scale(1.05)}
 
-/* liquid bars: a glass groove, a glossy fill, and a glass bead on the payday slider */
-.bar,.runway-track,.alloc-bar{position:relative;border-color:transparent;box-shadow:inset 0 1px 2px rgba(0,0,0,.14),inset 0 -1px 0 var(--lg-rim-lo)}
-.bar{background:color-mix(in srgb,var(--fill) 70%,transparent)}
-.bar::after,.alloc-bar::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.45),rgba(255,255,255,.08) 48%,rgba(0,0,0,.06))}
-.bar>i,.runway-track>i,.alloc-bar>i{box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -1px 1px rgba(0,0,0,.18)}
-.runway-track{height:8px}
-.runway-track>b{width:22px;height:22px;margin:-11px 0 0 -11px;border:0;background:var(--lg-tint-bead)}
+/* bars: a thin see-through track, a solid fill and a plain white thumb (iOS-style); the glass stays on the surfaces */
+.bar{height:8px;background:color-mix(in srgb,var(--fill) 75%,transparent);border-color:transparent}
+.runway-track{background:rgba(255,255,255,.14)}
+.runway-track>i{background:rgba(255,255,255,.34)}
+.runway-track>b{width:18px;height:18px;margin:-9px 0 0 -9px;border:0;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.35),0 0 0 .5px rgba(0,0,0,.08)}
 
 /* press and spring */
 .btn{transition:background-color .2s var(--ease),color .2s var(--ease),transform .45s var(--spring)}
@@ -535,8 +572,9 @@ nav.tabs button.active,nav.tabs button.active:hover{background:transparent!impor
 @media (prefers-reduced-transparency: reduce){
   .lg-backdrop{display:none}
   .card,.tx-group,.modal,.toast{background:var(--surface)} .hero{background:var(--dark)} header::before{background:var(--surface)}
-  .fab,nav.tabs .drop,.seg button.active,.type-grid button.active,.runway-track>b{background:var(--surface)}
-  .card::before,.tx-group::before,.hero::before,nav.tabs .drop::before,.fab::before,.seg button.active::before,.type-grid button.active::before,.runway-track>b::before{display:none}
+  .fab,nav.tabs .drop,.seg button.active,.type-grid button.active{background:var(--surface)}
+  .modal .field input,.modal .field select,.modal .field textarea{background:var(--surface)}
+  .card::before,.tx-group::before,.hero::before,nav.tabs .drop::before,.fab::before,.seg button.active::before,.type-grid button.active::before{display:none}
   @media(max-width:560px){ nav.tabs{background:var(--surface)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important} }
 }
 </style>
@@ -967,7 +1005,7 @@ function pockById(id){ return pockets.find(p=>p.id===id); }
    (Chrome on iPhone is WebKit and keeps the frost). Filters are keyed by size, so the cards render()
    rebuilds on every tap reuse them, and only glass near the screen gets one. */
 const LG_RGB=['1 0 0 0 0 0 0 0 0 0 0 0 0 0 0','0 0 0 0 0 0 1 0 0 0 0 0 0 0 0','0 0 0 0 0 0 0 0 0 0 0 0 1 0 0']; // keep one channel each
-const LG_SEL='.card,.tx-group,.hero,nav.tabs .drop,.fab,.seg button.active,.type-grid button.active,.runway-track>b';
+const LG_SEL='nav.tabs .drop,.fab,.seg button.active,.type-grid button.active,.period-step .icon-btn';
 var LG={ on:navigator.vendor==='Google Inc.'&&!!window.CSS&&CSS.supports('backdrop-filter','url(#x) blur(1px)')&&!matchMedia('(prefers-reduced-transparency: reduce)').matches,
   filters:new Map(), raf:0, tab:null };
 if(LG.on) document.documentElement.classList.add('lens');
@@ -989,53 +1027,108 @@ function lgMap(w,h,r,bezel){
   ctx.putImageData(img,0,0); return c.toDataURL();
 }
 function lgFilter(w,h,r,bezel,scale){
-  const id=`lgk${w}-${h}-${r}`, f=LG.filters.get(id);
+  const id=`lgk${w}-${h}-${r}-${Math.round(scale)}`, f=LG.filters.get(id);
   if(f){ LG.filters.delete(id); LG.filters.set(id,f); return id; } // most recently used last
   const el=document.createElementNS('http://www.w3.org/2000/svg','filter');
   el.id=id; el.setAttribute('x',0); el.setAttribute('y',0); el.setAttribute('width',w); el.setAttribute('height',h);
   el.setAttribute('filterUnits','userSpaceOnUse'); el.setAttribute('color-interpolation-filters','sRGB');
   // each colour channel bends a touch more than the last: a faint chromatic fringe at the rim
   el.innerHTML=`<feImage href="${lgMap(w,h,r,bezel)}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="none" result="m"/>`
-    +[1,1.03,1.06].map((k,j)=>`<feDisplacementMap in="SourceGraphic" in2="m" scale="${(scale*k).toFixed(1)}" xChannelSelector="R" yChannelSelector="G" result="d${j}"/>`
+    +[1,1.02,1.04].map((k,j)=>`<feDisplacementMap in="SourceGraphic" in2="m" scale="${(scale*k).toFixed(1)}" xChannelSelector="R" yChannelSelector="G" result="d${j}"/>`
       +`<feColorMatrix in="d${j}" type="matrix" values="${LG_RGB[j]} 0 0 0 1 0" result="c${j}"/>`).join('')
     +'<feBlend in="c0" in2="c1" mode="screen" result="c01"/><feBlend in="c01" in2="c2" mode="screen"/>';
   document.getElementById('lgDefs').appendChild(el); LG.filters.set(id,el);
   if(LG.filters.size>80){ const [old,oe]=LG.filters.entries().next().value; oe.remove(); LG.filters.delete(old); }
   return id;
 }
-function lgLens(el,soft){
+function lgLens(el){
   const w=Math.round(el.offsetWidth), h=Math.round(el.offsetHeight); if(!w||!h) return;
-  if(h>1400||w*h>1.5e6){ delete el.dataset.lgk; return; } // a long list group keeps the frost: its map would be huge
+  if(h>1400||w*h>1.5e6){ delete el.dataset.lgk; return; } // safety: a huge element would need a huge map
   const r=Math.round(Math.min(parseFloat(getComputedStyle(el).borderTopLeftRadius)||0,h/2,w/2));
-  const bezel=Math.max(8,Math.min(soft?14:26,Math.min(w,h)*.35)), id=lgFilter(w,h,r,bezel,Math.min(56,bezel*2.2));
+  const bezel=Math.max(8,Math.min(26,Math.min(w,h)*.35)), id=lgFilter(w,h,r,bezel,Math.min(56,bezel*2.2));
   if(el.dataset.lgk!==id||!el.style.getPropertyValue('--lg-url')){ el.dataset.lgk=id; el.style.setProperty('--lg-url',`url(#${id})`); }
 }
-function lgDrop(){
-  const nav=document.querySelector('nav.tabs'), drop=nav&&nav.querySelector('.drop'), b=nav&&nav.querySelector('button.active');
-  if(!drop||!b||!b.offsetWidth){ if(drop) drop.classList.remove('on'); return; }
-  const first=!drop.classList.contains('on');
-  if(first) drop.style.transition='none';
-  drop.style.width=b.offsetWidth+'px'; drop.style.height=b.offsetHeight+'px';
-  drop.style.transform=`translate(${b.offsetLeft}px,${b.offsetTop}px)`;
-  if(first){ void drop.offsetWidth; drop.style.transition=''; drop.classList.add('on'); }
-  else if(LG.tab&&LG.tab!==b.dataset.tab){ drop.classList.remove('stretch'); void drop.offsetWidth; drop.classList.add('stretch'); }
-  LG.tab=b.dataset.tab;
+/* The droplet moves like liquid: its leading edge springs ahead and its trailing edge follows on a softer
+   spring, so it stretches out in flight, thins as it stretches, lifts a little, squishes against the end of
+   the bar instead of passing it, and lands with a small wobble. The edges are sampled into keyframes on
+   `translate` and `scale` only, so the motion stays smooth while a tab is built. */
+function lgSpringAt(t,z,w){ const wd=w*Math.sqrt(1-z*z); return 1-Math.exp(-z*w*t)*(Math.cos(wd*t)+z*w/wd*Math.sin(wd*t)); }
+function lgDrop(target){
+  const nav=document.querySelector('nav.tabs'), drop=nav&&nav.querySelector('.drop'), b=target||(nav&&nav.querySelector('button.active'));
+  if(!drop||!b||!b.offsetWidth){ if(drop) drop.classList.remove('on'); LG.box=null; return; }
+  // position with `translate` and size with `scale`: CSS applies translate first, so stretching never moves the droplet
+  const x=b.offsetLeft, y=b.offsetTop, w=b.offsetWidth, h=b.offsetHeight, from=LG.box, at=(px,py)=>`${px}px ${py}px`;
+  if(!from||from.x!==x||from.y!==y||from.w!==w||from.h!==h){ drop.style.width=w+'px'; drop.style.height=h+'px'; drop.style.translate=at(x,y); }
+  if(from&&LG.tab!==b.dataset.tab&&drop.classList.contains('on')&&drop.animate&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
+    const W=nav.clientWidth, right=x>from.x, N=48, kf=[];
+    const soft=(v,goal,dir)=>{ const e=(v-goal)*dir; return e>0? goal+dir*13*Math.tanh(e/13) : v; }; // overshoot eases out, at most ~13px
+    for(let i=0;i<=N;i++){
+      const t=i/N, lead=lgSpringAt(t,.38,17), trail=lgSpringAt(t,.55,11.5);
+      let L=from.x+(x-from.x)*(right?trail:lead), R=from.x+from.w+(x+w-from.x-from.w)*(right?lead:trail);
+      L=soft(L,x,right?1:-1); R=soft(R,x+w,right?1:-1);
+      L=Math.max(2,L); R=Math.min(W-2,R); // squish against the ends of the bar
+      const ew=from.w+(w-from.w)*Math.min(1,t*1.5), eh=from.h+(h-from.h)*Math.min(1,t*1.5);
+      const maxW=Math.max(from.w,w)*2, minW=Math.min(from.w,w)*.7;
+      if(R-L>maxW){ if(right) L=R-maxW; else R=L+maxW; }
+      if(R-L<minW){ const m=(L+R)/2; L=m-minW/2; R=m+minW/2; }
+      const width=R-L, lift=1+.1*Math.sin(Math.PI*Math.min(1,t/.65)), sy=Math.min(1.2,Math.max(.72,Math.sqrt(ew/width)))*lift;
+      kf.push(i===N? {translate:at(x,y),scale:'1 1',offset:1} : {translate:at(L+width/2-w/2,y),scale:`${width/w} ${sy*eh/h}`,offset:t});
+    }
+    (LG.anim||[]).forEach(a=>a.cancel());
+    drop.classList.add('moving'); LG.busy=performance.now()+800;
+    LG.anim=[drop.animate(kf,{duration:780})];
+    LG.anim[0].onfinish=LG.anim[0].oncancel=()=>drop.classList.remove('moving');
+  }
+  drop.classList.add('on');
+  LG.tab=b.dataset.tab; LG.box={x,y,w,h};
 }
+/* Start the glide as the finger lands, before the tab is built; if no tap follows, it glides back. */
+document.addEventListener('pointerdown',e=>{
+  const b=e.target.closest&&e.target.closest('nav.tabs button'); if(!b||e.button) return;
+  const drop=b.parentNode.querySelector('.drop');
+  if(b.dataset.tab===LG.tab&&drop&&drop.animate&&!(LG.anim||[]).some(a=>a.playState==='running')&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
+    LG.anim=[drop.animate([['1 1',0],['1.14 .86',.18],['.93 1.08',.42],['1.04 .97',.66],['1 1',1]].map(([scale,offset])=>({scale,offset,easing:'cubic-bezier(.45,0,.55,1)'})),{duration:620})]; // jelly
+    return;
+  }
+  lgDrop(b); clearTimeout(LG.back); LG.back=setTimeout(lgSchedule,900);
+},{passive:true});
 function lgRefresh(){
   LG.raf=0; lgDrop(); if(!LG.on) return;
+  // new lens maps wait until the droplet has landed, so building them never stalls its first frames
+  const wait=(LG.busy||0)-performance.now(); if(wait>0){ clearTimeout(LG.later); LG.later=setTimeout(lgSchedule,wait+20); return; }
   const vh=innerHeight, near=el=>{ const r=el.getBoundingClientRect(); return r.bottom>-200&&r.top<vh+200&&r.width>0; };
-  document.querySelectorAll(LG_SEL).forEach(el=>{ if(near(el)) lgLens(el, el.matches('.card,.tx-group,.hero')&&el.offsetHeight>240); });
-  const hd=document.querySelector('header'); if(hd&&hd.offsetWidth) lgLens(hd,true);
-  const nav=document.querySelector('nav.tabs'); if(nav&&innerWidth<=560) lgLens(nav);
+  document.querySelectorAll(LG_SEL).forEach(el=>{ if(near(el)) lgLens(el); });
 }
 function lgSchedule(){ if(LG&&!LG.raf) LG.raf=requestAnimationFrame(lgRefresh); }
-addEventListener('resize',lgSchedule); addEventListener('scroll',lgSchedule,{capture:true,passive:true});
+addEventListener('resize',lgSchedule);
+// while scrolling nothing needs re-measuring; refresh once it settles
+// while scrolling: pause the colour field and skip re-measuring; both resume once it settles
+addEventListener('scroll',()=>{
+  if(!LG.still){ LG.still=true; document.documentElement.classList.add('lg-still'); }
+  clearTimeout(LG.scrollT);
+  LG.scrollT=setTimeout(()=>{ LG.still=false; document.documentElement.classList.remove('lg-still'); lgSchedule(); },220);
+},{capture:true,passive:true});
+/* Slow device? Watch frame times for two seconds after load; if they are mostly slow (under ~42 fps, which also
+   catches iPhone Low Power Mode) the colour field stops drifting on this device. */
+function lgWatchFrames(ms,done){
+  const gaps=[]; let last=0, end=0;
+  const tick=t=>{ if(last) gaps.push(t-last); last=t; if(!end) end=t+ms; if(t<end) requestAnimationFrame(tick); else done(gaps); };
+  requestAnimationFrame(tick);
+}
+setTimeout(()=>{ if(document.hidden) return; lgWatchFrames(2000,g=>{
+  const slow=g.filter(x=>x>24).length; if(g.length&&slow/g.length>.5) document.documentElement.classList.add('lg-lite');
+}); },1500);
+/* ?fps on the address shows a small live frame meter, for checking smoothness on a phone without DevTools. */
+if(/[?&]fps\b/.test(location.search)) addEventListener('load',()=>{
+  const m=document.createElement('div');
+  m.style.cssText='position:fixed;left:8px;top:calc(8px + env(safe-area-inset-top));z-index:99;padding:4px 8px;border-radius:8px;background:rgba(0,0,0,.72);color:#fff;font:600 12px/1.3 ui-monospace,monospace;pointer-events:none;white-space:pre';
+  document.body.appendChild(m);
+  (function loop(){ lgWatchFrames(1000,g=>{
+    const fps=Math.round(g.length*1000/Math.max(1,g.reduce((a,b)=>a+b,0))), worst=Math.round(Math.max(0,...g));
+    m.textContent=`${fps} fps · worst ${worst} ms${document.documentElement.classList.contains('lg-lite')?' · lite':''}`; loop();
+  }); })();
+});
 document.addEventListener('click',lgSchedule,true); // toggles that change without a re-render
-document.addEventListener('pointermove',e=>{
-  if(e.pointerType!=='mouse') return; const g=e.target.closest&&e.target.closest(LG_SEL); if(!g) return;
-  const r=g.getBoundingClientRect();
-  g.style.setProperty('--mx',((e.clientX-r.left)/r.width*100).toFixed(1)+'%'); g.style.setProperty('--my',((e.clientY-r.top)/r.height*100).toFixed(1)+'%');
-},{passive:true});
 function refreshIcons(){ if(window.lucide) lucide.createIcons(); lgSchedule(); }
 
 let toastTimer=null, toastUndoFn=null;
@@ -1096,7 +1189,7 @@ function periodRange(p){
 function periodPicker(key,p,withAll){
   const r=periodRange(p), kinds=[...(withAll?[['all','Semua']]:[]),['month','Bulan'],['week','Minggu']];
   return `<div class="period"><div class="seg">${kinds.map(([k,l])=>`<button class="${p.kind===k?'active':''}" onclick="setPeriod('${key}','${k}')">${l}</button>`).join('')}</div>
-  ${p.kind==='all'?'':`<div class="period-step"><button class="icon-btn" aria-label="Sebelumnya" onclick="stepPeriod('${key}',-1)">‹</button><span>${r.label}</span><button class="icon-btn" aria-label="Berikutnya" onclick="stepPeriod('${key}',1)" ${p.offset>=0?'disabled':''}>›</button></div>`}</div>`;
+  ${p.kind==='all'?'':`<div class="period-step"><button class="icon-btn" aria-label="Sebelumnya" onclick="stepPeriod('${key}',-1)"><i data-lucide="chevron-left"></i></button><span>${r.label}</span><button class="icon-btn" aria-label="Berikutnya" onclick="stepPeriod('${key}',1)" ${p.offset>=0?'disabled':''}><i data-lucide="chevron-right"></i></button></div>`}</div>`;
 }
 let dashPeriod={kind:'month',offset:0}, txPeriod={kind:'all',offset:0};
 function setPeriod(key,kind){ const p={kind,offset:0}; if(key==='dashPeriod') dashPeriod=p; else txPeriod=p; render(); }
@@ -2187,6 +2280,8 @@ const setRow=(main,meta,editFn,delFn)=>`<div class="set-row"><div style="min-wid
 function renderSettings(){
   document.getElementById('view-settings').innerHTML=`<div class="set-grid">
   <div class="card wide"><div class="set-head"><div><h3>Gajian</h3><p class="sub">Safe-to-Spend menyisihkan kebutuhan sampai tanggal ini.</p></div><button class="btn btn-sm" onclick="openPaydayModal()">Ubah</button></div><p style="margin:0;font-size:14px">Setiap tanggal <strong>${settings.payday}</strong></p></div>
+  <div class="card wide"><div class="set-head"><div><h3>Tampilan</h3><p class="sub">Tema terang atau gelap. Otomatis mengikuti pengaturan perangkat.</p></div></div>
+    <div class="seg" role="group" aria-label="Tema" style="flex-wrap:nowrap">${[['auto','Otomatis'],['light','Terang'],['dark','Gelap']].map(([v,l])=>`<button class="${getTheme()===v?'active':''}" aria-pressed="${getTheme()===v}" onclick="setTheme('${v}');renderSettings();refreshIcons()">${l}</button>`).join('')}</div></div>
   ${settingsList('Rekening & Kartu','Semua rekening, e-wallet dan kartu kredit yang kamu punya.','+ Rekening','openAccountForm()',
     accounts.map(a=>setRow(esc(a.name),`${esc((ACC_TYPES[a.type]||ACC_TYPES.bank).label)} · ${fmt(a.balance)}`,`openAccountForm('${a.id}')`,`deleteAccount('${a.id}')`)),
     'Belum ada rekening. Tambahkan rekening tempat gaji masuk terlebih dulu.')}

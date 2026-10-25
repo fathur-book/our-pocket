@@ -599,6 +599,15 @@ nav.tabs button.active>*{transform:scale(1.08)}
   .card::before,.tx-group::before,.hero::before,nav.tabs .drop::before,.fab::before,.seg button.active::before,.type-grid button.active::before{display:none}
   @media(max-width:560px){ nav.tabs{background:var(--surface)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important} }
 }
+/* Trip planner: postcard covers in the blob palette, plan & packing rows */
+.trip-cover{border-radius:var(--r-lg);padding:20px;color:#fff;background:linear-gradient(120deg,#059669,#0891b2 55%,#6366f1);position:relative;overflow:hidden;text-align:left}
+.trip-cover::after{content:"";position:absolute;inset:0;background:radial-gradient(300px 160px at 85% 0%,rgba(255,255,255,.35),transparent 70%);pointer-events:none}
+.trip-cover h3{color:#fff;margin:0}
+.chip-light{background:rgba(255,255,255,.22);color:#fff;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap;flex-shrink:0}
+.plan-row,.pack-row{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--border)}
+.plan-time{font-weight:700;font-size:13px;min-width:44px;color:var(--emerald-text)}
+.pack-row input[type=checkbox]{width:20px;height:20px;accent-color:#10b981;flex-shrink:0;margin:0}
+.pack-done{opacity:.55;text-decoration:line-through}
 </style>
 </head>
 <body>
@@ -629,6 +638,7 @@ nav.tabs button.active>*{transform:scale(1.08)}
       <button data-tab="dashboard" title="Ringkasan" class="active"><i data-lucide="layers"></i><span class="tl">Ringkasan</span><span class="ts">Ringkasan</span></button>
       <button data-tab="essentials" title="Belanja &amp; Tagihan"><i data-lucide="shopping-cart"></i><span class="tl">Belanja &amp; Tagihan</span><span class="ts">Belanja</span></button>
       <button data-tab="pockets" title="Tabungan"><i data-lucide="shield-check"></i><span class="tl">Tabungan</span><span class="ts">Tabungan</span></button>
+      <button data-tab="trips" title="Trip"><i data-lucide="plane"></i><span class="tl">Trip</span><span class="ts">Trip</span></button>
       <button data-tab="activity" title="Riwayat"><i data-lucide="calendar"></i><span class="tl">Riwayat</span><span class="ts">Riwayat</span></button>
       <button data-tab="settings" title="Pengaturan"><i data-lucide="settings"></i><span class="tl">Pengaturan</span><span class="ts">Atur</span></button>
     </nav>
@@ -652,6 +662,7 @@ nav.tabs button.active>*{transform:scale(1.08)}
   <section id="view-dashboard"></section>
   <section id="view-essentials" class="hidden"></section>
   <section id="view-pockets" class="hidden"></section>
+  <section id="view-trips" class="hidden"></section>
   <section id="view-activity" class="hidden"></section>
   <section id="view-settings" class="hidden"></section>
 </main>
@@ -675,6 +686,7 @@ const categories=[
 {id:'cat_freelance',tone:'income',name:'Sampingan & Dividen',type:'income',icon:'trending-up'},
 {id:'cat_opening',tone:'income',name:'Saldo awal',type:'income',icon:'wallet'}];
 let essentials=[];
+let trips=[]; // Trip planner data: each trip carries its own itinerary, expenses and packing list
 let pockets=[];
 let recurringItems=[];
 let transactions=[];
@@ -815,6 +827,10 @@ function isValidState(s){
   if(s.settings&&s.settings.budgets!=null&&!(typeof s.settings.budgets==='object'&&!Array.isArray(s.settings.budgets)&&Object.entries(s.settings.budgets).every(([k,v])=>okId(k)&&num(v)&&v>=0))) return false;
   if(s.settings&&s.settings.essPlan!=null){ const ep=s.settings.essPlan; if(!(typeof ep==='object'&&str(ep.cycle)&&/^\d{4}-\d{2}-\d{2}$/.test(ep.cycle)&&(ep.skip==null||typeof ep.skip==='boolean')&&(ep.qty==null||(typeof ep.qty==='object'&&!Array.isArray(ep.qty)&&Object.entries(ep.qty).every(([k,v])=>okId(k)&&Number.isInteger(v)&&v>=0&&v<=99))))) return false; }
   if(s.settings&&s.settings.setupSkip!=null&&!(Array.isArray(s.settings.setupSkip)&&s.settings.setupSkip.every(okId))) return false;
+  if(s.trips!=null&&!(Array.isArray(s.trips)&&s.trips.every(t=>t&&okId(t.id)&&str(t.name)&&str(t.start)&&/^\d{4}-\d{2}-\d{2}$/.test(t.start)&&str(t.end)&&/^\d{4}-\d{2}-\d{2}$/.test(t.end)&&num(t.budget)&&t.budget>=0&&optStr(t.notes)
+    &&Array.isArray(t.itinerary)&&t.itinerary.every(p=>p&&okId(p.id)&&str(p.date)&&/^\d{4}-\d{2}-\d{2}$/.test(p.date)&&optStr(p.time)&&str(p.title)&&optStr(p.note))
+    &&Array.isArray(t.expenses)&&t.expenses.every(x=>x&&okId(x.id)&&str(x.title)&&optId(x.categoryId)&&num(x.amount)&&x.amount>=0)
+    &&Array.isArray(t.packing)&&t.packing.every(k=>k&&okId(k.id)&&str(k.name)&&typeof k.done==='boolean')))) return false;
   const okMoves=m=>m==null||(Array.isArray(m)&&m.every(x=>x&&okId(x.id)&&num(x.amount)));
   return s.accounts.every(a=>okId(a.id)&&str(a.name)&&str(a.type)&&num(a.balance)&&okId(a.icon)&&/^#[0-9a-f]{3,8}$/i.test(a.color))
     && s.pockets.every(p=>okId(p.id)&&str(p.name)&&optStr(p.description)&&optStr(p.targetDate)&&okId(p.icon)&&num(p.currentAmount)&&p.currentAmount>=0&&num(p.targetAmount)&&p.targetAmount>0&&num(p.monthlyHint))
@@ -822,14 +838,14 @@ function isValidState(s){
     && s.transactions.every(t=>okId(t.id)&&str(t.title)&&optStr(t.tag)&&str(t.date)&&/^\d{4}-\d{2}-\d{2}$/.test(t.date)&&['expense','income','transfer','refund'].includes(t.type)&&num(t.amount)&&optId(t.accountId)&&optId(t.categoryId)&&optId(t.pocketId)&&optId(t.essentialId)&&optId(t.recurringId)&&optId(t.toAccountId)&&okMoves(t.moves)&&optQty(t.essentialQty)
       && (t.creditPayoff==null||(Array.isArray(t.creditPayoff)&&t.creditPayoff.every(c=>c&&okId(c.id)&&num(c.amount)))));
 }
-function applyState(s){ accounts=s.accounts; pockets=s.pockets; recurringItems=s.recurringItems; transactions=s.transactions; if(Array.isArray(s.essentials)) essentials=s.essentials; settings={...DEFAULT_SETTINGS,...(s.settings||{})}; if(s.settings&&s.settings.paydaySet==null&&(s.settings.payday!==25||s.transactions.length)) settings.paydaySet=true; }
-function snapshot(){ return JSON.parse(JSON.stringify({accounts,pockets,recurringItems,transactions,essentials,settings})); }
+function applyState(s){ accounts=s.accounts; pockets=s.pockets; recurringItems=s.recurringItems; transactions=s.transactions; if(Array.isArray(s.essentials)) essentials=s.essentials; if(Array.isArray(s.trips)) trips=s.trips; settings={...DEFAULT_SETTINGS,...(s.settings||{})}; if(s.settings&&s.settings.paydaySet==null&&(s.settings.payday!==25||s.transactions.length)) settings.paydaySet=true; }
+function snapshot(){ return JSON.parse(JSON.stringify({accounts,pockets,recurringItems,transactions,essentials,trips,settings})); }
 let saveWarned=false;
 let invalidWarned=false;
 function saveState(){ if(!STORE_KEY) return;
   // Never persist or push state the loader would refuse: one bad entry would make the whole dataset unloadable.
   if(!isValidState(JSON.parse(stateJSON()))){ if(!invalidWarned){ invalidWarned=true; toast('Ada data yang tidak valid — perubahan terakhir tidak disimpan. Urungkan atau hapus entri itu.'); } return; }
-  invalidWarned=false; scheduleCloudPush(); writeMeta(); try{ localStorage.setItem(STORE_KEY,JSON.stringify({v:1,accounts,pockets,recurringItems,transactions,essentials,settings})); }catch(e){ if(!saveWarned){ saveWarned=true; setTimeout(()=>toast('Browser ini tidak bisa menyimpan data — ekspor cadangan secara berkala.'),0); } } }
+  invalidWarned=false; scheduleCloudPush(); writeMeta(); try{ localStorage.setItem(STORE_KEY,JSON.stringify({v:1,accounts,pockets,recurringItems,transactions,essentials,trips,settings})); }catch(e){ if(!saveWarned){ saveWarned=true; setTimeout(()=>toast('Browser ini tidak bisa menyimpan data — ekspor cadangan secara berkala.'),0); } } }
 /* Returns 'rejected' when a cached copy exists but fails validation; it is kept under .bad for recovery. */
 function loadState(){ if(!STORE_KEY) return; let raw=null; try{ raw=localStorage.getItem(STORE_KEY); if(!raw) return; const s=JSON.parse(raw); if(isValidState(s)){ applyState(s); return 'loaded'; } }catch(e){}
   if(raw){ try{ if(!localStorage.getItem(STORE_KEY+'.bad')) localStorage.setItem(STORE_KEY+'.bad',raw); }catch(e){} return 'rejected'; } }
@@ -845,7 +861,7 @@ const SB_URL='https://jmzirikqbslkamferwfd.supabase.co';
 const SB_KEY='sb_publishable_hX9TfthdPvqglk27txy4Sw_v0krEGSW';
 let cloudInvalid=false; // the cloud row exists but fails validation: never treat that as a first sign-in and overwrite it
 let sb=null, cloudUser=null, cloudRowExists=false, cloudUpdatedAt=null, lastPushed=null, pushTimer=null, pushing=false, syncStatus='', initialPullDone=false;
-function stateJSON(){ return JSON.stringify({v:1,accounts,pockets,recurringItems,transactions,essentials,settings}); }
+function stateJSON(){ return JSON.stringify({v:1,accounts,pockets,recurringItems,transactions,essentials,trips,settings}); }
 function setSync(status){
   syncStatus=status; const el=document.getElementById('syncStatus'); if(!el) return;
   const map={saving:['Menyimpan…','var(--muted)'],saved:['Tersimpan ✓','var(--emerald)'],offline:['Offline — disimpan di perangkat','var(--amber-text)'],error:['Gagal sinkron','var(--rose)']};
@@ -999,7 +1015,7 @@ function initCloud(){
 }
 
 function exportData(){
-  const blob=new Blob([JSON.stringify({v:1,exportedAt:new Date().toISOString(),accounts,pockets,recurringItems,transactions,essentials,settings},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({v:1,exportedAt:new Date().toISOString(),accounts,pockets,recurringItems,transactions,essentials,trips,settings},null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='flowpocket-backup.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 function importData(file){
@@ -1286,17 +1302,17 @@ function render(){
   sp.textContent= unset? 'Belum dihitung' : fmt(fin.safeToSpend); sp.classList.toggle('neg',fin.safeToSpend<0&&!unset); sp.classList.toggle('unset',unset);
   safeDelta= lastSafe===null? 0 : fin.safeToSpend-lastSafe; lastSafe=fin.safeToSpend;
   if(safeDelta){ sp.classList.remove('up','down'); void sp.offsetWidth; sp.classList.add(safeDelta>0?'up':'down'); }
-  const titles={dashboard:'Ringkasan',essentials:'Belanja Essentials & Tagihan',pockets:'Tabungan & Rekening',activity:'Riwayat Transaksi',settings:'Pengaturan'};
+  const titles={dashboard:'Ringkasan',essentials:'Belanja Essentials & Tagihan',pockets:'Tabungan & Rekening',trips:'Trip',activity:'Riwayat Transaksi',settings:'Pengaturan'};
   document.getElementById('pageTitle').textContent=titles[activeTab];
   const mi=monthInfo(), now=today();
   document.getElementById('pageSub').textContent=now.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  ['dashboard','essentials','pockets','activity','settings'].forEach(t=>{
+  ['dashboard','essentials','pockets','trips','activity','settings'].forEach(t=>{
     const v=document.getElementById('view-'+t); v.classList.toggle('hidden', t!==activeTab); if(t!==activeTab) v.innerHTML='';
     const b=document.querySelector(`[data-tab="${t}"]`); b.classList.toggle('active', t===activeTab);
     if(t===activeTab) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current');
   });
   // Only the open tab is built: hidden tabs are rebuilt when opened (goTab renders), so taps stay fast as history grows.
-  ({dashboard:()=>renderDashboard(fin,ess),essentials:()=>renderEssentials(fin,ess),pockets:()=>renderPockets(fin),activity:renderActivity,settings:renderSettings})[activeTab]();
+  ({dashboard:()=>renderDashboard(fin,ess),essentials:()=>renderEssentials(fin,ess),pockets:()=>renderPockets(fin),trips:()=>renderTrips(),activity:renderActivity,settings:renderSettings})[activeTab]();
   if(activeTab==='dashboard'){
     if(!accounts.length) document.getElementById('view-dashboard').innerHTML=renderWelcome()+renderSetupChecklist();
     else if(!settings.setupDismissed&&!setupComplete()) document.getElementById('view-dashboard').insertAdjacentHTML('afterbegin',renderSetupChecklist());
@@ -2388,6 +2404,186 @@ function settingsList(title,sub,addLabel,addFn,rows,empty){
   ${rows.length? rows.join('') : `<p class="set-empty">${empty}</p>`}</div>`;
 }
 const setRow=(main,meta,editFn,delFn)=>`<div class="set-row"><div style="min-width:0"><strong>${main}</strong><div class="set-meta">${meta}</div></div><div class="set-actions"><button class="btn btn-sm" onclick="${editFn}">Ubah</button><button class="icon-btn" aria-label="Hapus" onclick="${delFn}">🗑</button></div></div>`;
+
+/* ============ TRIPS — a small travel planner living next to the money ============
+   Each trip carries its own itinerary, spending and packing list, stored with the rest
+   of the state (local + cloud) and validated like Essentials. Trip spending is planning
+   data only: it never touches accounts or Safe-to-Spend. */
+let activeTripId=null, tripSection='plan';
+const tripById=id=>trips.find(t=>t.id===id);
+function fmtTripDate(iso){ return new Date(iso+'T00:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}); }
+function tripSpent(t){ return t.expenses.reduce((s,x)=>s+x.amount,0); }
+function tripStatus(t){
+  const now=todayISO();
+  if(now<t.start){ const days=Math.round((new Date(t.start+'T00:00:00')-new Date(now+'T00:00:00'))/86400000); return days===1?'Berangkat besok':`Berangkat ${days} hari lagi`; }
+  if(now<=t.end) return 'Sedang berlangsung';
+  return 'Selesai';
+}
+function openTrip(id){ activeTripId=id; tripSection='plan'; render(); window.scrollTo({top:0,behavior:'smooth'}); }
+function closeTrip(){ activeTripId=null; render(); window.scrollTo({top:0,behavior:'smooth'}); }
+function setTripSection(s){ tripSection=s; render(); }
+
+function renderTrips(){
+  const t=activeTripId? tripById(activeTripId):null;
+  if(activeTripId&&!t) activeTripId=null;
+  document.getElementById('view-trips').innerHTML= t? tripDetailHTML(t) : tripListHTML();
+}
+function tripListHTML(){
+  const sorted=[...trips].sort((a,b)=> a.start<b.start? -1 : 1);
+  return `<div class="card">
+    <div class="set-head"><div><h3>Trip</h3><p class="sub">Rencanakan perjalanan: jadwal, packing dan budget di satu tempat.</p></div><button class="btn btn-dark btn-sm" onclick="openTripForm()">+ Trip baru</button></div>
+    ${sorted.length? `<div style="display:grid;gap:12px;margin-top:10px">${sorted.map(tripCardHTML).join('')}</div>` : `<div style="text-align:center;padding:28px 12px">
+      <div style="width:64px;height:64px;border-radius:50%;background:var(--emerald-bg);color:var(--emerald-text);display:flex;align-items:center;justify-content:center;margin:0 auto 12px"><i data-lucide="plane" style="width:28px;height:28px"></i></div>
+      <p style="font-weight:700;margin:0 0 4px">Belum ada trip</p>
+      <p class="sub" style="margin:0 auto 14px;max-width:44ch">Buat trip pertamamu — tentukan destinasi dan tanggalnya, lalu susun rencana, packing dan budgetnya di sini.</p>
+      <button class="btn btn-emerald" onclick="openTripForm()">+ Buat trip pertama</button></div>`}
+  </div>`;
+}
+function tripCardHTML(t){
+  const spent=tripSpent(t), packed=t.packing.filter(k=>k.done).length;
+  return `<div class="trip-cover" role="button" tabindex="0" onclick="openTrip('${t.id}')" onkeydown="if(event.key==='Enter')openTrip('${t.id}')" style="cursor:pointer">
+    <div style="position:relative;z-index:1">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px"><h3 style="font-size:20px">${esc(t.name)}</h3><span class="chip-light">${tripStatus(t)}</span></div>
+      <p style="margin:4px 0 0;opacity:.92;font-size:13px">${fmtTripDate(t.start)} – ${fmtTripDate(t.end)}</p>
+      <p style="margin:10px 0 0;font-size:13px;opacity:.95">${t.itinerary.length} rencana · packing ${packed}/${t.packing.length}${t.budget? ` · terpakai ${fmt(spent)} dari ${fmt(t.budget)}` : ''}</p>
+    </div></div>`;
+}
+function tripDetailHTML(t){
+  const secs=[['plan','Rencana'],['packing','Packing'],['budget','Budget'],['notes','Catatan']];
+  return `<button class="link-btn" onclick="closeTrip()" style="margin-bottom:10px">← Semua trip</button>
+  <div class="trip-cover" style="margin-bottom:14px"><div style="position:relative;z-index:1">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px"><h3 style="font-size:22px">${esc(t.name)}</h3><span class="chip-light">${tripStatus(t)}</span></div>
+    <p style="margin:4px 0 0;opacity:.92;font-size:13px">${fmtTripDate(t.start)} – ${fmtTripDate(t.end)}</p>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn btn-sm" onclick="openTripForm('${t.id}')">Ubah trip</button>
+      <button class="btn btn-sm" onclick="deleteTrip('${t.id}')">Hapus trip</button>
+    </div></div></div>
+  <div class="seg" role="group" aria-label="Bagian trip" style="margin-bottom:14px">${secs.map(([k,l])=>`<button class="${tripSection===k?'active':''}" aria-pressed="${tripSection===k}" onclick="setTripSection('${k}')">${l}</button>`).join('')}</div>
+  ${tripSection==='plan'? tripPlanHTML(t) : tripSection==='packing'? tripPackingHTML(t) : tripSection==='budget'? tripBudgetHTML(t) : tripNotesHTML(t)}`;
+}
+function tripPlanHTML(t){
+  const items=[...t.itinerary].sort((a,b)=> a.date===b.date? (a.time||'').localeCompare(b.time||'') : a.date<b.date? -1 : 1);
+  const days={}; items.forEach(p=>{ (days[p.date]=days[p.date]||[]).push(p); });
+  return `<div class="card"><div class="set-head"><div><h3>Rencana perjalanan</h3><p class="sub">Jadwal per hari, dari berangkat sampai pulang.</p></div><button class="btn btn-dark btn-sm" onclick="openPlanForm('${t.id}')">+ Rencana</button></div>
+  ${items.length? Object.keys(days).sort().map(d=>`<p class="sub" style="margin:14px 0 2px;font-weight:700;color:var(--text)">${new Date(d+'T00:00:00').toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long'})}</p>
+    ${days[d].map(p=>`<div class="plan-row"><span class="plan-time">${esc(p.time||'—')}</span><div style="flex:1;min-width:0"><strong>${esc(p.title)}</strong>${p.note? `<div class="set-meta">${esc(p.note)}</div>` : ''}</div><div class="set-actions"><button class="btn btn-sm" onclick="openPlanForm('${t.id}','${p.id}')">Ubah</button><button class="icon-btn" aria-label="Hapus rencana" onclick="deletePlan('${t.id}','${p.id}')">🗑</button></div></div>`).join('')}`).join('')
+  : `<p class="set-empty">Belum ada rencana. Tambahkan penerbangan, hotel, atau tempat yang mau dikunjungi.</p>`}</div>`;
+}
+function tripPackingHTML(t){
+  const done=t.packing.filter(k=>k.done).length, pct=t.packing.length? Math.round(done/t.packing.length*100) : 0;
+  return `<div class="card"><div class="set-head"><div><h3>Packing</h3><p class="sub">${done} dari ${t.packing.length} item sudah masuk koper.</p></div><button class="btn btn-dark btn-sm" onclick="openPackForm('${t.id}')">+ Item</button></div>
+  ${t.packing.length? `<div class="bar" style="margin:6px 0 6px"><i style="width:${pct}%"></i></div>
+  ${t.packing.map(k=>`<div class="pack-row"><input type="checkbox" ${k.done?'checked':''} onchange="togglePack('${t.id}','${k.id}')" aria-label="Tandai sudah dipacking: ${esc(k.name)}"><span class="${k.done?'pack-done':''}" style="flex:1;min-width:0">${esc(k.name)}</span><button class="icon-btn" aria-label="Hapus item packing" onclick="deletePack('${t.id}','${k.id}')">🗑</button></div>`).join('')}`
+  : `<p class="set-empty">Belum ada daftar packing. Mulai dari paspor, charger dan baju ganti.</p>`}</div>`;
+}
+function tripBudgetHTML(t){
+  const spent=tripSpent(t), pct=t.budget? Math.min(100,Math.round(spent/t.budget*100)) : 0;
+  return `<div class="card"><div class="set-head"><div><h3>Budget trip</h3><p class="sub">${t.budget? `Terpakai ${fmt(spent)} dari ${fmt(t.budget)}${spent>t.budget? ` — lewat ${fmt(spent-t.budget)} dari target` : ` · sisa ${fmt(t.budget-spent)}`}` : 'Belum ada target budget — atur lewat tombol Ubah trip.'}</p></div><button class="btn btn-dark btn-sm" onclick="openTripExpenseForm('${t.id}')">+ Pengeluaran</button></div>
+  ${t.budget? `<div class="bar" style="margin:6px 0 8px"><i style="width:${pct}%"></i></div>` : ''}
+  ${t.expenses.length? t.expenses.map(x=>{ const c=catById(x.categoryId); return `<div class="set-row"><div style="min-width:0"><strong>${esc(x.title)}</strong><div class="set-meta">${c? esc(c.name) : 'Lainnya'}</div></div><div class="set-actions"><strong>${fmt(x.amount)}</strong><button class="icon-btn" aria-label="Hapus pengeluaran" onclick="deleteTripExpense('${t.id}','${x.id}')">🗑</button></div></div>`; }).join('') : `<p class="set-empty">Belum ada pengeluaran tercatat untuk trip ini.</p>`}</div>`;
+}
+function tripNotesHTML(t){
+  return `<div class="card"><h3>Catatan</h3><p class="sub">Kode booking, alamat hotel, tempat yang mau dicoba — tulis di sini.</p>
+  <div class="field"><textarea id="tripNotes" rows="8" placeholder="cth. Kode booking GA-XXXXXX, check-in hotel jam 14.00…">${esc(t.notes||'')}</textarea></div>
+  <button class="btn btn-emerald" style="padding:12px" onclick="saveTripNotes('${t.id}')">Simpan catatan</button></div>`;
+}
+
+function openTripForm(id){
+  const t=id? tripById(id) : null, d=t||{name:'',start:todayISO(),end:todayISO(),budget:0};
+  const body=`<div class="field"><label for="ftName">Destinasi / nama trip</label><input id="ftName" type="text" value="${esc(d.name)}" placeholder="cth. Slow days in Yogyakarta"></div>
+  <div class="form2"><div class="field"><label for="ftStart">Tanggal berangkat</label><input id="ftStart" type="date" value="${d.start}"></div><div class="field"><label for="ftEnd">Tanggal pulang</label><input id="ftEnd" type="date" value="${d.end}"></div></div>
+  <div class="field"><label for="ftBudget">Target budget (Rp, opsional)</label>${amtInput('ftBudget',d.budget)}</div>`;
+  modalShell(t?'Ubah Trip':'Trip Baru', body, `<button class="btn btn-emerald" style="width:100%;padding:12px" onclick="saveTrip('${id||''}')">Simpan</button>`);
+  document.getElementById('ftName').focus();
+}
+function saveTrip(id){
+  const name=fv('ftName').trim(), start=fv('ftStart'), end=fv('ftEnd'), budget=amtVal('ftBudget');
+  if(!name){ toast('Isi nama / destinasi trip dulu ya.'); return; }
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(start)||!/^\d{4}-\d{2}-\d{2}$/.test(end)){ toast('Pilih tanggal berangkat dan pulang dulu.'); return; }
+  if(end<start){ toast('Tanggal pulang harus sama atau setelah tanggal berangkat.'); return; }
+  const snap=snapshot();
+  if(id) trips=trips.map(t=> t.id===id? {...t,name,start,end,budget} : t);
+  else { const nt={id:newId('trip'),name,start,end,budget,notes:'',itinerary:[],expenses:[],packing:[]}; trips=[...trips,nt]; activeTripId=nt.id; tripSection='plan'; }
+  settingsSaved(id? `Trip "${name}" diperbarui.` : `Trip "${name}" dibuat.`, snap);
+}
+function deleteTrip(id){
+  const t=tripById(id); if(!t) return;
+  if((t.itinerary.length||t.expenses.length||t.packing.length)&&!confirm(`Hapus trip "${t.name}" beserta semua rencana, packing dan budgetnya?`)) return;
+  const snap=snapshot(); trips=trips.filter(x=>x.id!==id); if(activeTripId===id) activeTripId=null;
+  render(); toastUndo(`Trip "${t.name}" dihapus.`, snap);
+}
+
+function openPlanForm(tripId,planId){
+  const t=tripById(tripId); if(!t) return;
+  const p=planId? t.itinerary.find(x=>x.id===planId) : null, d=p||{date:t.start,time:'',title:'',note:''};
+  const body=`<div class="form2"><div class="field"><label for="tpDate">Tanggal</label><input id="tpDate" type="date" value="${d.date}"></div><div class="field"><label for="tpTime">Jam (opsional)</label><input id="tpTime" type="time" value="${esc(d.time||'')}"></div></div>
+  <div class="field"><label for="tpTitle">Rencana</label><input id="tpTitle" type="text" value="${esc(d.title)}" placeholder="cth. Terbang ke Yogyakarta — GA204"></div>
+  <div class="field"><label for="tpNote">Catatan (opsional)</label><input id="tpNote" type="text" value="${esc(d.note||'')}" placeholder="cth. Check-in online H-24 jam"></div>`;
+  modalShell(p?'Ubah Rencana':'Tambah Rencana', body, `<button class="btn btn-emerald" style="width:100%;padding:12px" onclick="savePlan('${tripId}','${planId||''}')">Simpan</button>`);
+  document.getElementById('tpTitle').focus();
+}
+function savePlan(tripId,planId){
+  const t=tripById(tripId); if(!t) return;
+  const date=fv('tpDate'), time=fv('tpTime'), title=fv('tpTitle').trim(), note=fv('tpNote').trim();
+  if(!title){ toast('Isi rencananya dulu ya.'); return; }
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){ toast('Pilih tanggal rencananya dulu.'); return; }
+  const snap=snapshot();
+  if(planId) t.itinerary=t.itinerary.map(p=> p.id===planId? {...p,date,time,title,note} : p);
+  else t.itinerary=[...t.itinerary,{id:newId('plan'),date,time,title,note}];
+  settingsSaved('Rencana disimpan.', snap);
+}
+function deletePlan(tripId,planId){
+  const t=tripById(tripId); if(!t) return;
+  const p=t.itinerary.find(x=>x.id===planId); if(!p) return;
+  const snap=snapshot(); t.itinerary=t.itinerary.filter(x=>x.id!==planId); render(); toastUndo(`Rencana "${p.title}" dihapus.`, snap);
+}
+
+function openPackForm(tripId){
+  modalShell('Tambah Item Packing', `<div class="field"><label for="tkName">Nama item</label><input id="tkName" type="text" placeholder="cth. Paspor, charger, jaket"></div>`,
+  `<button class="btn btn-emerald" style="width:100%;padding:12px" onclick="savePack('${tripId}')">Simpan</button>`);
+  document.getElementById('tkName').focus();
+}
+function savePack(tripId){
+  const t=tripById(tripId); if(!t) return;
+  const name=fv('tkName').trim();
+  if(!name){ toast('Isi nama item dulu ya.'); return; }
+  const snap=snapshot(); t.packing=[...t.packing,{id:newId('pack'),name,done:false}];
+  settingsSaved(`"${name}" masuk daftar packing.`, snap);
+}
+function togglePack(tripId,packId){
+  const t=tripById(tripId); if(!t) return;
+  t.packing=t.packing.map(k=> k.id===packId? {...k,done:!k.done} : k); render();
+}
+function deletePack(tripId,packId){
+  const t=tripById(tripId); if(!t) return;
+  const k=t.packing.find(x=>x.id===packId); if(!k) return;
+  const snap=snapshot(); t.packing=t.packing.filter(x=>x.id!==packId); render(); toastUndo(`"${k.name}" dihapus dari packing.`, snap);
+}
+
+function openTripExpenseForm(tripId){
+  const body=`<div class="field"><label for="teTitle">Pengeluaran</label><input id="teTitle" type="text" placeholder="cth. Tiket kereta, hotel 3 malam"></div>
+  <div class="field"><label for="teCat">Kategori</label>${catSelect('teCat','cat_transport')}</div>
+  <div class="field"><label for="teAmt">Nominal (Rp)</label>${amtInput('teAmt',0)}</div>`;
+  modalShell('Tambah Pengeluaran Trip', body, `<button class="btn btn-emerald" style="width:100%;padding:12px" onclick="saveTripExpense('${tripId}')">Simpan</button>`);
+  document.getElementById('teTitle').focus();
+}
+function saveTripExpense(tripId){
+  const t=tripById(tripId); if(!t) return;
+  const title=fv('teTitle').trim(), amount=amtVal('teAmt');
+  if(!title||amount<=0){ toast('Isi nama dan nominal pengeluaran dulu ya.'); return; }
+  const snap=snapshot(); t.expenses=[...t.expenses,{id:newId('texp'),title,categoryId:fv('teCat'),amount}];
+  settingsSaved(`Pengeluaran "${title}" dicatat.`, snap);
+}
+function deleteTripExpense(tripId,expId){
+  const t=tripById(tripId); if(!t) return;
+  const x=t.expenses.find(e=>e.id===expId); if(!x) return;
+  const snap=snapshot(); t.expenses=t.expenses.filter(e=>e.id!==expId); render(); toastUndo(`Pengeluaran "${x.title}" dihapus.`, snap);
+}
+function saveTripNotes(tripId){
+  const t=tripById(tripId); if(!t) return;
+  const snap=snapshot(); t.notes=fv('tripNotes'); render(); toastUndo('Catatan trip disimpan.', snap);
+}
+
 function renderSettings(){
   document.getElementById('view-settings').innerHTML=`<div class="set-grid">
   <div class="card wide"><div class="set-head"><div><h3>Periode Uang</h3><p class="sub">Safe-to-Spend, tagihan dan Essentials dihitung untuk periode ini.</p></div><button class="btn btn-sm" onclick="openPeriodModal()">Ubah</button></div><p style="margin:0;font-size:14px">${settings.periodMode==='custom'&&settings.customStart&&settings.customEnd? `Manual: <strong>${fmtDayShort(settings.customStart)} – ${fmtDayShort(settings.customEnd)}</strong>` : `Otomatis dari gajian: setiap tanggal <strong>${settings.payday}</strong>`}</p></div>

@@ -102,7 +102,6 @@ nav.tabs{display:flex;gap:4px;background:var(--surface2);border:1px solid var(--
 nav.tabs button{border:0;background:transparent;padding:8px 12px;border-radius:calc(var(--r-md) - 4px);font-size:13px;font-weight:700;color:var(--chrome-muted);display:flex;align-items:center;gap:6px}
 nav.tabs button.active{background:var(--dark);color:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}
 nav.tabs button svg{width:15px;height:15px}
-nav.tabs .tab-catat{display:none}
 .safe-pill{display:flex;align-items:center;gap:8px;flex-shrink:0;white-space:nowrap;padding:7px 14px;border-radius:999px;background:var(--fill);border:0;font-size:14px;color:var(--text)}
 .safe-label{color:var(--chrome-muted);font-weight:600;font-size:13px}
 #safePill.neg{color:var(--rose-text)}
@@ -416,9 +415,7 @@ body{overflow-x:clip;overflow-wrap:anywhere}
   nav.tabs button svg{width:19px;height:19px}
   nav.tabs button.active{background:var(--fill);color:var(--emerald-text);box-shadow:none}
   .tl{display:none}.ts{display:inline}
-  nav.tabs .tab-catat{display:flex;background:#059669;color:#fff;box-shadow:0 6px 16px rgba(5,150,105,.45),inset 0 1px 0 rgba(255,255,255,.35);transform:translateY(-8px)}
-  nav.tabs .tab-catat svg{width:22px;height:22px;color:#fff;stroke-width:2.5}
-  .fab{display:none}
+  .fab{bottom:calc(var(--bar-h) + 10px);right:16px}
   #quickLogTop{display:none}
   .header-in{padding:10px 16px;flex-wrap:nowrap}
   .brand-icon{width:34px;height:34px;border-radius:var(--r-sm)}
@@ -640,9 +637,9 @@ nav.tabs button.active>*{transform:scale(1.08)}
       <span class="drop" aria-hidden="true"></span>
       <button data-tab="dashboard" title="Ringkasan" class="active"><i data-lucide="layers"></i><span class="tl">Ringkasan</span><span class="ts">Ringkasan</span></button>
       <button data-tab="essentials" title="Belanja &amp; Tagihan"><i data-lucide="shopping-cart"></i><span class="tl">Belanja &amp; Tagihan</span><span class="ts">Belanja</span></button>
-      <button class="tab-catat" id="navCatat" title="Catat transaksi" aria-label="Catat transaksi"><i data-lucide="plus"></i><span class="ts">Catat</span></button>
       <button data-tab="pockets" title="Tabungan"><i data-lucide="shield-check"></i><span class="tl">Tabungan</span><span class="ts">Tabungan</span></button>
       <button data-tab="trips" title="Trip"><i data-lucide="plane"></i><span class="tl">Trip</span><span class="ts">Trip</span></button>
+      <button data-tab="activity" title="Riwayat"><i data-lucide="calendar"></i><span class="tl">Riwayat</span><span class="ts">Riwayat</span></button>
     </nav>
     <div class="head-right"><button class="btn btn-emerald head-log" id="quickLogTop" title="Catat pengeluaran, pemasukan atau transfer" aria-label="Catat"><i data-lucide="plus"></i>Catat</button><button class="safe-pill" onclick="goTab('dashboard')" title="Uang yang aman dibelanjakan sampai gajian"><span class="safe-label">Safe-to-Spend</span><strong id="safePill">Rp 0</strong></button>
     <div class="acct" id="acctMenu">
@@ -1430,11 +1427,6 @@ function renderDashboard(fin,ess){
       ${ess.totalEssentialsRemaining>0&&!ess.paused?`<div class="shop-left"><div class="amt">${fmt(ess.totalEssentialsRemaining)}</div><p class="sub">masih perlu dibeli · dari ${fmt(ess.totalEssentialsBudget)}</p></div>` : ess.activeCount&&ess.completedCount===ess.activeCount&&!ess.paused? `<div class="shop-left"><div class="amt done"><i data-lucide="badge-check"></i>Lengkap</div><p class="sub">semua kebutuhan periode ini sudah terbeli</p></div>` : ''}
     </div>
     ${ess.activeCount&&!ess.paused? essShopList(ess) : ess.paused? '<p style="font-size:14px;color:var(--muted)">Essentials dilewati periode ini — semua belanja dihitung sebagai pengeluaran biasa.</p>' : essentials.length? '<p style="font-size:14px;color:var(--muted)">Semua item Essentials dilewati periode ini.</p>' : '<p style="font-size:14px;color:var(--muted)">Belum ada daftar Essentials. <button class="link-btn" onclick="goTab(&quot;settings&quot;)">Tambahkan di Pengaturan →</button></p>'}
-  </div>
-
-  <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-    <div style="display:flex;gap:10px;align-items:center"><span class="cat-ico" style="background:var(--emerald-bg);color:var(--emerald-text)"><i data-lucide="calendar"></i></span><div><div style="font-size:14px;font-weight:700">Riwayat Transaksi</div><div style="font-size:12px;color:var(--muted)">Semua pemasukan, pengeluaran &amp; transfer</div></div></div>
-    <button class="link-btn" style="white-space:nowrap" onclick="goTab('activity')">Lihat riwayat →</button>
   </div>`;
 }
 /* Pocket Tabungan sits under the hero in the dashboard's left column. */
@@ -2723,7 +2715,6 @@ function saveTxEdit(id){
 /* Nav wiring */
 document.querySelectorAll('[data-tab]').forEach(b=> b.addEventListener('click',()=>goTab(b.dataset.tab)));
 document.getElementById('fabBtn').addEventListener('click',()=>{ logState=freshLogState(); openLogger(); });
-document.getElementById('navCatat').addEventListener('click',()=>{ logState=freshLogState(); openLogger(); });
 /* The floating Catat button steps aside while scrolling down and comes back on scroll up or at the end of the page. */
 (()=>{ const fab=document.getElementById('fabBtn'); let lastY=scrollY, queued=false;
   addEventListener('scroll',()=>{ if(queued) return; queued=true; requestAnimationFrame(()=>{ queued=false;

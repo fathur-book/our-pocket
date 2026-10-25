@@ -410,12 +410,11 @@ body{overflow-x:clip;overflow-wrap:anywhere}
   :root{--bar-h:calc(64px + 12px + env(safe-area-inset-bottom))} /* floating tab bar height plus its gap to the screen edge */
   body{padding-bottom:calc(var(--bar-h) + 76px)}
 
-  nav.tabs{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:45;order:0;width:auto;margin:0;display:flex;flex-wrap:nowrap;gap:2px;border-radius:999px;border:0;background:var(--glass-bg);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);padding:6px;box-shadow:var(--glass-edge),var(--glass-shadow)}
-  nav.tabs button{flex:0 0 46px;flex-direction:row;justify-content:center;gap:0;padding:9px 0;font-size:11px;border-radius:999px;min-width:0;white-space:nowrap;transition:background-color .2s var(--ease),color .2s var(--ease),flex .25s var(--ease),padding .25s var(--ease)}
-  nav.tabs button svg{width:20px;height:20px;flex-shrink:0}
+  nav.tabs{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:45;order:0;width:auto;margin:0;display:grid;grid-template-columns:repeat(5,1fr);gap:2px;border-radius:999px;border:0;background:var(--glass-bg);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);padding:6px;box-shadow:var(--glass-edge),var(--glass-shadow)}
+  nav.tabs button{flex-direction:column;justify-content:center;gap:3px;padding:10px 2px;font-size:11px;border-radius:999px;min-width:0;white-space:nowrap;transition:background-color .2s var(--ease),color .2s var(--ease)}
+  nav.tabs button svg{width:20px;height:20px}
   nav.tabs button .ts{display:none}
-  nav.tabs button.active{background:var(--fill);color:var(--emerald-text);box-shadow:none;flex:1 1 auto;gap:6px;padding:9px 10px}
-  nav.tabs button.active .ts{display:inline}
+  nav.tabs button.active{background:var(--fill);color:var(--emerald-text);box-shadow:none}
   .tl{display:none}.ts{display:inline}
   .fab{bottom:calc(var(--bar-h) + 10px);right:16px}
   #quickLogTop{display:none}

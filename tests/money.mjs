@@ -149,8 +149,12 @@ const results = await page.evaluate(async () => {
   ];
   rolloverBills();
   const billDue = billsDueUnpaid().total;
-  const s2s = financialSummary().safeToSpend;
+  const { safeToSpend: s2s, moneyNow } = financialSummary();
   check('Safe-to-Spend example', s2s === 2000000 - 150000 - billDue - 100000, `got ${s2s}, bill reserved ${billDue}`);
+  check('hero money now leaves bills and Essentials in', moneyNow === 2000000 - 150000, `got ${moneyNow}`);
+  activeTab = 'dashboard'; render();
+  const big = document.querySelector('.hero .big')?.textContent.replace(/\D/g, ''), small = document.querySelector('.hero .expect strong')?.textContent.replace(/\D/g, '');
+  check('hero shows money now big and Safe-to-Spend under it', big === String(moneyNow) && small === String(s2s), `big ${big}, small ${small}`);
 
   // Security audit fix 1: parsers never produce values the loader rejects, and invalid state is never saved.
   const nines = '9'.repeat(400);

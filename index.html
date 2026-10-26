@@ -288,7 +288,26 @@ tr.done{background:color-mix(in srgb, var(--emerald-bg) 45%, transparent)}
 select{padding:10px 12px;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--surface2);font-size:13px;font-weight:600;color:var(--text)}
 .tx-group{border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;background:var(--surface);margin-bottom:14px}
 .tx-group-head{background:var(--surface2);padding:10px 16px;display:flex;flex-wrap:wrap;gap:2px 12px;justify-content:space-between;font-size:13px;border-bottom:1px solid var(--border)}
-.tx-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border)}
+/* Riwayat entry: icon | title, details, tags | amount | emoji actions. On phones the actions drop under the amount. */
+.tx-row{display:grid;grid-template-columns:36px minmax(0,1fr) auto auto;grid-template-areas:"ico t a x" "ico m a x" "ico g a x";column-gap:12px;row-gap:3px;align-items:start;padding:12px 16px;border-bottom:1px solid var(--border)}
+.tx-row .tx-ico{grid-area:ico}
+.tx-t{grid-area:t;font-size:14px;font-weight:650;line-height:1.3;overflow-wrap:anywhere}
+.tx-a{grid-area:a;align-self:center;font-size:15px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums;text-align:right}
+.tx-meta{grid-area:m;font-size:12px;line-height:1.4;color:var(--muted)}
+.tx-tags{grid-area:g;display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
+.tx-tags .tag{font-size:11px;padding:1px 7px}
+.tx-acts{grid-area:x;align-self:center;display:flex;justify-content:flex-end;gap:6px;min-width:120px} /* room for 3 buttons, so amounts line up */
+.tx-act{width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;border:1px solid var(--border);background:var(--surface2);font-size:16px;line-height:1;padding:0;transition:background-color .2s var(--ease),border-color .2s var(--ease),transform .2s var(--ease)}
+.tx-act:hover{background:color-mix(in srgb,var(--indigo) 12%,var(--surface2));border-color:color-mix(in srgb,var(--indigo) 35%,var(--border))}
+.tx-act.void:hover{background:color-mix(in srgb,var(--amber) 14%,var(--surface2));border-color:color-mix(in srgb,var(--amber) 40%,var(--border))}
+.tx-act.del:hover{background:color-mix(in srgb,var(--rose) 12%,var(--surface2));border-color:color-mix(in srgb,var(--rose) 40%,var(--border))}
+.tx-act:active{transform:scale(.94)}
+@media(max-width:560px){
+  .tx-row{grid-template-columns:36px minmax(0,1fr) auto;grid-template-areas:"ico t a" "ico m m" "ico g x";padding:12px 14px}
+  .tx-a{align-self:start;font-size:14px;line-height:1.3}
+  .tx-tags,.tx-acts{align-self:center;margin-top:6px}
+  .tx-acts{justify-self:end;min-width:0}
+}
 .tx-row:last-child{border-bottom:0}
 .tx-ico{width:36px;height:36px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--surface2);border:1px solid var(--border)}
 .tx-ico svg{width:16px;height:16px}
@@ -1624,6 +1643,25 @@ function groupedTx(){
   filtered.forEach(tx=>{ if(!groups[tx.date]) groups[tx.date]={date:tx.date,items:[],net:0}; groups[tx.date].items.push(tx); if(tx.voided) return; if(tx.type==='expense'&&!tx.pocketId) groups[tx.date].net-=tx.amount; if(tx.type==='refund'||tx.type==='income') groups[tx.date].net+=tx.amount; });
   return Object.values(groups).sort((a,b)=>b.date.localeCompare(a.date));
 }
+/* One Riwayat entry. Phone: title + amount on top, details below, tags and emoji actions on the last line.
+   Wider screens: amount and actions sit on the right. */
+function txRow(tx){
+  const cat=catById(tx.categoryId), acc=accById(tx.accountId), pock=pockById(tx.pocketId), isIn=tx.type==='income'||tx.type==='refund', to=tx.type==='transfer'&&accById(tx.toAccountId);
+  const ico=tx.adjust?'scale':tx.type==='transfer'?'arrow-right-left':tx.type==='refund'?'rotate-ccw':(cat?cat.icon:'wallet');
+  const amt=isIn?'+'+fmt(tx.amount): tx.adjust?fmt(tx.moves[0].amount,true): tx.type==='transfer'?fmt(tx.amount):'-'+fmt(tx.amount);
+  const meta=[[acc?esc(acc.name):'',to?esc(to.name):'',pock&&tx.type==='transfer'?'Pocket '+esc(pock.name):''].filter(Boolean).join(' → '),cat?esc(cat.name):'',pock&&tx.type!=='transfer'?'Pocket: '+esc(pock.name):''].filter(Boolean).join(' · ');
+  const btn=(e,cls,title,label,fn)=>`<button class="tx-act ${cls}" title="${title}" aria-label="${label} ${esc(tx.title)}" onclick="${fn}">${e}</button>`;
+  const acts= tx.voided? btn('↩️','restore','Pulihkan entri ini (dihitung lagi)','Pulihkan',`restoreTx('${tx.id}')`)+btn('🗑️','del','Hapus permanen dari Riwayat','Hapus',`deleteTx('${tx.id}')`)
+    : btn('✏️','edit','Ubah entri ini','Ubah',tx.opening?'openOpeningBalance()':`openTxEdit('${tx.id}')`)+btn('🚫','void','Batalkan (void): saldo dikembalikan, entri tetap tercatat di Riwayat','Batalkan',`voidTx('${tx.id}')`)+btn('🗑️','del','Hapus entri ini (saldo akan dikembalikan)','Hapus',`deleteTx('${tx.id}')`);
+  return `<div class="tx-row${tx.voided?' void':''}">
+    <span class="tx-ico ${isIn?'green':tx.type==='transfer'?'indigo':cat&&cat.tone?'tint':''}"${!isIn&&tx.type!=='transfer'?catTone(cat):''}><i data-lucide="${ico}"></i></span>
+    <strong class="tx-t">${esc(tx.title)}</strong>
+    <strong class="tx-a" style="color:${isIn?'var(--emerald)':tx.type==='transfer'?'var(--indigo)':'inherit'}">${amt}</strong>
+    ${meta?`<div class="tx-meta">${meta}</div>`:''}
+    ${tx.voided||tx.tag?`<div class="tx-tags">${tx.voided?'<span class="tag void">Dibatalkan</span>':''}${tx.tag?`<span class="tag">${esc(tx.tag)}</span>`:''}</div>`:''}
+    <div class="tx-acts">${acts}</div>
+  </div>`;
+}
 function renderActivity(){
   const groups=groupedTx();
   const shown=groups.flatMap(g=>g.items), live=shown.filter(t=>!t.voided), voided=shown.length-live.length, out=live.filter(t=>t.type==='expense'&&!t.pocketId).reduce((a,t)=>a+t.amount,0), inc=live.filter(t=>t.type==='income'&&!t.opening).reduce((a,t)=>a+t.amount,0);
@@ -1636,8 +1674,7 @@ function renderActivity(){
     ${(searchQuery||filterType!=='all'||filterCategory!=='all'||txPeriod.kind!=='all')?`<button class="btn" onclick="clearFilters()">✕ Reset filter</button>`:''}
   </div><div style="margin-top:10px">${periodPicker('txPeriod',txPeriod,true)}</div>
   <p style="font-size:12px;color:var(--muted);margin:10px 0 0">Menampilkan ${shown.length} dari ${transactions.length} transaksi${voided?` (${voided} dibatalkan, tidak dihitung)`:''}${txPeriod.kind!=='all'||shown.length?` • keluar <strong style="color:var(--text)">${fmt(out)}</strong> • masuk <strong style="color:var(--emerald)">${fmt(inc)}</strong>`:''}</p></div>
-  <div>${groups.length===0?`<div class="card" style="text-align:center;padding:36px"><p style="font-weight:700;margin:0">Tidak ada transaksi yang cocok</p><p style="font-size:13px;color:var(--muted)">Coba ubah kata kunci atau reset filter di atas.</p><button class="btn btn-dark" onclick="clearFilters()">Reset filter</button></div>`: groups.map(g=>`<div class="tx-group"><div class="tx-group-head"><strong>${esc(fmtDate(g.date))}</strong><span>Net harian: <strong style="color:${g.net>=0?'var(--emerald)':'inherit'}">${fmt(g.net,true)}</strong></span></div>${g.items.map(tx=>{ const cat=catById(tx.categoryId), acc=accById(tx.accountId), pock=pockById(tx.pocketId); const isIn=tx.type==='income'||tx.type==='refund'; return `<div class="tx-row${tx.voided?' void':''}"><div style="display:flex;gap:12px;align-items:center;min-width:0"><span class="tx-ico ${isIn?'green':tx.type==='transfer'?'indigo':cat&&cat.tone?'tint':''}"${!isIn&&tx.type!=='transfer'?catTone(cat):''}><i data-lucide="${tx.adjust?'scale':tx.type==='transfer'?'arrow-right-left':tx.type==='refund'?'rotate-ccw':(cat?cat.icon:'wallet')}"></i></span><div style="min-width:0"><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><strong class="tx-t" style="font-size:14px">${esc(tx.title)}</strong>${tx.voided?'<span class="tag void">Dibatalkan</span>':''}${tx.tag?`<span class="tag">${esc(tx.tag)}</span>`:''}</div><div style="font-size:12px;color:var(--muted);margin-top:2px">${acc?esc(acc.name):''}${tx.type==='transfer'&&accById(tx.toAccountId)?' → '+esc(accById(tx.toAccountId).name):''}${cat?' • '+cat.name:''}${pock?(tx.type==='transfer'?' → Pocket ':' • Pocket: ')+esc(pock.name):''}</div></div></div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0"><strong class="tx-a" style="font-size:14px;color:${isIn?'var(--emerald)':tx.type==='transfer'?'var(--indigo)':'inherit'}">${isIn?'+'+fmt(tx.amount): tx.adjust?fmt(tx.moves[0].amount,true): tx.type==='transfer'?fmt(tx.amount):'-'+fmt(tx.amount)}</strong>${tx.voided? `<button class="icon-btn edit" title="Pulihkan entri ini (dihitung lagi)" aria-label="Pulihkan ${esc(tx.title)}" onclick="restoreTx('${tx.id}')">↺</button><button class="icon-btn" title="Hapus permanen dari Riwayat" aria-label="Hapus ${esc(tx.title)}" onclick="deleteTx('${tx.id}')">🗑</button>`
-        : `<button class="icon-btn edit" title="Ubah entri ini" aria-label="Ubah ${esc(tx.title)}" onclick="${tx.opening?'openOpeningBalance()':`openTxEdit('${tx.id}')`}">✎</button><button class="icon-btn" title="Batalkan (void): saldo dikembalikan, entri tetap tercatat di Riwayat" aria-label="Batalkan ${esc(tx.title)}" onclick="voidTx('${tx.id}')">⊘</button><button class="icon-btn" title="Hapus entri ini (saldo akan dikembalikan)" aria-label="Hapus ${esc(tx.title)}" onclick="deleteTx('${tx.id}')">🗑</button>`}</div></div>`;}).join('')}</div>`).join('')}</div>
+  <div>${groups.length===0?`<div class="card" style="text-align:center;padding:36px"><p style="font-weight:700;margin:0">Tidak ada transaksi yang cocok</p><p style="font-size:13px;color:var(--muted)">Coba ubah kata kunci atau reset filter di atas.</p><button class="btn btn-dark" onclick="clearFilters()">Reset filter</button></div>`: groups.map(g=>`<div class="tx-group"><div class="tx-group-head"><strong>${esc(fmtDate(g.date))}</strong><span>Net harian: <strong style="color:${g.net>=0?'var(--emerald)':'inherit'}">${fmt(g.net,true)}</strong></span></div>${g.items.map(txRow).join('')}</div>`).join('')}</div>
   <div class="card" style="padding:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><p style="margin:0;font-size:13px;color:var(--muted)">Data tersinkron otomatis ke akunmu dan tersimpan juga di perangkat ini. Ekspor cadangan sesekali untuk arsip pribadi.</p><div style="display:flex;gap:8px"><button class="btn btn-sm" onclick="exportData()">Ekspor cadangan</button><label class="btn btn-sm" style="cursor:pointer">Impor cadangan<input type="file" accept="application/json,.json" class="hidden" onchange="importData(this.files[0]);this.value=''"></label></div></div>`;
   const si=document.getElementById('searchInput'); if(si && document.activeElement!==si){ /* keep focus handling simple */ }
 }

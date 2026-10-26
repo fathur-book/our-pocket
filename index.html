@@ -1347,18 +1347,19 @@ function heroNoFunds(fin){
       : `<button class="btn btn-emerald" onclick="startIncomeLog()">Catat gaji</button>`}</div></div>`;
 }
 function startIncomeLog(){ logState=freshLogState(); logState.type='income'; logState.categoryId='cat_salary'; openLogger(); }
-/* The smaller figure under the big number: Safe-to-Spend, i.e. money now minus the bills and Essentials not paid yet. */
+/* The smaller figure under the big number: Safe-to-Spend (not named here), i.e. money now minus the bills and Essentials not paid yet. */
 function heroExpect(fin){
   const v=fin.safeToSpend, held=[fin.billsReserved?`tagihan ${fmt(fin.billsReserved)}`:'',fin.essentialsReserved?`Essentials ${fmt(fin.essentialsReserved)}`:''].filter(Boolean).join(' + ');
   return `<p class="expect"><span>Setelah tagihan &amp; Essentials</span> <strong${v<0?' class="neg"':''}>${v<0?'−':''}${fmt(Math.abs(v))}</strong>
-    <small>${held?`Safe-to-Spend · masih perlu dibayar ${held}`:'Safe-to-Spend · tidak ada tagihan atau Essentials yang tertunda'}</small></p>`;
+    <small>${held?`Masih perlu dibayar ${held}`:'Tidak ada tagihan atau Essentials yang tertunda'}</small></p>`;
 }
-/* Payday chip: when the salary comes; tapping it changes the payday. */
+/* Payday chip: when the salary comes (or the manual period's dates); tapping it changes them. */
 function payChip(fin){
   const d=fin.nextPayday.toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short'});
-  if(settings.periodMode==='custom'){
-    const left=fin.daysToPayday===0?'hari terakhir':fin.daysToPayday===1?'sisa 1 hari':`sisa ${fin.daysToPayday} hari`;
-    return `<button class="pay-chip" onclick="openPeriodModal()" title="Ubah periode uang"><i data-lucide="calendar"></i><span>Periode manual · berakhir ${d} · ${left}</span><i data-lucide="chevron-right"></i></button>`;
+  const cp=customPeriod();
+  if(cp){
+    const short=x=>x.toLocaleDateString('id-ID',{day:'numeric',month:'short'}), left=fin.daysToPayday===0?'hari terakhir':fin.daysToPayday===1?'sisa 1 hari':`sisa ${fin.daysToPayday} hari`;
+    return `<button class="pay-chip" onclick="openPeriodModal()" title="Ubah periode uang"><i data-lucide="calendar"></i><span>${short(cp.startD)} – ${short(cp.lastDay)} · ${left}</span><i data-lucide="chevron-right"></i></button>`;
   }
   return `<button class="pay-chip" onclick="openPaydayModal()" title="Ubah tanggal gajian"><i data-lucide="calendar"></i><span>${fin.daysToPayday===1?'Gajian besok':`Gajian ${fin.daysToPayday} hari lagi`} · ${d}</span><i data-lucide="chevron-right"></i></button>`;
 }

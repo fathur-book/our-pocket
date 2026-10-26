@@ -147,6 +147,12 @@ main>section>*+*{margin-top:var(--gap)}
 .hero .big{font-size:clamp(40px,7vw,76px);font-weight:700;letter-spacing:-.045em;margin:12px 0 0;line-height:.95;font-variant-numeric:tabular-nums}
 .hero .big.neg{color:#fda4af}
 .hero .big .cur{font-size:.4em;font-weight:700;letter-spacing:0;color:#94a3b8;margin-right:.2em;vertical-align:.7em}
+/* Under the big number: what is left once the unpaid bills and Essentials are paid (= Safe-to-Spend). */
+.hero .expect{margin:12px 0 0;font-size:15px;line-height:1.4;color:#cbd5e1}
+.hero .expect>span,.hero .expect strong{white-space:nowrap}
+.hero .expect strong{color:#fff;font-size:20px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.hero .expect strong.neg{color:#fda4af}
+.hero .expect small{display:block;margin-top:2px;font-size:12px;color:#94a3b8}
 .btn-ghost-light{background:#ffffff1a;color:#e2e8f0;border:1px solid #ffffff22;padding:6px 10px;border-radius:var(--r-sm);font-size:12px;font-weight:600}
 .hero{container-type:inline-size}
 /* No money counted yet this period: ask for the missing entry instead of showing a shortfall. */
@@ -1275,12 +1281,13 @@ function financialSummary(){
     else cycleSpending+=-f;
   });
   const bills=billsDueUnpaid(), billsReserved=bills.total, essentialsReserved=essentialsRemaining;
-  const safeToSpend=carryOver+cycleIncome+cycleAdjust-cycleSpending-cycleSaved-billsReserved-essentialsReserved;
+  const moneyNow=carryOver+cycleIncome+cycleAdjust-cycleSpending-cycleSaved; // before setting anything aside for bills / Essentials
+  const safeToSpend=moneyNow-billsReserved-essentialsReserved;
   const cpFin=customPeriod();
   const monthElapsedPercent= cpFin? Math.max(0,Math.min(100,Math.round((today()-cpFin.startD)/(cpFin.endD-cpFin.startD)*100))) : monthInfo().elapsedPct;
   const {next:nextPayday,daysUntil:daysToPayday}=payCycle();
   const perDay= safeToSpend>0? Math.floor(safeToSpend/daysToPayday) : 0;
-  return {carryOver,cycleIncome,cycleSpending,cycleSaved,cycleAdjust,cycleStart:cyc.prev,totalLiquidCash,creditFloatHolding,totalPocketsSaved,essentialsRemaining,billsReserved,essentialsReserved,nextPayday,daysToPayday,perDay,safeToSpend,monthElapsedPercent};
+  return {carryOver,cycleIncome,cycleSpending,cycleSaved,cycleAdjust,cycleStart:cyc.prev,totalLiquidCash,creditFloatHolding,totalPocketsSaved,essentialsRemaining,billsReserved,essentialsReserved,nextPayday,daysToPayday,perDay,moneyNow,safeToSpend,monthElapsedPercent};
 }
 
 /* The linked essential — set only by an explicit tap, never inferred on save. */
@@ -1340,6 +1347,12 @@ function heroNoFunds(fin){
       : `<button class="btn btn-emerald" onclick="startIncomeLog()">Catat gaji</button>`}</div></div>`;
 }
 function startIncomeLog(){ logState=freshLogState(); logState.type='income'; logState.categoryId='cat_salary'; openLogger(); }
+/* The smaller figure under the big number: Safe-to-Spend, i.e. money now minus the bills and Essentials not paid yet. */
+function heroExpect(fin){
+  const v=fin.safeToSpend, held=[fin.billsReserved?`tagihan ${fmt(fin.billsReserved)}`:'',fin.essentialsReserved?`Essentials ${fmt(fin.essentialsReserved)}`:''].filter(Boolean).join(' + ');
+  return `<p class="expect"><span>Setelah tagihan &amp; Essentials</span> <strong${v<0?' class="neg"':''}>${v<0?'−':''}${fmt(Math.abs(v))}</strong>
+    <small>${held?`Safe-to-Spend · masih perlu dibayar ${held}`:'Safe-to-Spend · tidak ada tagihan atau Essentials yang tertunda'}</small></p>`;
+}
 /* Payday chip: when the salary comes; tapping it changes the payday. */
 function payChip(fin){
   const d=fin.nextPayday.toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short'});
@@ -1349,8 +1362,8 @@ function payChip(fin){
   }
   return `<button class="pay-chip" onclick="openPaydayModal()" title="Ubah tanggal gajian"><i data-lucide="calendar"></i><span>${fin.daysToPayday===1?'Gajian besok':`Gajian ${fin.daysToPayday} hari lagi`} · ${d}</span><i data-lucide="chevron-right"></i></button>`;
 }
-/* Where this pay period's money went: spent, saved and what is left. Sisa = Safe-to-Spend + bills and Essentials still to pay,
-   so it can be larger than the big number; downward balance fixes and last period's shortfall count as spent. */
+/* Where this pay period's money went: spent, saved and what is left. Sisa = the big number (money now, bills and Essentials
+   still to pay included); downward balance fixes and last period's shortfall count as spent. */
 function safeAlloc(fin){
   if(fundsState(fin)==='none') return '';
   const avail=periodFunds(fin), inSaved=Math.max(0,-fin.cycleSaved), held=fin.billsReserved+fin.essentialsReserved;
@@ -1398,14 +1411,15 @@ function renderDashboard(fin,ess){
     <div class="dash-left" style="grid-column:span 7">
     <div class="hero">
       <div class="hero-head">
-        <p class="label" style="margin:6px 0 0">${settings.periodMode==='custom'?'Safe-to-Spend periode ini':'Safe-to-Spend sampai gajian'}</p>
+        <p class="label" style="margin:6px 0 0">${settings.periodMode==='custom'?'Uang periode ini':'Uang sekarang'}</p>
         <button class="btn-ghost-light" onclick="toggleFormula()">${showFormula?'Sembunyikan rumus':'Cara menghitungnya?'}</button>
       </div>
-      ${fundsState(fin)? heroNoFunds(fin) : `<div class="big${fin.safeToSpend<0?' neg':''}"><span class="cur">Rp</span>${fin.safeToSpend<0?'−':''}${fmt(Math.abs(fin.safeToSpend)).replace(/Rp\s/,'')}</div>
+      ${fundsState(fin)? heroNoFunds(fin) : `<div class="big${fin.moneyNow<0?' neg':''}"><span class="cur">Rp</span>${fin.moneyNow<0?'−':''}${fmt(Math.abs(fin.moneyNow)).replace(/Rp\s/,'')}</div>
+      ${heroExpect(fin)}
       ${fin.safeToSpend<=0&&fin.cycleIncome+fin.carryOver<=0&&!openingTx()? `<p class="pace">Belum ada pemasukan tercatat. <button class="btn-ghost-light" onclick="openOpeningBalance()">Catat saldo awal</button></p>` : ''}`}
       ${payChip(fin)}
       ${safeAlloc(fin)}
-      ${showFormula?`<div class="formula"><strong style="color:#fff">Cara menghitungnya (periode ${fin.cycleStart.toLocaleDateString('id-ID',{day:'numeric',month:'short'})} – ${fin.nextPayday.toLocaleDateString('id-ID',{day:'numeric',month:'short'})}):</strong><br>${fin.carryOver?`Sisa periode sebelumnya ${fmt(fin.carryOver)} + `:''}pemasukan ${fmt(fin.cycleIncome)}${fin.cycleAdjust>0?` + penyesuaian saldo ${fmt(fin.cycleAdjust)}`:fin.cycleAdjust<0?` − penyesuaian saldo ${fmt(-fin.cycleAdjust)}`:''} − pengeluaran ${fmt(fin.cycleSpending)}${fin.cycleSaved>0?` − ditabung ke pocket ${fmt(fin.cycleSaved)}`:fin.cycleSaved<0?` + diambil dari tabungan ${fmt(-fin.cycleSaved)}`:''} − tagihan yang belum dibayar ${fmt(fin.billsReserved)} − Essentials yang belum dibeli ${fmt(fin.essentialsReserved)}. Essentials dan tagihan yang sudah dibayar dihitung dengan nominal aslinya (masuk ke pengeluaran). Pocket tabungan disimpan terpisah (total ${fmt(fin.totalPocketsSaved)}) dan tidak mengurangi angka ini.</div>`:''}
+      ${showFormula?`<div class="formula"><strong style="color:#fff">Cara menghitungnya (periode ${fin.cycleStart.toLocaleDateString('id-ID',{day:'numeric',month:'short'})} – ${fin.nextPayday.toLocaleDateString('id-ID',{day:'numeric',month:'short'})}):</strong><br>${fin.carryOver?`Sisa periode sebelumnya ${fmt(fin.carryOver)} + `:''}pemasukan ${fmt(fin.cycleIncome)}${fin.cycleAdjust>0?` + penyesuaian saldo ${fmt(fin.cycleAdjust)}`:fin.cycleAdjust<0?` − penyesuaian saldo ${fmt(-fin.cycleAdjust)}`:''} − pengeluaran ${fmt(fin.cycleSpending)}${fin.cycleSaved>0?` − ditabung ke pocket ${fmt(fin.cycleSaved)}`:fin.cycleSaved<0?` + diambil dari tabungan ${fmt(-fin.cycleSaved)}`:''} = uang sekarang ${fmt(fin.moneyNow)} (angka besar).<br>Lalu − tagihan yang belum dibayar ${fmt(fin.billsReserved)} − Essentials yang belum dibeli ${fmt(fin.essentialsReserved)} = Safe-to-Spend ${fmt(fin.safeToSpend)} (angka kecil). Essentials dan tagihan yang sudah dibayar dihitung dengan nominal aslinya (masuk ke pengeluaran). Pocket tabungan disimpan terpisah (total ${fmt(fin.totalPocketsSaved)}) dan tidak mengurangi angka ini.</div>`:''}
     </div>
     ${pocketsCard(fin)}
     </div>

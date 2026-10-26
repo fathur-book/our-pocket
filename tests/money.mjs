@@ -74,7 +74,47 @@ const results = await page.evaluate(async () => {
     check(name + ': applyTx re-applies exactly', state() === after, `${after} -> ${state()}`);
     created.forEach(t => deleteTx(t.id));
     check(name + ': delete restores everything', state() === before && transactions.length === 0, `${before} -> ${state()}`);
+
+    // Void: same effect as delete everywhere (balances, bills, Essentials, Safe-to-Spend), but the entries stay; restore re-applies.
+    reset(); const finBefore = JSON.stringify(financialSummary());
+    run(); closeModal(); const finAfter = JSON.stringify(financialSummary()), stateAfter = state();
+    const made = [...transactions];
+    made.forEach(t => voidTx(t.id));
+    check(name + ': void restores balances and keeps the entry', state() === before && transactions.length === made.length && transactions.every(t => t.voided), `${before} -> ${state()}`);
+    check(name + ': void leaves Safe-to-Spend, bills and Essentials as before', JSON.stringify(financialSummary()) === finBefore, `${finBefore} -> ${JSON.stringify(financialSummary())}`);
+    [...made].reverse().forEach(t => restoreTx(t.id));
+    check(name + ': restore re-applies exactly', state() === stateAfter && JSON.stringify(financialSummary()) === finAfter && !transactions.some(t => t.voided), `${stateAfter} -> ${state()}`);
+    made.forEach(t => voidTx(t.id)); made.forEach(t => deleteTx(t.id));
+    check(name + ': deleting a voided entry changes nothing else', state() === before && transactions.length === 0, `${before} -> ${state()}`);
   }
+
+  // Void in context: spending charts, Riwayat, guards on restore, sync.
+  reset(); log({ type: 'expense', amount: '50000', accountId: 'a1', categoryId: 'cat_food', title: 'Makan' });
+  const pr = periodRange({ kind: 'month', offset: 0 }), spendBefore = periodSpend(pr.start, pr.end).free;
+  voidTx(transactions[0].id);
+  check('voided expense leaves the spending chart', periodSpend(pr.start, pr.end).free === spendBefore - 50000, `${spendBefore} -> ${periodSpend(pr.start, pr.end).free}`);
+  activeTab = 'activity'; render();
+  const row = document.querySelector('#view-activity .tx-row.void');
+  check('Riwayat keeps the voided entry, crossed out', row && /Dibatalkan/.test(row.textContent) && /keluar Rp\s0\s/.test(document.getElementById('view-activity').textContent), row ? document.querySelector('#view-activity .card p').textContent : 'no voided row');
+  openTxEdit(transactions[0].id);
+  check('a voided entry cannot be edited', !document.getElementById('teAmt'), 'edit form opened'); closeModal();
+  activeTab = 'dashboard';
+
+  reset(); log({ type: 'expense', amount: '110000', accountId: 'a1', billId: 'r1', title: 'Internet 1' }); const firstPay = transactions[0].id;
+  voidTx(firstPay);
+  check('voided bill payment makes the bill due again', billsDueUnpaid().items.some(r => r.id === 'r1') && recurringItems[0].status === 'upcoming', recurringItems[0].status);
+  log({ type: 'expense', amount: '100000', accountId: 'a1', billId: 'r1', title: 'Internet 2' }); const paidAgain = state();
+  restoreTx(firstPay);
+  check('restore refuses a bill already paid again', state() === paidAgain && transactions.find(t => t.id === firstPay).voided, `${paidAgain} -> ${state()}`);
+
+  reset(); log({ type: 'transfer', amount: '30000', accountId: 'a1', transferTo: 'pock:p1' });
+  pocketAction('spend', 220000); const spentAll = state();
+  voidTx(transactions.find(t => t.tag === '#pocket-save').id);
+  check('void refuses a pocket transfer that was already spent', state() === spentAll && !transactions.some(t => t.voided), `${spentAll} -> ${state()}`);
+  reset(); pocketAction('spend', 150000); const spendId = transactions[0].id; voidTx(spendId);
+  pocketAction('spend', 120000); const lowPocket = state();
+  restoreTx(spendId);
+  check('restore refuses to overdraw a pocket', state() === lowPocket && transactions.find(t => t.id === spendId).voided, `${lowPocket} -> ${state()}`);
 
   // Editing an entry in Riwayat: the result must equal logging the edited entry from scratch.
   const editTx = (amt, o = {}) => { const id = transactions[0].id; openTxEdit(id); setAmt(document.getElementById('teAmt'), amt);
@@ -130,6 +170,11 @@ const results = await page.evaluate(async () => {
   check('sync conflict keeps both entries', titles === 'X other phone, Y here', titles);
   check('sync conflict balances include both', accById('a1').balance === 990000 && accById('a2').balance === 480000, `${accById('a1').balance} / ${accById('a2').balance}`);
   check('sync conflict queues a save', stateJSON() !== lastPushed, 'merged state would not be pushed');
+  reset(); lastPushed = stateJSON(); const plainCloud = JSON.parse(stateJSON());
+  log({ type: 'expense', amount: '7000', accountId: 'a1', title: 'Voided here' }); voidTx(transactions[0].id);
+  sb = { from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { data: plainCloud, updated_at: 'v4' }, error: null }) }) }) }) };
+  cloudPush = async () => {}; await cloudPull(true); clearTimeout(pushTimer); cloudPush = realPush;
+  check('sync conflict keeps a voided entry without applying it', transactions.length === 1 && transactions[0].voided && accById('a1').balance === 1000000, `${transactions.length} / ${accById('a1').balance}`);
   // An entry deleted on the other phone must not come back.
   reset(); log({ type: 'expense', amount: '10000', accountId: 'a1', title: 'Old' });
   lastPushed = stateJSON(); const deletedElsewhere = JSON.parse(stateJSON());

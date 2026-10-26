@@ -295,6 +295,9 @@ select{padding:10px 12px;border-radius:var(--r-sm);border:1px solid var(--border
 .tx-ico.green{background:var(--emerald-bg);color:var(--emerald-text);border-color:var(--emerald-border)}
 .tx-ico.indigo{background:var(--indigo-bg);color:var(--indigo)}
 .tag{font-size:12px;font-weight:600;padding:2px 7px;border-radius:999px;background:var(--surface2);border:1px solid var(--border);color:var(--muted)}
+/* A voided (Dibatalkan) entry: kept in Riwayat for the record, crossed out, counted nowhere. */
+.tx-row.void .tx-t,.tx-row.void .tx-a{text-decoration:line-through;color:var(--muted)!important}
+.tag.void{background:transparent;border-style:dashed}
 .icon-btn{border:0;background:transparent;color:var(--muted2);padding:6px;border-radius:50%;transition:background-color .2s var(--ease),color .2s var(--ease)}
 .icon-btn:hover{color:var(--rose);background:color-mix(in srgb, var(--rose) 12%, transparent)}
 .icon-btn.edit:hover{color:var(--indigo);background:color-mix(in srgb, var(--indigo) 12%, transparent)}
@@ -779,7 +782,7 @@ function billOccurrences(r,from,to){
 function billSettled(r,mon,due){
   const base=openingDate();
   if(base&&due&&isoDate(due)<base) return true;
-  return transactions.some(t=>t.recurringId===r.id&&(t.forMonth||t.date.slice(0,7))===mon) || (r.skippedMonths||[]).includes(mon);
+  return transactions.some(t=>!t.voided&&t.recurringId===r.id&&(t.forMonth||t.date.slice(0,7))===mon) || (r.skippedMonths||[]).includes(mon);
 }
 /* The month this cycle's occurrence of a bill belongs to: the first one not yet settled, else the first one. */
 function billCycleMonth(r){
@@ -808,7 +811,7 @@ function rolloverBills(){
   recurringItems=recurringItems.map(r=>{
     const mon=billCycleMonth(r);
     if((r.statusMonth||SEED_MONTH)===mon) return r;
-    const tx=transactions.find(t=>t.recurringId===r.id&&(t.forMonth||t.date.slice(0,7))===mon);
+    const tx=transactions.find(t=>!t.voided&&t.recurringId===r.id&&(t.forMonth||t.date.slice(0,7))===mon);
     if(tx) return {...r,status:'paid',actualAmount:tx.amount,txId:tx.id,accountId:tx.accountId,statusMonth:mon};
     return {...r,status:(r.skippedMonths||[]).includes(mon)?'skipped':'upcoming',actualAmount:null,txId:null,accountId:null,statusMonth:mon};
   });
@@ -842,7 +845,7 @@ function isValidState(s){
   return s.accounts.every(a=>okId(a.id)&&str(a.name)&&str(a.type)&&num(a.balance)&&okId(a.icon)&&/^#[0-9a-f]{3,8}$/i.test(a.color))
     && s.pockets.every(p=>okId(p.id)&&str(p.name)&&optStr(p.description)&&optStr(p.targetDate)&&okId(p.icon)&&num(p.currentAmount)&&p.currentAmount>=0&&num(p.targetAmount)&&p.targetAmount>0&&num(p.monthlyHint))
     && s.recurringItems.every(r=>okId(r.id)&&str(r.name)&&optStr(r.note)&&optStr(r.statusMonth)&&['paid','upcoming','skipped'].includes(r.status)&&optId(r.categoryId)&&optId(r.txId)&&optId(r.accountId)&&num(r.dueDay)&&num(r.expectedAmount)&&optNum(r.actualAmount)&&(r.skippedMonths==null||(Array.isArray(r.skippedMonths)&&r.skippedMonths.every(m=>str(m)&&/^\d{4}-\d{2}$/.test(m)))))
-    && s.transactions.every(t=>okId(t.id)&&str(t.title)&&optStr(t.tag)&&str(t.date)&&/^\d{4}-\d{2}-\d{2}$/.test(t.date)&&['expense','income','transfer','refund'].includes(t.type)&&num(t.amount)&&optId(t.accountId)&&optId(t.categoryId)&&optId(t.pocketId)&&optId(t.essentialId)&&optId(t.recurringId)&&optId(t.toAccountId)&&okMoves(t.moves)&&optQty(t.essentialQty)
+    && s.transactions.every(t=>okId(t.id)&&str(t.title)&&optStr(t.tag)&&str(t.date)&&/^\d{4}-\d{2}-\d{2}$/.test(t.date)&&['expense','income','transfer','refund'].includes(t.type)&&num(t.amount)&&optId(t.accountId)&&optId(t.categoryId)&&optId(t.pocketId)&&optId(t.essentialId)&&optId(t.recurringId)&&optId(t.toAccountId)&&okMoves(t.moves)&&optQty(t.essentialQty)&&(t.voided==null||typeof t.voided==='boolean')
       && (t.creditPayoff==null||(Array.isArray(t.creditPayoff)&&t.creditPayoff.every(c=>c&&okId(c.id)&&num(c.amount)))));
 }
 function applyState(s){ accounts=s.accounts; pockets=s.pockets; recurringItems=s.recurringItems; transactions=s.transactions; if(Array.isArray(s.essentials)) essentials=s.essentials; if(Array.isArray(s.trips)) trips=s.trips; settings={...DEFAULT_SETTINGS,...(s.settings||{})}; if(s.settings&&s.settings.paydaySet==null&&(s.settings.payday!==25||s.transactions.length)) settings.paydaySet=true; }
@@ -924,7 +927,7 @@ async function cloudPull(conflict){
   const mine= hadUnsynced&&known? transactions.filter(t=>!cloudIds.has(t.id)&&!seen.has(t.id)) : [];
   toastUndoFn=null; // an undo snapshot from before this pull would overwrite newer data
   cloudUpdatedAt=row.updated_at; applyState(row.data); lastPushed=stateJSON();
-  if(mine.length){ [...mine].reverse().forEach(applyTx); transactions=[...mine,...transactions].sort((a,b)=>b.date.localeCompare(a.date)); }
+  if(mine.length){ [...mine].reverse().filter(t=>!t.voided).forEach(applyTx); transactions=[...mine,...transactions].sort((a,b)=>b.date.localeCompare(a.date)); }
   render(); if(!mine.length) setSync('saved'); writeMeta();
   if(hadUnsynced) toast(mine.length? `Data dari perangkat lain dimuat; ${mine.length} entri baru dari perangkat ini tetap disimpan. Perubahan lain (ubah/hapus) di sini mungkin perlu diulang.` : conflict? 'Data diperbarui dari perangkat lain. Perubahan terakhir di sini mungkin perlu diulang.' : 'Data di cloud lebih baru dari perangkat ini — perubahan offline di sini tidak disimpan.');
   return true;
@@ -1218,7 +1221,7 @@ function essentialsSummary(){
     const planQty=planQtyOf(item), skipped=planQty===0;
     const totalPlanned=item.unitPrice*planQty;
     // Only purchases the user explicitly linked count — no guessing from titles.
-    const mtx=transactions.filter(tx=> tx.type==='expense' && tx.essentialId===item.id && inCycle(tx));
+    const mtx=transactions.filter(tx=> !tx.voided && tx.type==='expense' && tx.essentialId===item.id && inCycle(tx));
     const spent=mtx.reduce((s,t)=>s+t.amount,0);
     const bought=mtx.reduce((s,t)=> s+(t.essentialQty? t.essentialQty : Math.max(1,Math.round(t.amount/item.unitPrice))),0);
     const remQty=Math.max(0,planQty-bought);
@@ -1232,7 +1235,7 @@ function periodSpend(start,end){
   const map={}, planned={}; categories.forEach(c=>{ map[c.id]=0; planned[c.id]=0; });
   let income=0; const paused=essPaused(); // skipped period: Essentials buys are ordinary spending
   transactions.forEach(tx=>{
-    if(typeof tx.date!=='string'||tx.date<start||tx.date>=end) return;
+    if(tx.voided||typeof tx.date!=='string'||tx.date<start||tx.date>=end) return;
     if(tx.type==='expense'&&!tx.pocketId&&(tx.recurringId||(tx.essentialId&&!(paused&&inCycle(tx))))){ if(planned[tx.categoryId]!==undefined) planned[tx.categoryId]+=tx.amount; }
     else if(tx.type==='expense'&&!tx.pocketId){ if(map[tx.categoryId]!==undefined) map[tx.categoryId]+=tx.amount; }
     else if(tx.type==='refund'){ if(map[tx.categoryId]!==undefined) map[tx.categoryId]=Math.max(0,map[tx.categoryId]-tx.amount); }
@@ -1271,6 +1274,7 @@ function financialSummary(){
   let carryOver=0, cycleIncome=0, cycleSpending=0, cycleSaved=0, cycleAdjust=0;
   const baseline=openingDate();
   transactions.forEach(tx=>{
+    if(tx.voided) return;
     if(baseline&&tx.date<baseline) return; // already included in the opening balance
     const f=spendableFlow(tx); if(!f) return;
     if(tx.date<cyc.start){ carryOver+=f; return; }
@@ -1455,7 +1459,7 @@ function pocketsCard(fin){
 }
 /* Opening balance: tells Safe-to-Spend how much spendable money you already had when you started.
    Recorded as income for the calculation only; account balances stay as you entered them. */
-function openingTx(){ return transactions.filter(t=>t.opening).sort((a,b)=>b.date.localeCompare(a.date))[0]||null; }
+function openingTx(){ return transactions.filter(t=>t.opening&&!t.voided).sort((a,b)=>b.date.localeCompare(a.date))[0]||null; }
 function openingDate(){ const o=openingTx(); return o? o.date : null; }
 /* Suggested opening balance for a date: money in accounts now, minus card debt, minus the effect of
    everything already logged on/after that date (those entries will be counted separately). */
@@ -1468,7 +1472,7 @@ function balanceDelta(tx){
 }
 function openingSuggestion(date){
   const cash=accounts.filter(a=>a.type!=='credit').reduce((s,a)=>s+a.balance,0), owed=accounts.filter(a=>a.type==='credit').reduce((s,a)=>s+Math.max(0,-a.balance),0);
-  const later=transactions.filter(t=>!t.opening&&t.date>=date).reduce((s,t)=>s+balanceDelta(t),0);
+  const later=transactions.filter(t=>!t.opening&&!t.voided&&t.date>=date).reduce((s,t)=>s+balanceDelta(t),0);
   return {cash,owed,later,value:Math.max(0,cash-owed-later)};
 }
 function refreshOpeningSuggestion(){ const d=document.getElementById('obDate').value||todayISO(), sg=openingSuggestion(d); setAmt(document.getElementById('obAmt'),sg.value||0); document.getElementById('obHint').innerHTML=openingHint(sg); }
@@ -1611,28 +1615,29 @@ function groupedTx(){
   const pr=periodRange(txPeriod);
   const filtered=transactions.filter(tx=>{
     const q=tx.title.toLowerCase().includes(searchQuery.toLowerCase())||(tx.tag&&tx.tag.toLowerCase().includes(searchQuery.toLowerCase()));
-    const t=filterType==='all'||tx.type===filterType;
+    const t=filterType==='all'||(filterType==='voided'? tx.voided : tx.type===filterType);
     const c=filterCategory==='all'||tx.categoryId===filterCategory;
     const d=tx.date>=pr.start&&tx.date<pr.end;
     return q&&t&&c&&d;
   });
   const groups={};
-  filtered.forEach(tx=>{ if(!groups[tx.date]) groups[tx.date]={date:tx.date,items:[],net:0}; groups[tx.date].items.push(tx); if(tx.type==='expense'&&!tx.pocketId) groups[tx.date].net-=tx.amount; if(tx.type==='refund'||tx.type==='income') groups[tx.date].net+=tx.amount; });
+  filtered.forEach(tx=>{ if(!groups[tx.date]) groups[tx.date]={date:tx.date,items:[],net:0}; groups[tx.date].items.push(tx); if(tx.voided) return; if(tx.type==='expense'&&!tx.pocketId) groups[tx.date].net-=tx.amount; if(tx.type==='refund'||tx.type==='income') groups[tx.date].net+=tx.amount; });
   return Object.values(groups).sort((a,b)=>b.date.localeCompare(a.date));
 }
 function renderActivity(){
   const groups=groupedTx();
-  const shown=groups.flatMap(g=>g.items), out=shown.filter(t=>t.type==='expense'&&!t.pocketId).reduce((a,t)=>a+t.amount,0), inc=shown.filter(t=>t.type==='income'&&!t.opening).reduce((a,t)=>a+t.amount,0);
+  const shown=groups.flatMap(g=>g.items), live=shown.filter(t=>!t.voided), voided=shown.length-live.length, out=live.filter(t=>t.type==='expense'&&!t.pocketId).reduce((a,t)=>a+t.amount,0), inc=live.filter(t=>t.type==='income'&&!t.opening).reduce((a,t)=>a+t.amount,0);
   const fmtDate=d=>{ try{ return new Date(d+'T00:00:00').toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short',year:'numeric'}); }catch(e){ return d; } };
   document.getElementById('view-activity').innerHTML=`
   <div class="card" style="padding:14px"><div class="searchbar">
     <div class="search-wrap"><i data-lucide="search"></i><input id="searchInput" type="text" placeholder="Cari transaksi atau tag (#essential, #recurring)…" value="${esc(searchQuery)}" oninput="onSearch(this.value)"></div>
-    <select onchange="filterType=this.value;render()" aria-label="Filter tipe"><option value="all" ${filterType==='all'?'selected':''}>Semua Tipe</option><option value="expense" ${filterType==='expense'?'selected':''}>Pengeluaran</option><option value="income" ${filterType==='income'?'selected':''}>Income</option><option value="transfer" ${filterType==='transfer'?'selected':''}>Transfer</option><option value="refund" ${filterType==='refund'?'selected':''}>Refund</option></select>
+    <select onchange="filterType=this.value;render()" aria-label="Filter tipe"><option value="all" ${filterType==='all'?'selected':''}>Semua Tipe</option><option value="expense" ${filterType==='expense'?'selected':''}>Pengeluaran</option><option value="income" ${filterType==='income'?'selected':''}>Income</option><option value="transfer" ${filterType==='transfer'?'selected':''}>Transfer</option><option value="refund" ${filterType==='refund'?'selected':''}>Refund</option><option value="voided" ${filterType==='voided'?'selected':''}>Dibatalkan</option></select>
     <select onchange="filterCategory=this.value;render()" aria-label="Filter kategori"><option value="all">Semua Kategori</option>${categories.map(c=>`<option value="${c.id}" ${filterCategory===c.id?'selected':''}>${c.name}</option>`).join('')}</select>
     ${(searchQuery||filterType!=='all'||filterCategory!=='all'||txPeriod.kind!=='all')?`<button class="btn" onclick="clearFilters()">✕ Reset filter</button>`:''}
   </div><div style="margin-top:10px">${periodPicker('txPeriod',txPeriod,true)}</div>
-  <p style="font-size:12px;color:var(--muted);margin:10px 0 0">Menampilkan ${shown.length} dari ${transactions.length} transaksi${txPeriod.kind!=='all'||shown.length?` • keluar <strong style="color:var(--text)">${fmt(out)}</strong> • masuk <strong style="color:var(--emerald)">${fmt(inc)}</strong>`:''}</p></div>
-  <div>${groups.length===0?`<div class="card" style="text-align:center;padding:36px"><p style="font-weight:700;margin:0">Tidak ada transaksi yang cocok</p><p style="font-size:13px;color:var(--muted)">Coba ubah kata kunci atau reset filter di atas.</p><button class="btn btn-dark" onclick="clearFilters()">Reset filter</button></div>`: groups.map(g=>`<div class="tx-group"><div class="tx-group-head"><strong>${esc(fmtDate(g.date))}</strong><span>Net harian: <strong style="color:${g.net>=0?'var(--emerald)':'inherit'}">${fmt(g.net,true)}</strong></span></div>${g.items.map(tx=>{ const cat=catById(tx.categoryId), acc=accById(tx.accountId), pock=pockById(tx.pocketId); const isIn=tx.type==='income'||tx.type==='refund'; return `<div class="tx-row"><div style="display:flex;gap:12px;align-items:center;min-width:0"><span class="tx-ico ${isIn?'green':tx.type==='transfer'?'indigo':cat&&cat.tone?'tint':''}"${!isIn&&tx.type!=='transfer'?catTone(cat):''}><i data-lucide="${tx.adjust?'scale':tx.type==='transfer'?'arrow-right-left':tx.type==='refund'?'rotate-ccw':(cat?cat.icon:'wallet')}"></i></span><div style="min-width:0"><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><strong style="font-size:14px">${esc(tx.title)}</strong>${tx.tag?`<span class="tag">${esc(tx.tag)}</span>`:''}</div><div style="font-size:12px;color:var(--muted);margin-top:2px">${acc?esc(acc.name):''}${tx.type==='transfer'&&accById(tx.toAccountId)?' → '+esc(accById(tx.toAccountId).name):''}${cat?' • '+cat.name:''}${pock?(tx.type==='transfer'?' → Pocket ':' • Pocket: ')+esc(pock.name):''}</div></div></div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0"><strong style="font-size:14px;color:${isIn?'var(--emerald)':tx.type==='transfer'?'var(--indigo)':'inherit'}">${isIn?'+'+fmt(tx.amount): tx.adjust?fmt(tx.moves[0].amount,true): tx.type==='transfer'?fmt(tx.amount):'-'+fmt(tx.amount)}</strong><button class="icon-btn edit" title="Ubah entri ini" aria-label="Ubah ${esc(tx.title)}" onclick="${tx.opening?'openOpeningBalance()':`openTxEdit('${tx.id}')`}">✎</button><button class="icon-btn" title="Hapus entri ini (saldo akan dikembalikan)" aria-label="Hapus ${esc(tx.title)}" onclick="deleteTx('${tx.id}')">🗑</button></div></div>`;}).join('')}</div>`).join('')}</div>
+  <p style="font-size:12px;color:var(--muted);margin:10px 0 0">Menampilkan ${shown.length} dari ${transactions.length} transaksi${voided?` (${voided} dibatalkan, tidak dihitung)`:''}${txPeriod.kind!=='all'||shown.length?` • keluar <strong style="color:var(--text)">${fmt(out)}</strong> • masuk <strong style="color:var(--emerald)">${fmt(inc)}</strong>`:''}</p></div>
+  <div>${groups.length===0?`<div class="card" style="text-align:center;padding:36px"><p style="font-weight:700;margin:0">Tidak ada transaksi yang cocok</p><p style="font-size:13px;color:var(--muted)">Coba ubah kata kunci atau reset filter di atas.</p><button class="btn btn-dark" onclick="clearFilters()">Reset filter</button></div>`: groups.map(g=>`<div class="tx-group"><div class="tx-group-head"><strong>${esc(fmtDate(g.date))}</strong><span>Net harian: <strong style="color:${g.net>=0?'var(--emerald)':'inherit'}">${fmt(g.net,true)}</strong></span></div>${g.items.map(tx=>{ const cat=catById(tx.categoryId), acc=accById(tx.accountId), pock=pockById(tx.pocketId); const isIn=tx.type==='income'||tx.type==='refund'; return `<div class="tx-row${tx.voided?' void':''}"><div style="display:flex;gap:12px;align-items:center;min-width:0"><span class="tx-ico ${isIn?'green':tx.type==='transfer'?'indigo':cat&&cat.tone?'tint':''}"${!isIn&&tx.type!=='transfer'?catTone(cat):''}><i data-lucide="${tx.adjust?'scale':tx.type==='transfer'?'arrow-right-left':tx.type==='refund'?'rotate-ccw':(cat?cat.icon:'wallet')}"></i></span><div style="min-width:0"><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><strong class="tx-t" style="font-size:14px">${esc(tx.title)}</strong>${tx.voided?'<span class="tag void">Dibatalkan</span>':''}${tx.tag?`<span class="tag">${esc(tx.tag)}</span>`:''}</div><div style="font-size:12px;color:var(--muted);margin-top:2px">${acc?esc(acc.name):''}${tx.type==='transfer'&&accById(tx.toAccountId)?' → '+esc(accById(tx.toAccountId).name):''}${cat?' • '+cat.name:''}${pock?(tx.type==='transfer'?' → Pocket ':' • Pocket: ')+esc(pock.name):''}</div></div></div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0"><strong class="tx-a" style="font-size:14px;color:${isIn?'var(--emerald)':tx.type==='transfer'?'var(--indigo)':'inherit'}">${isIn?'+'+fmt(tx.amount): tx.adjust?fmt(tx.moves[0].amount,true): tx.type==='transfer'?fmt(tx.amount):'-'+fmt(tx.amount)}</strong>${tx.voided? `<button class="icon-btn edit" title="Pulihkan entri ini (dihitung lagi)" aria-label="Pulihkan ${esc(tx.title)}" onclick="restoreTx('${tx.id}')">↺</button><button class="icon-btn" title="Hapus permanen dari Riwayat" aria-label="Hapus ${esc(tx.title)}" onclick="deleteTx('${tx.id}')">🗑</button>`
+        : `<button class="icon-btn edit" title="Ubah entri ini" aria-label="Ubah ${esc(tx.title)}" onclick="${tx.opening?'openOpeningBalance()':`openTxEdit('${tx.id}')`}">✎</button><button class="icon-btn" title="Batalkan (void): saldo dikembalikan, entri tetap tercatat di Riwayat" aria-label="Batalkan ${esc(tx.title)}" onclick="voidTx('${tx.id}')">⊘</button><button class="icon-btn" title="Hapus entri ini (saldo akan dikembalikan)" aria-label="Hapus ${esc(tx.title)}" onclick="deleteTx('${tx.id}')">🗑</button>`}</div></div>`;}).join('')}</div>`).join('')}</div>
   <div class="card" style="padding:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><p style="margin:0;font-size:13px;color:var(--muted)">Data tersinkron otomatis ke akunmu dan tersimpan juga di perangkat ini. Ekspor cadangan sesekali untuk arsip pribadi.</p><div style="display:flex;gap:8px"><button class="btn btn-sm" onclick="exportData()">Ekspor cadangan</button><label class="btn btn-sm" style="cursor:pointer">Impor cadangan<input type="file" accept="application/json,.json" class="hidden" onchange="importData(this.files[0]);this.value=''"></label></div></div>`;
   const si=document.getElementById('searchInput'); if(si && document.activeElement!==si){ /* keep focus handling simple */ }
 }
@@ -2051,8 +2056,8 @@ function stItem(t){
   }
   else if(/installment|cicilan/i.test(t.desc)){ note='Cicilan — pastikan pembelian aslinya belum dicatat'; }
   else if(ST_FEE.test(t.desc)){ note='Biaya bank'; categoryId='cat_utilities'; }
-  const dupTransfer= topupTo&&transactions.some(x=>x.type==='transfer'&&x.date===t.date&&x.amount===t.amount&&'acc:'+x.toAccountId===topupTo);
-  if(include&&(dupTransfer||transactions.some(x=>x.type==='expense'&&x.date===t.date&&x.amount===t.amount))){ include=false; note='Mungkin sudah tercatat (tanggal & nominal sama)'; }
+  const dupTransfer= topupTo&&transactions.some(x=>!x.voided&&x.type==='transfer'&&x.date===t.date&&x.amount===t.amount&&'acc:'+x.toAccountId===topupTo);
+  if(include&&(dupTransfer||transactions.some(x=>!x.voided&&x.type==='expense'&&x.date===t.date&&x.amount===t.amount))){ include=false; note='Mungkin sudah tercatat (tanggal & nominal sama)'; }
   if(fx) note=(note?note+' · ':'')+`${fx[1].toUpperCase()} ${fx[2]}`;
   // Suggest a link so the charge doesn't get counted twice (once here, once as a reserved bill/Essential).
   let link=topupTo;
@@ -2681,18 +2686,51 @@ function confirmPayoff(){
   transactions=[{id:'tx_cc_'+Date.now(),date:todayISO(),title:'Pelunasan kartu kredit',amount:amt,type:'transfer',categoryId:null,accountId:main.id,tag:'#cc-payoff',pocketId:null,creditPayoff},...transactions];
   render(); toastUndo(`Kartu kredit lunas: ${fmt(amt)} dibayar dari ${main.name}.`,snap);
 }
+/* A transfer into a pocket can't be undone once part of that money was spent from the pocket. */
+function pocketSpentBlock(tx){
+  if(tx.type!=='transfer'||!tx.pocketId||tx.fromPocket) return false;
+  const p=pockById(tx.pocketId); if(!p||p.currentAmount>=tx.amount) return false;
+  toast(`${p.name} tinggal ${fmt(p.currentAmount)} — sebagian dana ini sudah dipakai. Hapus dulu pengeluaran dari pocket tersebut.`); return true;
+}
 function deleteTx(id){
   const tx=transactions.find(t=>t.id===id); if(!tx) return;
-  if(tx.type==='transfer'&&tx.pocketId&&!tx.fromPocket){ const p=pockById(tx.pocketId); if(p&&p.currentAmount<tx.amount){ toast(`${p.name} tinggal ${fmt(p.currentAmount)} — sebagian dana ini sudah dipakai. Hapus dulu pengeluaran dari pocket tersebut.`); return; } }
+  if(!tx.voided&&pocketSpentBlock(tx)) return;
+  const snap=snapshot();
+  if(!tx.voided) reverseTx(tx); // a voided entry was already reversed
+  transactions=transactions.filter(t=>t.id!==id);
+  render(); toastUndo(tx.voided? `Entri "${tx.title}" dihapus dari Riwayat.` : `Entri "${tx.title}" dihapus — saldo terkait dikembalikan.`,snap);
+}
+/* Void (Batalkan): undo the entry everywhere like delete (accounts, pockets, cards, its bill, Essentials,
+   Safe-to-Spend, spending charts) but keep it in Riwayat, crossed out, so it stays on record and can be restored. */
+function voidTx(id){
+  const tx=transactions.find(t=>t.id===id); if(!tx||tx.voided) return;
+  if(pocketSpentBlock(tx)) return;
   const snap=snapshot();
   reverseTx(tx);
-  transactions=transactions.filter(t=>t.id!==id);
-  render(); toastUndo(`Entri "${tx.title}" dihapus — saldo terkait dikembalikan.`,snap);
+  transactions=transactions.map(t=> t.id===id? {...t,voided:true} : t);
+  render(); toastUndo(`Entri "${tx.title}" dibatalkan — saldo terkait dikembalikan, entri tetap ada di Riwayat.`,snap,true);
+}
+/* Restore a voided entry: apply it again, unless that would double-count or overdraw a pocket. */
+function restoreTx(id){
+  const tx=transactions.find(t=>t.id===id); if(!tx||!tx.voided) return;
+  const p= tx.pocketId? pockById(tx.pocketId) : null;
+  if(tx.pocketId&&!p){ toast('Pocket untuk entri ini sudah dihapus — entri tidak bisa dipulihkan.'); return; }
+  if(p&&(tx.type==='expense'||tx.fromPocket)&&p.currentAmount<tx.amount){ toast(`${p.name} tinggal ${fmt(p.currentAmount)} — tidak cukup untuk memulihkan entri ini.`); return; }
+  if(tx.opening&&openingTx()){ toast('Sudah ada saldo awal lain. Hapus atau batalkan yang itu dulu.'); return; }
+  if(tx.recurringId){
+    const r=recurringItems.find(x=>x.id===tx.recurringId), mon=tx.forMonth||tx.date.slice(0,7);
+    if(r&&billSettled(r,mon)){ toast(`Tagihan "${r.name}" untuk bulan itu sudah dibayar atau dilewati — entri ini tidak dipulihkan agar tidak terhitung dua kali.`); return; }
+  }
+  const snap=snapshot(), live={...tx}; delete live.voided;
+  transactions=transactions.map(t=> t.id===id? live : t);
+  applyTx(live);
+  render(); toastUndo(`Entri "${tx.title}" dipulihkan dan dihitung lagi.`,snap,true);
 }
 /* Edit a Riwayat entry: undo its old effect (reverseTx), then apply the edited copy (applyTx).
    Transfers keep their route — only amount, title, date and tag change; to change the route, delete and log it again. */
 function openTxEdit(id){
   const tx=transactions.find(t=>t.id===id); if(!tx) return;
+  if(tx.voided){ toast('Entri ini dibatalkan. Pulihkan dulu untuk mengubahnya.'); return; }
   const isTf=tx.type==='transfer', fixedAmt=Array.isArray(tx.creditPayoff);
   const cats=categories.filter(c=> tx.type==='income'? c.type==='income'&&c.id!=='cat_opening' : c.type==='expense');
   const body=`
@@ -2706,7 +2744,7 @@ function openTxEdit(id){
   modalShell('Ubah transaksi', body, `<button class="btn btn-emerald" style="width:100%;padding:13px;font-size:15px" onclick="saveTxEdit('${tx.id}')">Simpan perubahan</button>`);
 }
 function saveTxEdit(id){
-  const tx=transactions.find(t=>t.id===id); if(!tx) return;
+  const tx=transactions.find(t=>t.id===id); if(!tx||tx.voided) return;
   const isTf=tx.type==='transfer', amt= Array.isArray(tx.creditPayoff)? tx.amount : amtVal('teAmt');
   if(amt<=0){ toast('Masukkan nominal lebih dari nol dulu ya.'); return; }
   const raw=fv('teDate'), date=/^\d{4}-\d{2}-\d{2}$/.test(raw)? raw : tx.date;

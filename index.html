@@ -2686,15 +2686,17 @@ function confirmPayoff(){
   transactions=[{id:'tx_cc_'+Date.now(),date:todayISO(),title:'Pelunasan kartu kredit',amount:amt,type:'transfer',categoryId:null,accountId:main.id,tag:'#cc-payoff',pocketId:null,creditPayoff},...transactions];
   render(); toastUndo(`Kartu kredit lunas: ${fmt(amt)} dibayar dari ${main.name}.`,snap);
 }
-/* A transfer into a pocket can't be undone once part of that money was spent from the pocket. */
-function pocketSpentBlock(tx){
+/* Undoing a save into a pocket that now holds less (spent from, or lowered in the pocket form): ask first.
+   On yes the whole amount goes back to the account and the pocket drops to no less than zero. */
+function pocketSpentBlock(tx,verb){
   if(tx.type!=='transfer'||!tx.pocketId||tx.fromPocket) return false;
   const p=pockById(tx.pocketId); if(!p||p.currentAmount>=tx.amount) return false;
-  toast(`${p.name} tinggal ${fmt(p.currentAmount)} — sebagian dana ini sudah dipakai. Hapus dulu pengeluaran dari pocket tersebut.`); return true;
+  const acc=accById(tx.accountId);
+  return !confirm(`${p.name} sekarang hanya berisi ${fmt(p.currentAmount)}, kurang dari ${fmt(tx.amount)} yang ditabung di entri ini.\n\n${verb} tetap? ${fmt(tx.amount)} kembali ke ${acc?acc.name:'rekening asal'} dan tidak lagi dihitung sebagai ditabung; saldo ${p.name} menjadi ${fmt(Math.max(0,p.currentAmount-tx.amount))}.`);
 }
 function deleteTx(id){
   const tx=transactions.find(t=>t.id===id); if(!tx) return;
-  if(!tx.voided&&pocketSpentBlock(tx)) return;
+  if(!tx.voided&&pocketSpentBlock(tx,'Hapus')) return;
   const snap=snapshot();
   if(!tx.voided) reverseTx(tx); // a voided entry was already reversed
   transactions=transactions.filter(t=>t.id!==id);
@@ -2704,7 +2706,7 @@ function deleteTx(id){
    Safe-to-Spend, spending charts) but keep it in Riwayat, crossed out, so it stays on record and can be restored. */
 function voidTx(id){
   const tx=transactions.find(t=>t.id===id); if(!tx||tx.voided) return;
-  if(pocketSpentBlock(tx)) return;
+  if(pocketSpentBlock(tx,'Batalkan')) return;
   const snap=snapshot();
   reverseTx(tx);
   transactions=transactions.map(t=> t.id===id? {...t,voided:true} : t);

@@ -108,9 +108,16 @@ const results = await page.evaluate(async () => {
   check('restore refuses a bill already paid again', state() === paidAgain && transactions.find(t => t.id === firstPay).voided, `${paidAgain} -> ${state()}`);
 
   reset(); log({ type: 'transfer', amount: '30000', accountId: 'a1', transferTo: 'pock:p1' });
-  pocketAction('spend', 220000); const spentAll = state();
-  voidTx(transactions.find(t => t.tag === '#pocket-save').id);
-  check('void refuses a pocket transfer that was already spent', state() === spentAll && !transactions.some(t => t.voided), `${spentAll} -> ${state()}`);
+  pocketAction('spend', 220000); const spentAll = state(), saveTxId = transactions.find(t => t.tag === '#pocket-save').id;
+  confirm = () => false; voidTx(saveTxId);
+  check('void of a spent pocket save asks first; no = nothing changes', state() === spentAll && !transactions.some(t => t.voided), `${spentAll} -> ${state()}`);
+  confirm = () => true; voidTx(saveTxId);
+  check('void of a spent pocket save, yes = money back to the account, pocket not below 0', transactions.find(t => t.id === saveTxId).voided && accById('a1').balance === 1000000 && pockById('p1').currentAmount === 0, `${accById('a1').balance} / ${pockById('p1').currentAmount}`);
+  // A save whose pocket was lowered to 0 in the pocket form (no entry for that): void takes it out of Ditabung.
+  reset(); pocketAction('topup', 2000000, 'a1'); const topId = transactions[0].id;
+  openPocketForm('p1'); setAmt(document.getElementById('fpCur'), 0); savePocket('p1'); closeModal();
+  const savedBefore = financialSummary().cycleSaved; voidTx(topId);
+  check('void of a save whose pocket was zeroed in the form clears Ditabung', savedBefore === 2000000 && financialSummary().cycleSaved === 0 && accById('a1').balance === 1000000 && pockById('p1').currentAmount === 0, `${savedBefore} -> ${financialSummary().cycleSaved}, ${accById('a1').balance}`);
   reset(); pocketAction('spend', 150000); const spendId = transactions[0].id; voidTx(spendId);
   pocketAction('spend', 120000); const lowPocket = state();
   restoreTx(spendId);

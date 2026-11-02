@@ -181,7 +181,7 @@ main>section>*+*{margin-top:var(--gap)}
 .alloc-bar>i{display:block;min-width:3px}
 .alloc-bar>u{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:#fff}
 /* Solid = money already moved; striped = set aside for bills / Essentials not paid yet. */
-.sw-left{background:#34d399}.sw-spent{background:#94a3b8}.sw-saved{background:#059669}
+.sw-left{background:#34d399}.sw-spent{background:#94a3b8}.sw-saved{background:#059669}.sw-adj{background:#f59e0b}
 .alloc-legend{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .alloc-legend>*{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0;padding:0;background:none;border:0;color:#94a3b8;font:inherit;font-size:12px;text-align:left}
 .alloc-legend button:hover{color:#e2e8f0}
@@ -1386,14 +1386,16 @@ function payChip(fin){
   }
   return `<button class="pay-chip" onclick="openPaydayModal()" title="Ubah tanggal gajian"><i data-lucide="calendar"></i><span>${fin.daysToPayday===1?'Gajian besok':`Gajian ${fin.daysToPayday} hari lagi`} · ${d}</span><i data-lucide="chevron-right"></i></button>`;
 }
-/* Where this pay period's money went: spent, saved and what is left. Sisa = the big number (money now, bills and Essentials
-   still to pay included); downward balance fixes and last period's shortfall count as spent. */
+/* Where this pay period's money went: spent, adjustments, saved and what is left. Sisa = the big number (money now, bills
+   and Essentials still to pay included). Downward balance fixes and last period's shortfall are NOT spending, so they get
+   their own Penyesuaian segment; they still reduce Sisa and Safe-to-Spend exactly like before. */
 function safeAlloc(fin){
   if(fundsState(fin)==='none') return '';
   const avail=periodFunds(fin), inSaved=Math.max(0,-fin.cycleSaved), held=fin.billsReserved+fin.essentialsReserved;
-  const gone=fin.cycleSpending+Math.max(0,-fin.cycleAdjust)+Math.max(0,-fin.carryOver), saved=Math.max(0,fin.cycleSaved), left=Math.max(0,avail-gone-saved);
+  const spent=fin.cycleSpending, adj=Math.max(0,-fin.cycleAdjust)+Math.max(0,-fin.carryOver), gone=spent+adj, saved=Math.max(0,fin.cycleSaved), left=Math.max(0,avail-gone-saved);
   const segs=[
-    {k:'spent',l:'Sudah keluar',v:gone,go:'activity',t:[`Pengeluaran ${fmt(fin.cycleSpending)} (termasuk kartu kredit)`,fin.cycleAdjust<0?`penyesuaian saldo ${fmt(-fin.cycleAdjust)}`:'',fin.carryOver<0?`minus periode lalu ${fmt(-fin.carryOver)}`:''].filter(Boolean).join(' + ')},
+    {k:'spent',l:'Sudah keluar',v:spent,go:'activity',t:`Pengeluaran ${fmt(fin.cycleSpending)} (termasuk kartu kredit)`},
+    {k:'adj',l:'Penyesuaian',v:adj,go:'activity',t:adj? [fin.cycleAdjust<0?`penyesuaian saldo ${fmt(-fin.cycleAdjust)}`:'',fin.carryOver<0?`minus periode lalu ${fmt(-fin.carryOver)}`:''].filter(Boolean).join(' + ')+' — koreksi saldo, bukan belanja' : 'Tidak ada koreksi saldo periode ini'},
     {k:'saved',l:'Ditabung',v:saved,go:'pockets',t:'Dipindah ke pocket tabungan periode ini'},
     {k:'left',l:'Sisa',v:left,t:held?`Termasuk ${fmt(held)} untuk tagihan dan Essentials yang belum dibayar`:'Semuanya aman dibelanjakan'}];
   const scale=Math.max(avail,gone+saved); if(!scale) return '';

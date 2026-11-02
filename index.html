@@ -413,6 +413,11 @@ select{padding:10px 12px;border-radius:var(--r-sm);border:1px solid var(--border
 .period-step .icon-btn{position:relative;width:30px;height:30px;padding:0;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--text)}
 .period-step .icon-btn svg{width:16px;height:16px;stroke-width:2.5}
 .period-step .icon-btn:disabled{opacity:.35;cursor:default}
+.period-date,.period-range{display:flex;align-items:end;gap:8px;flex-wrap:wrap}
+.period-date label,.period-range label{display:grid;gap:3px;font-size:11px;font-weight:700;color:var(--muted)}
+.period-date input[type="date"],.period-range input[type="date"]{width:150px;min-height:38px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface);color:var(--text);font:inherit;font-size:13px}
+.period-range>span{padding-bottom:9px;color:var(--muted);font-weight:700}
+@media(max-width:560px){.period-date input[type="date"],.period-range input[type="date"]{width:138px}}
 .amt-wrap{position:relative;display:block}
 .amt-wrap input{width:100%;padding-right:64px!important}
 .amt-k{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:1px solid var(--emerald-border);background:var(--emerald-bg);color:var(--emerald-text);font:inherit;font-size:14px;font-weight:700;padding:4px 8px;border-radius:var(--r-sm);cursor:pointer}
@@ -1263,7 +1268,10 @@ function periodSpend(start,end){
   const free=Object.values(map).reduce((a,b)=>a+b,0); // free spending after refunds, never negative
   return {map,planned,income,free};
 }
-/* A calendar period relative to today: a month, a Monday–Sunday week, or everything. offset 0 = current, -1 = previous… */
+/* A calendar period: a month or Monday–Sunday week relative to today, one exact date, a custom inclusive
+   date range, or everything. Ranges are [start, end): end is the day after the last day shown. */
+const isISODate=s=>/^\d{4}-\d{2}-\d{2}$/.test(s||'');
+function shiftISODate(iso,days){ const [y,m,d]=iso.split('-').map(Number); return isoDate(new Date(y,m-1,d+days)); }
 function periodRange(p){
   const t=today();
   if(p.kind==='month'){ const a=new Date(t.getFullYear(),t.getMonth()+p.offset,1), b=new Date(a.getFullYear(),a.getMonth()+1,1);
@@ -1271,16 +1279,34 @@ function periodRange(p){
   if(p.kind==='week'){ const mon=new Date(t.getFullYear(),t.getMonth(),t.getDate()-((t.getDay()+6)%7)+7*p.offset), sun=new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+6), nxt=new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+7);
     const f=d=>d.toLocaleDateString('id-ID',{day:'numeric',month:'short'}).replace('.','');
     return {start:isoDate(mon),end:isoDate(nxt),label:`${p.offset===0?'Minggu ini · ':p.offset===-1?'Minggu lalu · ':''}${f(mon)} – ${f(sun)} ${sun.getFullYear()}`}; }
+  if(p.kind==='date'){ const date=isISODate(p.date)?p.date:todayISO(), [y,m,d]=date.split('-').map(Number);
+    return {start:date,end:shiftISODate(date,1),label:new Date(y,m-1,d).toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}; }
+  if(p.kind==='range'){ const tIso=todayISO(), monthStart=isoDate(new Date(t.getFullYear(),t.getMonth(),1));
+    const a=isISODate(p.start)?p.start:monthStart, b=isISODate(p.end)?p.end:tIso, start=a<=b?a:b, last=a<=b?b:a;
+    const [sy,sm,sd]=start.split('-').map(Number), [ey,em,ed]=last.split('-').map(Number);
+    const f=(y,m,d,withYear)=>new Date(y,m-1,d).toLocaleDateString('id-ID',{day:'numeric',month:'short',...(withYear?{year:'numeric'}:{})}).replace('.','');
+    return {start,end:shiftISODate(last,1),label:`${f(sy,sm,sd,sy!==ey)} – ${f(ey,em,ed,true)}`}; }
   return {start:'0000-01-01',end:'9999-12-31',label:'Semua waktu'};
 }
-/* Kind switch plus ‹ label › stepper. key names the state object ('dashPeriod' or 'txPeriod'). */
+/* Kind switch plus ‹ label › stepper for relative periods, or date inputs for exact/custom periods.
+   key names the state object ('dashPeriod' or 'txPeriod'). */
 function periodPicker(key,p,withAll){
-  const r=periodRange(p), kinds=[...(withAll?[['all','Semua']]:[]),['month','Bulan'],['week','Minggu']];
-  return `<div class="period"><div class="seg">${kinds.map(([k,l])=>`<button class="${p.kind===k?'active':''}" onclick="setPeriod('${key}','${k}')">${l}</button>`).join('')}</div>
-  ${p.kind==='all'?'':`<div class="period-step"><button class="icon-btn" aria-label="Sebelumnya" onclick="stepPeriod('${key}',-1)"><i data-lucide="chevron-left"></i></button><span>${r.label}</span><button class="icon-btn" aria-label="Berikutnya" onclick="stepPeriod('${key}',1)" ${p.offset>=0?'disabled':''}><i data-lucide="chevron-right"></i></button></div>`}</div>`;
+  const r=periodRange(p), kinds=[...(withAll?[['all','Semua']]:[]),['month','Bulan'],['week','Minggu'],['date','Tanggal'],['range','Rentang']];
+  const relStep=p.kind==='month'||p.kind==='week'? `<div class="period-step"><button class="icon-btn" aria-label="Sebelumnya" onclick="stepPeriod('${key}',-1)"><i data-lucide="chevron-left"></i></button><span>${r.label}</span><button class="icon-btn" aria-label="Berikutnya" onclick="stepPeriod('${key}',1)" ${p.offset>=0?'disabled':''}><i data-lucide="chevron-right"></i></button></div>` : '';
+  const oneDate=p.kind==='date'? `<div class="period-date"><label>Tanggal<input type="date" value="${isISODate(p.date)?p.date:todayISO()}" onchange="setPeriodDate('${key}',this.value)"></label></div>` : '';
+  const range=p.kind==='range'? `<div class="period-range"><label>Mulai<input type="date" value="${isISODate(p.start)?p.start:r.start}" onchange="setPeriodRange('${key}','start',this.value)"></label><span aria-hidden="true">–</span><label>Sampai<input type="date" value="${isISODate(p.end)?p.end:shiftISODate(r.end,-1)}" onchange="setPeriodRange('${key}','end',this.value)"></label></div>` : '';
+  return `<div class="period"><div class="seg">${kinds.map(([k,l])=>`<button class="${p.kind===k?'active':''}" onclick="setPeriod('${key}','${k}')">${l}</button>`).join('')}</div>${relStep}${oneDate}${range}</div>`;
 }
 let dashPeriod={kind:'month',offset:0}, txPeriod={kind:'all',offset:0};
-function setPeriod(key,kind){ const p={kind,offset:0}; if(key==='dashPeriod') dashPeriod=p; else txPeriod=p; render(); }
+function freshPeriod(kind){
+  if(kind==='date') return {kind,offset:0,date:todayISO()};
+  if(kind==='range'){ const t=today(); return {kind,offset:0,start:isoDate(new Date(t.getFullYear(),t.getMonth(),1)),end:todayISO()}; }
+  return {kind,offset:0};
+}
+function setPeriod(key,kind){ const p=freshPeriod(kind); if(key==='dashPeriod') dashPeriod=p; else txPeriod=p; render(); }
+function setPeriodDate(key,value){ if(!isISODate(value)) return; const p={kind:'date',offset:0,date:value}; if(key==='dashPeriod') dashPeriod=p; else txPeriod=p; render(); }
+function setPeriodRange(key,part,value){ if(!isISODate(value)) return; const p=key==='dashPeriod'?dashPeriod:txPeriod; if(p.kind!=='range') return;
+  p[part]=value; if(p.start&&p.end&&p.start>p.end){ if(part==='start') p.end=value; else p.start=value; } render(); }
 function stepPeriod(key,d){ const p=key==='dashPeriod'?dashPeriod:txPeriod; p.offset=Math.min(0,p.offset+d); render(); }
 function financialSummary(){
   const totalLiquidCash=accounts.filter(a=>a.type!=='credit').reduce((s,a)=>s+a.balance,0);
